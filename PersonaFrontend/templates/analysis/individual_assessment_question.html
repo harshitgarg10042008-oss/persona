@@ -1,0 +1,777 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment - Question {{ question_number }}/{{ total_questions }}{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/cs                <div class="text-center mb-6">
+                    <button id="record-button" class="record-button start disabled" disabled>
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div class="mt-3 text-sm opacity-75" id="record-status">
+                        Prepare to Record
+                    </div>
+                </div>y=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #eee8dd;
+        font-family: 'Inter', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+        font-weight: 400;
+    }
+    .assessment-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #eee8dd;
+        color: #2c2c2c;
+    }
+    .assessment-header {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 20px 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .progress-container {
+        flex: 1;
+        margin: 0 20px;
+    }
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        transition: width 0.3s ease;
+        border-radius: 4px;
+    }
+    .main-content {
+        flex: 1;
+        display: flex;
+        padding: 32px;
+        gap: 32px;
+    }
+    .question-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 20px;
+        padding: 40px;
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    }
+    .video-panel {
+        width: 400px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .video-container {
+        position: relative;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    .video-feed {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+    }
+    .video-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(103, 126, 234, 0.8);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+    }
+    .controls-panel {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(15px);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .record-button {
+        width: 80px;
+        height: 80px;
+        border: none;
+        border-radius: 50%;
+        font-size: 28px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        font-family: system-ui;
+        position: relative;
+    }
+    .record-button:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+    .record-button.start {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    .record-button.stop {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        animation: pulse-recording 2s infinite;
+    }
+    .record-button.disabled {
+        background: linear-gradient(135deg, #9ca3af, #6b7280);
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    @keyframes pulse-recording {
+        0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        50% { 
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(239, 68, 68, 0.4);
+        }
+        }
+        50% { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            transform: scale(1.05);
+        }
+    }
+    .next-button {
+        padding: 16px 32px;
+        border: none;
+        border-radius: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        margin-top: 24px;
+        font-family: 'Inter', sans-serif;
+    }
+    .next-button:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+    }
+    .timer {
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 12px;
+        color: #374151;
+        font-family: 'Inter', sans-serif;
+    }
+    .warning-banner {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        padding: 16px 24px;
+        text-align: center;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+        font-family: 'Inter', sans-serif;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.9; }
+    }
+    .status-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: blink 2s infinite;
+    }
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0.3; }
+    }
+    .question-meta {
+        font-size: 14px;
+        color: #9ca3af;
+        margin-bottom: 20px;
+    }
+    .fullscreen-exit-warning {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+    }
+    
+    /* Modern Typography */
+    .question-text {
+        font-size: 20px;
+        font-weight: 500;
+        line-height: 1.6;
+        color: #1f2937;
+        margin: 24px 0;
+        font-family: 'Inter', sans-serif;
+    }
+    .question-meta {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        font-family: 'Inter', sans-serif;
+    }
+    .question-meta span {
+        font-weight: 500;
+    }
+    #record-status {
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        color: #6b7280;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-container">
+    <!-- Fullscreen Exit Warning -->
+    <div id="fullscreen-warning" class="fullscreen-exit-warning">
+        <div>
+            <h2 class="text-3xl font-bold mb-4">⚠️ Fullscreen Required</h2>
+            <p class="text-lg mb-6">Please return to fullscreen mode to continue your assessment.</p>
+            <p class="text-sm text-gray-300 mb-8">Exiting fullscreen is tracked and may affect your final score.</p>
+            <button id="return-fullscreen" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 text-lg font-medium">
+                Return to Fullscreen
+            </button>
+        </div>
+    </div>
+
+    <!-- Warning Banner (initially hidden) -->
+    <div id="warning-banner" class="warning-banner" style="display: none;">
+        <span id="warning-text">⚠️ Please ensure you're in a quiet environment</span>
+    </div>
+
+    <!-- Assessment Header -->
+    <div class="assessment-header">
+        <div class="flex items-center">
+            <h1 class="text-lg font-bold">{{ assessment.platform_job_title.title }} Assessment</h1>
+            <span class="ml-4 text-sm text-gray-300">Session: {{ session_id|slice:":8" }}...</span>
+        </div>
+        
+        <div class="progress-container">
+            <div class="flex justify-between text-sm mb-1">
+                <span>Question {{ question_number }} of {{ total_questions }}</span>
+                <span>{{ progress_percentage|floatformat:0 }}% Complete</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ progress_percentage }}%"></div>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="text-sm">
+                <span class="text-gray-300">Analysis:</span>
+                <span id="analysis-status" class="text-green-400">Running</span>
+            </div>
+            <div id="session-timer" class="text-sm">00:00</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Question Panel -->
+        <div class="question-panel">
+            <div class="question-meta">
+                <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    {{ question.get_question_type_display }}
+                </span>
+                {% if question.is_mandatory %}
+                <span class="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    Mandatory
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="question-text">
+                {{ question.question_text }}
+            </div>
+            
+            <div class="recording-controls">
+                <div id="timer" class="timer">
+                    <div id="prep-timer" style="display: block;">
+                        Preparation Time: <span id="prep-time">30</span>s
+                    </div>
+                    <div id="response-timer" style="display: none;">
+                        Response Time: <span id="response-time">0</span>s
+                    </div>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <button id="record-button" class="record-button start disabled" disabled>
+                        �️
+                    </button>
+                    <div class="mt-3 text-sm opacity-75" id="record-status">
+                        Prepare to Record
+                    </div>
+                </div>
+                
+                <button id="next-button" class="next-button" style="display: none;">
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <!-- Video & Analysis Panel -->
+        <div class="video-panel">
+            <!-- Video Feed -->
+            <div class="video-container">
+                <video id="video-feed" class="video-feed" autoplay muted></video>
+                <canvas id="video-canvas" style="display: none;"></canvas>
+                <div class="video-overlay" id="video-loading">
+                    <div>
+                        <div>📹 Initializing Camera...</div>
+                        <div class="text-xs mt-2">Please allow camera access</div>
+                    </div>
+                </div>
+                <div class="status-indicator" id="recording-indicator" style="display: none;"></div>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let mediaRecorder = null;
+let audioChunks = [];
+let videoStream = null;
+let isRecording = false;
+let preparationTime = 30;
+let responseTime = 0;
+let questionStartTime = Date.now();
+let responseStartTime = null;
+let fullscreenViolations = 0;
+
+// Initialize assessment
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFullscreen();
+    initializeCamera();
+    startPreparationTimer();
+    
+    // Add event listeners
+    document.getElementById('record-button').addEventListener('click', toggleRecording);
+    document.getElementById('next-button').addEventListener('click', nextQuestion);
+    document.getElementById('return-fullscreen').addEventListener('click', returnToFullscreen);
+    
+    // Monitor fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    
+    // Prevent leaving fullscreen with ESC (track violations)
+    document.addEventListener('keydown', handleKeyPress);
+    
+    // Start session timer
+    updateSessionTimer();
+    setInterval(updateSessionTimer, 1000);
+});
+
+// Initialize fullscreen
+function initializeFullscreen() {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+    }
+}
+
+// Handle fullscreen changes
+function handleFullscreenChange() {
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    
+    if (!isFullscreen) {
+        fullscreenViolations++;
+        document.getElementById('fullscreen-warning').style.display = 'flex';
+        
+        if (fullscreenViolations > 1) {
+            showWarning('Multiple fullscreen violations detected. This may affect your score.');
+        }
+    } else {
+        document.getElementById('fullscreen-warning').style.display = 'none';
+    }
+}
+
+// Return to fullscreen
+function returnToFullscreen() {
+    initializeFullscreen();
+}
+
+// Handle key presses
+function handleKeyPress(event) {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        showWarning('Attempted to exit fullscreen. Please stay in fullscreen mode.');
+        return false;
+    }
+}
+
+// Initialize camera
+async function initializeCamera() {
+    console.log('Starting camera initialization...');
+    
+    try {
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera access not supported in this browser');
+        }
+        
+        console.log('Requesting camera and microphone permissions...');
+        
+        // Request camera and microphone permissions with less restrictive constraints
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, // Start with basic video constraints
+            audio: true  // Start with basic audio constraints
+        });
+        
+        console.log('Permissions granted, got media stream');
+        
+        const videoFeed = document.getElementById('video-feed');
+        if (!videoFeed) {
+            throw new Error('Video element not found');
+        }
+        
+        console.log('Setting video source...');
+        videoFeed.srcObject = videoStream;
+        
+        // Force video to start
+        try {
+            await videoFeed.play();
+            console.log('Video is playing');
+        } catch (playError) {
+            console.warn('Video play failed, trying manual play:', playError);
+            // Sometimes autoplay is blocked, try manual play
+            setTimeout(() => videoFeed.play(), 100);
+        }
+        
+        // Wait for video to be ready
+        videoFeed.onloadedmetadata = function() {
+            console.log('Video metadata loaded - camera ready!');
+            const loadingElement = document.getElementById('video-loading');
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
+            // Enable the record button now that camera is ready
+            const recordButton = document.getElementById('record-button');
+            if (recordButton) {
+                recordButton.disabled = false;
+                recordButton.classList.remove('disabled');
+            }
+            
+            // Start preparation timer
+            startPreparationTimer();
+        };
+        
+        // Handle video errors
+        videoFeed.onerror = function(e) {
+            console.error('Video element error:', e);
+            showCameraError('Video playback failed');
+        };
+        
+        console.log('Camera initialized successfully');
+        
+    } catch (error) {
+        console.error('Camera initialization failed:', error);
+        showCameraError(error);
+    }
+}
+
+// Show camera error
+function showCameraError(error) {
+    const loadingElement = document.getElementById('video-loading');
+    if (loadingElement) {
+        let errorMessage = 'Camera access failed';
+        let helpText = 'Make sure to allow camera and microphone access when prompted';
+        
+        if (error.name === 'NotAllowedError') {
+            errorMessage = 'Camera access denied';
+            helpText = 'Please click the camera icon in your browser\'s address bar to allow access';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage = 'No camera found';
+            helpText = 'Please connect a camera and try again';
+        } else if (error.name === 'NotReadableError') {
+            errorMessage = 'Camera is busy';
+            helpText = 'Please close other applications using the camera and try again';
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+        
+        loadingElement.innerHTML = `
+            <div class="text-center p-4">
+                <div class="text-red-600 font-bold mb-2">❌ ${errorMessage}</div>
+                <div class="text-sm text-gray-600 mb-3">${helpText}</div>
+                <button onclick="initializeCamera()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Start preparation timer
+function startPreparationTimer() {
+    const prepTimer = setInterval(() => {
+        preparationTime--;
+        document.getElementById('prep-time').textContent = preparationTime;
+        
+        if (preparationTime <= 0) {
+            clearInterval(prepTimer);
+            document.getElementById('prep-timer').style.display = 'none';
+            document.getElementById('response-timer').style.display = 'block';
+            
+            const recordButton = document.getElementById('record-button');
+            recordButton.disabled = false;
+            recordButton.classList.remove('disabled');
+            recordButton.querySelector('#record-text').textContent = 'Start Recording';
+            
+            startResponseTimer();
+        }
+    }, 1000);
+}
+
+// Start response timer
+function startResponseTimer() {
+    const responseTimer = setInterval(() => {
+        responseTime++;
+        document.getElementById('response-time').textContent = responseTime;
+    }, 1000);
+}
+
+// Toggle recording
+async function toggleRecording() {
+    if (!isRecording) {
+        await startRecording();
+    } else {
+        await stopRecording();
+    }
+}
+
+// Start recording
+async function startRecording() {
+    try {
+        audioChunks = [];
+        responseStartTime = Date.now();
+        
+        mediaRecorder = new MediaRecorder(videoStream, {
+            mimeType: 'audio/webm'
+        });
+        
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = function() {
+            processAudioRecording();
+        };
+        
+        mediaRecorder.start(1000); // Collect data every second
+        isRecording = true;
+        
+        // Update UI
+        const recordButton = document.getElementById('record-button');
+        recordButton.classList.remove('start');
+        recordButton.classList.add('stop');
+        recordButton.querySelector('#record-text').textContent = 'Stop Recording';
+        recordButton.querySelector('#record-icon').textContent = '⏹️';
+        
+        document.getElementById('recording-indicator').style.display = 'block';
+        
+    } catch (error) {
+        console.error('Recording start failed:', error);
+        showWarning('Failed to start recording. Please check your microphone.');
+    }
+}
+
+// Stop recording
+async function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        // Update UI
+        const recordButton = document.getElementById('record-button');
+        recordButton.style.display = 'none';
+        document.getElementById('recording-indicator').style.display = 'none';
+        document.getElementById('next-button').style.display = 'block';
+    }
+}
+
+// Process audio recording
+function processAudioRecording() {
+    if (audioChunks.length === 0) {
+        showWarning('No audio recorded. Please try again.');
+        return;
+    }
+    
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const reader = new FileReader();
+    
+    reader.onload = function() {
+        const audioData = reader.result;
+        submitResponse(audioData);
+    };
+    
+    reader.readAsDataURL(audioBlob);
+}
+
+// Submit response
+async function submitResponse(audioData) {
+    const responseData = {
+        audio_data: audioData,
+        response_duration: responseTime,
+        time_to_start: responseStartTime ? (responseStartTime - questionStartTime) / 1000 : 0,
+        fullscreen_violations: fullscreenViolations
+    };
+    
+    try {
+        const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(responseData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Response submitted successfully
+            
+            if (result.is_complete) {
+                // Assessment complete
+                setTimeout(() => {
+                    window.location.href = result.complete_url;
+                }, 2000);
+            }
+        } else {
+            showWarning('Failed to submit response: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Submit response failed:', error);
+        showWarning('Failed to submit response. Please check your connection.');
+    }
+}
+
+// Next question
+function nextQuestion() {
+    // Clean up
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Navigate to next question
+    window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
+}
+    
+    // Navigate to next question
+    window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
+}
+
+// Show warning
+function showWarning(message) {
+    const banner = document.getElementById('warning-banner');
+    document.getElementById('warning-text').textContent = message;
+    banner.style.display = 'block';
+    
+    setTimeout(() => {
+        banner.style.display = 'none';
+    }, 5000);
+}
+
+// Update session timer
+function updateSessionTimer() {
+    const sessionStart = new Date("{{ assessment.started_at|date:'c'|default:'2024-01-01T00:00:00Z' }}");
+    const now = new Date();
+    const elapsed = Math.floor((now - sessionStart) / 1000);
+    
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    document.getElementById('session-timer').textContent = 
+        String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

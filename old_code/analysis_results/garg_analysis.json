@@ -1,0 +1,240 @@
+{
+  "image_path": ".\\garg.jpg",
+  "analysis_time": 18.442063093185425,
+  "final_assessment": {
+    "final_score": 75.5466793358326,
+    "category": "Professional",
+    "detailed_feedback": [
+      "Excellent professional appearance - suitable for most business environments",
+      "Smart casual attire detected",
+      "Professional clothing elements identified",
+      "Excellent professional color scheme",
+      "Professional clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 65.6970089673996,
+        "weight": 0.4,
+        "feedback": [
+          "Smart casual attire detected"
+        ]
+      },
+      "blip": {
+        "score": 80,
+        "weight": 0.25,
+        "feedback": [
+          "Professional clothing elements identified"
+        ]
+      },
+      "color": {
+        "score": 89,
+        "weight": 0.2,
+        "feedback": [
+          "Excellent professional color scheme"
+        ]
+      },
+      "fashion": {
+        "score": 76.45250499248505,
+        "weight": 0.15,
+        "feedback": [
+          "Professional clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.016264019533991814,
+          0.04872480034828186,
+          0.04154288023710251,
+          0.5697008967399597,
+          0.018087606877088547,
+          0.0036361159291118383,
+          0.07946678251028061,
+          0.023956017568707466,
+          0.149079829454422,
+          0.04954112321138382
+        ],
+        "best_match": "a person wearing smart casual clothes",
+        "confidence": 0.5697008967399597
+      },
+      "upper_body": {
+        "prompts": [
+          "formal dress shirt with tie",
+          "business blazer or suit jacket",
+          "professional blouse or shirt",
+          "casual shirt or top",
+          "t-shirt or casual wear",
+          "inappropriate or revealing top"
+        ],
+        "probabilities": [
+          0.2994689345359802,
+          0.46996578574180603,
+          0.20620568096637726,
+          0.00117769418284297,
+          0.022162580862641335,
+          0.0010194680653512478
+        ],
+        "best_match": "business blazer or suit jacket",
+        "confidence": 0.46996578574180603
+      },
+      "lower_body": {
+        "prompts": [
+          "formal dress pants or suit trousers",
+          "business casual pants or chinos",
+          "professional skirt or dress pants",
+          "casual jeans or pants",
+          "shorts or inappropriate bottoms",
+          "athletic or gym wear"
+        ],
+        "probabilities": [
+          0.39016273617744446,
+          0.36750680208206177,
+          0.1310078501701355,
+          0.09167810529470444,
+          0.013024663552641869,
+          0.006619918160140514
+        ],
+        "best_match": "formal dress pants or suit trousers",
+        "confidence": 0.39016273617744446
+      }
+    },
+    "blip": {
+      "captions": [
+        "black and white photo of a man in a suit standing with his hands in his pockets",
+        "black and white photo of a man in a suit standing with his hands in his pockets"
+      ],
+      "primary_description": "black and white photo of a man in a suit standing with his hands in his pockets",
+      "detailed_description": "black and white photo of a man in a suit standing with his hands in his pockets"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "suit, suit of clothes",
+        "bow tie, bow-tie, bowtie",
+        "Windsor tie",
+        "Loafer",
+        "bulletproof vest",
+        "bassoon",
+        "oboe, hautboy, hautbois",
+        "sax, saxophone",
+        "French horn, horn",
+        "bolo tie, bolo, bola tie, bola"
+      ],
+      "confidences": [
+        0.8817501664161682,
+        0.038989435881376266,
+        0.03822324424982071,
+        0.004350614733994007,
+        0.0025591840967535973,
+        0.002329072682186961,
+        0.0022371478844434023,
+        0.0011683463817462325,
+        0.0009325050050392747,
+        0.0008989365887828171
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            46,
+            46,
+            45
+          ],
+          "name": "black/dark gray",
+          "professional": true,
+          "hsv": [
+            30,
+            6,
+            46
+          ]
+        },
+        {
+          "rgb": [
+            200,
+            199,
+            198
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            15,
+            3,
+            200
+          ]
+        },
+        {
+          "rgb": [
+            139,
+            139,
+            137
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            30,
+            4,
+            139
+          ]
+        },
+        {
+          "rgb": [
+            19,
+            19,
+            18
+          ],
+          "name": "black/dark gray",
+          "professional": true,
+          "hsv": [
+            30,
+            13,
+            19
+          ]
+        },
+        {
+          "rgb": [
+            70,
+            70,
+            68
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            30,
+            7,
+            70
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 1114.7113252716429,
+        "pattern_complexity": "medium",
+        "professional_pattern": false
+      },
+      "professional_color_score": 89,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": true,
+    "regions_extracted": {
+      "upper_body": true,
+      "lower_body": true
+    }
+  }
+}

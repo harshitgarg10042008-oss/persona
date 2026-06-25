@@ -1,0 +1,48 @@
+# Additional requirements for AI analysis modules
+# These packages are required for the comprehensive assessment analysis features
+
+# Computer Vision and Image Processing
+opencv-python
+pillow
+numpy
+
+# MediaPipe for body language analysis
+#mediapipe
+
+# Machine Learning Models
+torch
+torchvision
+transformers
+
+# Audio Processing and Speech Analysis
+librosa
+soundfile
+openai-whisper
+SpeechRecognition
+pyaudio
+
+# Natural Language Processing
+nltk
+textblob
+
+# Additional utilities
+requests
+tqdm
+
+# Note: Some packages may require additional system dependencies:
+# - For pyaudio on Windows: Microsoft Visual C++ 14.0 or greater
+# - For librosa: ffmpeg system installation recommended
+# - For MediaPipe: May require specific versions for different platforms
+
+# Installation commands:
+# Basic ML packages (required for attire and body language):
+# pip install opencv-python pillow numpy mediapipe torch torchvision transformers
+
+# Audio analysis packages (required for speech analysis):
+# pip install librosa soundfile openai-whisper SpeechRecognition pyaudio
+
+# NLP packages:
+# pip install nltk textblob
+
+# After installation, you may need to run:
+# python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"

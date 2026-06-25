@@ -1,0 +1,586 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job_title.title }} Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #eee8dd;
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .assessment-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .progress-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .progress-bar {
+        width: 200px;
+        height: 8px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: #10b981;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    
+    .main-content {
+        margin-top: 80px;
+        min-height: calc(100vh - 80px);
+        padding: 2rem;
+    }
+    
+    .setup-section, .question-section {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        padding: 3rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .setup-section.hidden, .question-section.hidden {
+        display: none;
+    }
+    
+    .setup-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    
+    .setup-subtitle {
+        font-size: 1.2rem;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    #video-feed {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .camera-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 1rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .question-content {
+        margin-bottom: 2rem;
+    }
+    
+    .question-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .question-text {
+        font-size: 1.1rem;
+        color: #4b5563;
+        line-height: 1.6;
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .recording-container {
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .recording-status {
+        margin: 1rem 0;
+        font-weight: 600;
+    }
+    
+    .recording-status.recording {
+        color: #dc2626;
+    }
+    
+    .recording-status.ready {
+        color: #059669;
+    }
+    
+    .timer {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 1rem 0;
+    }
+    
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .completion-section {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .completion-section h2 {
+        font-size: 2rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 1rem;
+        }
+        
+        .setup-section, .question-section {
+            padding: 2rem 1.5rem;
+        }
+        
+        .header-content {
+            padding: 0 1rem;
+        }
+        
+        .progress-bar {
+            width: 150px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-header">
+    <div class="header-content">
+        <div>
+            <h1 class="text-lg font-semibold">{{ job_title.title }}</h1>
+            <p class="text-sm opacity-75">Business Assessment</p>
+        </div>
+        <div class="progress-info">
+            <span class="text-sm">Question <span id="current-q">{{ current_question_number }}</span> of {{ total_questions }}</span>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ progress_percentage }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <!-- Camera Setup Section -->
+    <div id="setup-section" class="setup-section">
+        <h2 class="setup-title">
+            <i class="fas fa-video mr-3 text-blue-600"></i>
+            Camera Setup
+        </h2>
+        <p class="setup-subtitle">Please allow camera and microphone access to begin your assessment</p>
+        
+        <div class="camera-container">
+            <video id="video-feed" autoplay muted></video>
+            <div id="camera-overlay" class="camera-overlay">
+                <i class="fas fa-camera fa-3x mb-4"></i>
+                <p class="text-lg mb-4">Camera access required</p>
+                <button id="start-camera" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    Enable Camera
+                </button>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <button id="start-assessment" class="btn btn-success" style="display: none;">
+                <i class="fas fa-play"></i>
+                Start Assessment
+            </button>
+        </div>
+    </div>
+
+    <!-- Question Section -->
+    <div id="question-section" class="question-section hidden">
+        <div class="question-content">
+            <h3 class="question-title">
+                <i class="fas fa-question-circle mr-2 text-blue-600"></i>
+                Question {{ current_question_number }}
+            </h3>
+            <div class="question-text">
+                {{ current_question.question_text }}
+            </div>
+        </div>
+        
+        <div class="camera-container">
+            <video id="assessment-video" autoplay muted></video>
+        </div>
+        
+        <div class="recording-container">
+            <div id="recording-status" class="recording-status ready">Ready to record</div>
+            <div id="timer" class="timer">0:00</div>
+            
+            <div class="controls">
+                <button id="record-btn" class="btn btn-primary">
+                    <i class="fas fa-microphone"></i>
+                    Start Recording
+                </button>
+                <button id="stop-btn" class="btn btn-danger" style="display: none;">
+                    <i class="fas fa-stop"></i>
+                    Stop Recording
+                </button>
+                <button id="next-btn" class="btn btn-success" style="display: none;">
+                    <i class="fas fa-arrow-right"></i>
+                    Next Question
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Completion Section -->
+    <div id="completion-section" class="completion-section hidden">
+        <i class="fas fa-check-circle fa-4x text-green-500 mb-4"></i>
+        <h2>Assessment Complete!</h2>
+        <p class="text-gray-600 mb-4">Thank you for completing the assessment. Your responses have been recorded.</p>
+        <div id="processing-status" class="text-blue-600">
+            <i class="fas fa-spinner fa-spin"></i>
+            Processing your assessment...
+        </div>
+    </div>
+</div>
+
+<script>
+// Assessment state
+let currentVideo = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let assessmentStarted = false;
+let currentQuestionNumber = {{ current_question_number }};
+let totalQuestions = {{ total_questions }};
+let timer = null;
+let startTime = null;
+let analysisInterval = null;
+
+// Camera setup
+document.getElementById('start-camera').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: true 
+        });
+        
+        const videoFeed = document.getElementById('video-feed');
+        videoFeed.srcObject = stream;
+        currentVideo = stream;
+        
+        // Hide overlay and show start button
+        document.getElementById('camera-overlay').style.display = 'none';
+        document.getElementById('start-assessment').style.display = 'inline-flex';
+        
+    } catch (error) {
+        console.error('Camera access denied:', error);
+        alert('Camera and microphone access is required for this assessment.');
+    }
+});
+
+// Start assessment
+document.getElementById('start-assessment').addEventListener('click', function() {
+    document.getElementById('setup-section').classList.add('hidden');
+    document.getElementById('question-section').classList.remove('hidden');
+    
+    // Move video stream to assessment video
+    const assessmentVideo = document.getElementById('assessment-video');
+    assessmentVideo.srcObject = currentVideo;
+    
+    assessmentStarted = true;
+    startBackgroundAnalysis();
+});
+
+// Recording controls
+document.getElementById('record-btn').addEventListener('click', startRecording);
+document.getElementById('stop-btn').addEventListener('click', stopRecording);
+document.getElementById('next-btn').addEventListener('click', nextQuestion);
+
+function startRecording() {
+    if (!currentVideo) return;
+    
+    try {
+        mediaRecorder = new MediaRecorder(currentVideo);
+        recordedChunks = [];
+        
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = function() {
+            const blob = new Blob(recordedChunks, { type: 'audio/wav' });
+            submitResponse(blob);
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        startTime = Date.now();
+        
+        // Update UI
+        document.getElementById('record-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'inline-flex';
+        document.getElementById('recording-status').textContent = 'Recording...';
+        document.getElementById('recording-status').className = 'recording-status recording';
+        
+        // Start timer
+        timer = setInterval(updateTimer, 1000);
+        
+    } catch (error) {
+        console.error('Recording failed:', error);
+        alert('Failed to start recording. Please try again.');
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        clearInterval(timer);
+        
+        // Update UI
+        document.getElementById('stop-btn').style.display = 'none';
+        document.getElementById('recording-status').textContent = 'Processing...';
+        document.getElementById('recording-status').className = 'recording-status';
+    }
+}
+
+function updateTimer() {
+    if (!startTime) return;
+    
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    document.getElementById('timer').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function submitResponse(audioBlob) {
+    const formData = new FormData();
+    formData.append('audio_data', audioBlob, 'response.wav');
+    formData.append('question_order', currentQuestionNumber);
+    
+    fetch('{% url "analysis:business_submit_response" assessment_id=assessment.id %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('next-btn').style.display = 'inline-flex';
+            document.getElementById('recording-status').textContent = 'Response recorded!';
+            document.getElementById('recording-status').className = 'recording-status ready';
+        } else {
+            alert('Failed to submit response: ' + (data.error || 'Unknown error'));
+            // Reset recording controls
+            document.getElementById('record-btn').style.display = 'inline-flex';
+            document.getElementById('recording-status').textContent = 'Ready to record';
+            document.getElementById('recording-status').className = 'recording-status ready';
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting response:', error);
+        alert('Failed to submit response. Please try again.');
+        // Reset recording controls
+        document.getElementById('record-btn').style.display = 'inline-flex';
+        document.getElementById('recording-status').textContent = 'Ready to record';
+        document.getElementById('recording-status').className = 'recording-status ready';
+    });
+}
+
+function nextQuestion() {
+    if (currentQuestionNumber >= totalQuestions) {
+        // Assessment complete
+        completeAssessment();
+    } else {
+        // Reload page for next question
+        window.location.reload();
+    }
+}
+
+function completeAssessment() {
+    document.getElementById('question-section').classList.add('hidden');
+    document.getElementById('completion-section').classList.remove('hidden');
+    
+    // Stop background analysis
+    if (analysisInterval) {
+        clearInterval(analysisInterval);
+    }
+    
+    // Check processing status and redirect when complete
+    checkProcessingStatus();
+}
+
+function checkProcessingStatus() {
+    // Poll for completion (business assessments redirect to business results)
+    setTimeout(() => {
+        window.location.href = '{% url "analysis:business_assessment_complete" assessment_id=assessment.id %}';
+    }, 3000);
+}
+
+function startBackgroundAnalysis() {
+    if (!assessmentStarted) return;
+    
+    let lastBodyCapture = 0;
+    let lastAttireCapture = 0;
+    const BODY_INTERVAL = 2000; // Every 2 seconds
+    const ATTIRE_INTERVAL = 8000; // Every 8 seconds
+    
+    analysisInterval = setInterval(() => {
+        const now = Date.now();
+        
+        // Capture body language analysis
+        if (now - lastBodyCapture >= BODY_INTERVAL) {
+            captureSnapshot('body_language');
+            lastBodyCapture = now;
+        }
+        
+        // Capture attire analysis
+        if (now - lastAttireCapture >= ATTIRE_INTERVAL) {
+            captureSnapshot('attire');
+            lastAttireCapture = now;
+        }
+    }, 1000);
+}
+
+function captureSnapshot(analysisType) {
+    if (!currentVideo) return;
+    
+    try {
+        const canvas = document.createElement('canvas');
+        const video = document.getElementById('assessment-video');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        const formData = new FormData();
+        formData.append('analysis_type', analysisType);
+        formData.append('image_data', imageData);
+        
+        fetch('{% url "analysis:business_capture_snapshot" assessment_id=assessment.id %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Snapshot capture failed:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error capturing snapshot:', error);
+        });
+        
+    } catch (error) {
+        console.error('Error creating snapshot:', error);
+    }
+}
+
+// Handle page visibility change
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isRecording) {
+        alert('Assessment paused. Please return to this tab to continue.');
+    }
+});
+
+// Prevent navigation during assessment
+window.addEventListener('beforeunload', (e) => {
+    if (assessmentStarted && currentQuestionNumber <= totalQuestions) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+{% endblock %}

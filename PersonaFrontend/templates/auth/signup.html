@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up - Persona{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-gradient-to-br from-primary to-primary-dark flex items-center py-20">
+    <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gray-800 text-white p-6 text-center">
+                <h1 class="font-bold text-2xl mb-2">Join Persona</h1>
+                <p class="text-gray-300">Start your interview improvement journey</p>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="flex bg-gray-100">
+                <button id="individual-tab" class="flex-1 py-3 px-4 text-center font-semibold transition-all duration-200 tab-btn active" onclick="switchTab('individual')">
+                    <i class="fas fa-user mr-2"></i>Individual
+                </button>
+                <button id="business-tab" class="flex-1 py-3 px-4 text-center font-semibold transition-all duration-200 tab-btn" onclick="switchTab('business')">
+                    <i class="fas fa-building mr-2"></i>Business
+                </button>
+            </div>
+            
+            <!-- Form Content -->
+            <div class="p-6">
+                <!-- Individual Form -->
+                <div id="individual-form" class="tab-content {% if active_tab != 'business' %}active{% endif %}">
+                    <form method="post" action="{% url 'signup' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_type" value="individual">
+                        
+                        <div>
+                            <label for="id_individual_name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            {{ individual_form.name }}
+                            {% if form_errors.name %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.name.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_individual_email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            {{ individual_form.email }}
+                            {% if form_errors.email %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.email.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_individual_password1" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            {{ individual_form.password1 }}
+                            {% if form_errors.password1 %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.password1.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_individual_password2" class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                            {{ individual_form.password2 }}
+                            {% if form_errors.password2 %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.password2.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-accent hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
+                            Create Individual Account
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Business Form -->
+                <div id="business-form" class="tab-content {% if active_tab == 'business' %}active{% endif %}">
+                    <form method="post" action="{% url 'signup' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_type" value="business">
+                        
+                        <div>
+                            <label for="id_business_name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            {{ business_form.name }}
+                            {% if form_errors.name %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.name.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_business_company_name" class="block text-sm font-medium text-gray-700 mb-2">Company Name (Optional)</label>
+                            {{ business_form.company_name }}
+                            {% if form_errors.company_name %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.company_name.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_business_email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            {{ business_form.email }}
+                            {% if form_errors.email %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.email.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_business_password1" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            {{ business_form.password1 }}
+                            {% if form_errors.password1 %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.password1.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="id_business_password2" class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                            {{ business_form.password2 }}
+                            {% if form_errors.password2 %}
+                                <div class="text-red-500 text-sm mt-1">{{ form_errors.password2.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-accent hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
+                            Create Business Account
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Footer -->
+                <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+                    <p class="text-gray-600">
+                        Already have an account? 
+                        <a href="{% url 'login' %}" class="text-accent hover:text-accent-dark font-semibold transition-colors duration-200">Sign In</a>
+                    </p>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-gray-500">
+                        By signing up, you agree to our 
+                        <a href="#" class="text-accent hover:text-accent-dark">Terms of Service</a> and 
+                        <a href="#" class="text-accent hover:text-accent-dark">Privacy Policy</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-btn {
+        background: transparent;
+        color: #6b7280;
+        border-bottom: 3px solid transparent;
+    }
+    
+    .tab-btn.active {
+        background: white;
+        color: #2d2d2d;
+        border-bottom-color: #b8a082;
+    }
+    
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(tabName + '-tab').classList.add('active');
+        
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(tabName + '-form').classList.add('active');
+    }
+    
+    // Set active tab based on server response
+    {% if active_tab %}
+        switchTab('{{ active_tab }}');
+    {% endif %}
+</script>
+{% endblock %}

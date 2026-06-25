@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Persona{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="font-display font-bold text-3xl text-dark">
+                        Welcome, {{ profile.name }}!
+                    </h1>
+                    <p class="text-gray-600 mt-1">
+                        {% if is_individual %}
+                            Individual Account
+                        {% elif is_business %}
+                            Business Account
+                            {% if profile.company_name %}
+                                • {{ profile.company_name }}
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">Account Type</p>
+                        <div class="flex items-center">
+                            {% if is_individual %}
+                                <i class="fas fa-user text-blue-500 mr-2"></i>
+                                <span class="font-semibold text-blue-600">Individual</span>
+                            {% elif is_business %}
+                                <i class="fas fa-building text-purple-500 mr-2"></i>
+                                <span class="font-semibold text-purple-600">Business</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-video text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Interviews</p>
+                        <p class="text-2xl font-bold text-dark">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Improvement</p>
+                        <p class="text-2xl font-bold text-dark">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-trophy text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Score</p>
+                        <p class="text-2xl font-bold text-dark">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-orange-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Practice Time</p>
+                        <p class="text-2xl font-bold text-dark">0h</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Getting Started -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="font-display font-semibold text-xl text-dark mb-4">Getting Started</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="#" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-accent hover:bg-accent/5 transition-all duration-200">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-video text-blue-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-dark mb-2">Start Interview</h3>
+                            <p class="text-gray-600 text-sm">Begin a new practice session</p>
+                        </a>
+                        
+                        <a href="#" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-accent hover:bg-accent/5 transition-all duration-200">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-upload text-green-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-dark mb-2">Upload Recording</h3>
+                            <p class="text-gray-600 text-sm">Analyze existing interview</p>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="font-display font-semibold text-xl text-dark mb-4">Recent Activity</h2>
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-clock text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-600 mb-2">No activity yet</h3>
+                        <p class="text-gray-500 text-sm">Start your first interview to see your progress here</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Profile Card -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="font-display font-semibold text-xl text-dark mb-4">Profile</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm text-gray-500">Name</label>
+                            <p class="font-medium text-dark">{{ profile.name }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-500">Email</label>
+                            <p class="font-medium text-dark">{{ user.email }}</p>
+                        </div>
+                        {% if is_business and profile.company_name %}
+                        <div>
+                            <label class="text-sm text-gray-500">Company</label>
+                            <p class="font-medium text-dark">{{ profile.company_name }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <label class="text-sm text-gray-500">Member Since</label>
+                            <p class="font-medium text-dark">{{ profile.created_at|date:"F Y" }}</p>
+                        </div>
+                    </div>
+                    <button class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-dark py-2 px-4 rounded-lg transition-colors duration-200">
+                        Edit Profile
+                    </button>
+                </div>
+                
+                <!-- Quick Tips -->
+                <div class="bg-gradient-to-br from-accent/10 to-primary/20 rounded-lg p-6 border border-accent/20">
+                    <h2 class="font-display font-semibold text-xl text-dark mb-4">
+                        <i class="fas fa-lightbulb text-accent mr-2"></i>
+                        Quick Tips
+                    </h2>
+                    <ul class="space-y-3 text-sm text-dark">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-accent mt-1 mr-2 flex-shrink-0"></i>
+                            Ensure good lighting for body language analysis
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-accent mt-1 mr-2 flex-shrink-0"></i>
+                            Speak clearly and at a moderate pace
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-accent mt-1 mr-2 flex-shrink-0"></i>
+                            Dress appropriately for your target role
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-accent mt-1 mr-2 flex-shrink-0"></i>
+                            Practice regularly for best results
+                        </li>
+                    </ul>
+                </div>
+                
+                {% if is_business %}
+                <!-- Business Features -->
+                <div class="bg-purple-50 rounded-lg p-6 border border-purple-200">
+                    <h2 class="font-display font-semibold text-xl text-dark mb-4">
+                        <i class="fas fa-building text-purple-600 mr-2"></i>
+                        Business Features
+                    </h2>
+                    <ul class="space-y-2 text-sm text-dark">
+                        <li class="flex items-center">
+                            <i class="fas fa-users text-purple-600 mr-2"></i>
+                            Team Management
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-chart-bar text-purple-600 mr-2"></i>
+                            Analytics Dashboard
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-cog text-purple-600 mr-2"></i>
+                            Custom Settings
+                        </li>
+                    </ul>
+                    <button class="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors duration-200">
+                        Explore Business Features
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

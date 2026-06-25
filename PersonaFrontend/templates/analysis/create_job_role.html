@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Job Role - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Create Job Role</h1>
+        <p class="text-gray-600">Define a new job role to start creating assessments.</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-6">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                    Job Title *
+                </label>
+                <input type="text" 
+                       id="title" 
+                       name="title" 
+                       required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="e.g. Software Engineer, Marketing Manager">
+            </div>
+
+            <div class="mb-6">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                <textarea id="description" 
+                          name="description" 
+                          rows="4"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Describe the job role, responsibilities, and requirements..."></textarea>
+                <p class="text-sm text-gray-500 mt-1">Optional: Provide details about the role to help candidates understand what to expect.</p>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
+                    Create Job Role
+                </button>
+                <a href="{% url 'analysis:business_dashboard' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg transition duration-200">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-8 bg-blue-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-2">What's Next?</h3>
+        <p class="text-blue-700 mb-3">After creating your job role, you'll be able to:</p>
+        <ul class="list-disc list-inside text-blue-700 space-y-1">
+            <li>Add interview questions specific to this role</li>
+            <li>Generate assessment links for candidates</li>
+            <li>Track and analyze candidate performance</li>
+            <li>Share assessment results with your team</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

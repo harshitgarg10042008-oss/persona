@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Persona{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-gradient-to-br from-primary to-primary-dark flex items-center py-20">
+    <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gray-800 text-white p-6 text-center">
+                <h1 class="font-bold text-2xl mb-2">Welcome Back</h1>
+                <p class="text-gray-300">Sign in to your Persona account</p>
+            </div>
+            
+            <!-- Form Content -->
+            <div class="p-6">
+                <form method="post" action="{% url 'login' %}" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label for="id_username" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        {{ login_form.username }}
+                        {% if login_form.username.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ login_form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="id_password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        {{ login_form.password }}
+                        {% if login_form.password.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ login_form.password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if login_form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div class="text-red-600 text-sm">{{ login_form.non_field_errors.0 }}</div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember_me" class="h-4 w-4 text-accent focus:ring-accent border-gray-300 rounded">
+                            <label for="remember_me" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                        </div>
+                        <a href="#" class="text-sm text-accent hover:text-accent-dark transition-colors duration-200">
+                            Forgot password?
+                        </a>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-accent hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
+                        Sign In
+                    </button>
+                </form>
+                
+                <!-- Divider -->
+                <div class="mt-6 mb-6">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">New to Persona?</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sign Up Link -->
+                <div class="text-center">
+                    <a href="{% url 'signup' %}" class="w-full inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white py-3 px-4 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
+                        Create New Account
+                    </a>
+                </div>
+                
+                <!-- Footer -->
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-gray-500">
+                        By signing in, you agree to our 
+                        <a href="#" class="text-accent hover:text-accent-dark">Terms of Service</a> and 
+                        <a href="#" class="text-accent hover:text-accent-dark">Privacy Policy</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Info -->
+        <div class="mt-8 text-center">
+            <div class="bg-white/80 backdrop-blur-md rounded-lg p-4 shadow-lg">
+                <h3 class="font-semibold text-gray-800 mb-2">Quick Access</h3>
+                <div class="flex justify-center space-x-4 text-sm text-gray-600">
+                    <span><i class="fas fa-user mr-1"></i>Individual Users</span>
+                    <span><i class="fas fa-building mr-1"></i>Business Users</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Same login works for both account types</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

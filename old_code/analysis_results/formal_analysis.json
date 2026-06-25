@@ -1,0 +1,217 @@
+{
+  "image_path": ".\\formal.jpg",
+  "analysis_time": 28.185946464538574,
+  "final_assessment": {
+    "final_score": 74.11045112609864,
+    "category": "Professional",
+    "detailed_feedback": [
+      "Excellent professional appearance - suitable for most business environments",
+      "Formal business attire detected",
+      "Excellent professional color scheme",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 94.27612781524658,
+        "weight": 0.4,
+        "feedback": [
+          "Formal business attire detected"
+        ]
+      },
+      "blip": {
+        "score": 50,
+        "weight": 0.25,
+        "feedback": []
+      },
+      "color": {
+        "score": 82,
+        "weight": 0.2,
+        "feedback": [
+          "Excellent professional color scheme"
+        ]
+      },
+      "fashion": {
+        "score": 50,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.002883502747863531,
+          0.002228211145848036,
+          0.0031035703141242266,
+          0.19214372336864471,
+          0.1424485146999359,
+          0.0033977197017520666,
+          0.07678192108869553,
+          0.4276127815246582,
+          0.002293725498020649,
+          0.14710633456707
+        ],
+        "best_match": "a person dressed for a corporate meeting",
+        "confidence": 0.4276127815246582
+      },
+      "upper_body": {
+        "prompts": [
+          "formal dress shirt with tie",
+          "business blazer or suit jacket",
+          "professional blouse or shirt",
+          "casual shirt or top",
+          "t-shirt or casual wear",
+          "inappropriate or revealing top"
+        ],
+        "probabilities": [
+          0.03035956621170044,
+          0.007620382122695446,
+          0.6414093375205994,
+          0.07281645387411118,
+          0.1503034383058548,
+          0.09749086201190948
+        ],
+        "best_match": "professional blouse or shirt",
+        "confidence": 0.6414093375205994
+      }
+    },
+    "blip": {
+      "captions": [
+        "there is a man that is standing in front of a keyboard",
+        "there is a man that is sitting at a table with a keyboard"
+      ],
+      "primary_description": "there is a man that is standing in front of a keyboard",
+      "detailed_description": "there is a man that is sitting at a table with a keyboard"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "steel drum",
+        "banjo",
+        "drum, membranophone, tympan",
+        "electric guitar",
+        "chain saw, chainsaw",
+        "drumstick",
+        "sax, saxophone",
+        "accordion, piano accordion, squeeze box",
+        "marimba, xylophone",
+        "pick, plectrum, plectron"
+      ],
+      "confidences": [
+        0.3733469545841217,
+        0.11977298557758331,
+        0.06503398716449738,
+        0.04171302542090416,
+        0.03107915073633194,
+        0.025778990238904953,
+        0.021507633849978447,
+        0.01818680204451084,
+        0.01296504307538271,
+        0.011635435745120049
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            134,
+            131,
+            132
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            170,
+            6,
+            134
+          ]
+        },
+        {
+          "rgb": [
+            73,
+            69,
+            67
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            10,
+            21,
+            73
+          ]
+        },
+        {
+          "rgb": [
+            245,
+            247,
+            240
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            39,
+            7,
+            247
+          ]
+        },
+        {
+          "rgb": [
+            109,
+            105,
+            105
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            0,
+            9,
+            109
+          ]
+        },
+        {
+          "rgb": [
+            195,
+            192,
+            172
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            26,
+            30,
+            195
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 4112.579511270929,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 82,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": true,
+    "regions_extracted": {
+      "upper_body": true,
+      "lower_body": false
+    }
+  }
+}

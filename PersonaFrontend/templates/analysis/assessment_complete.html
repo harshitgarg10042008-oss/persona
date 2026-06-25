@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment Complete - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <!-- Success Icon -->
+        <div class="mb-6">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Assessment Complete!</h1>
+        <p class="text-gray-600 mb-6">
+            Thank you for completing the assessment for <strong>{{ job_role.title }}</strong>.
+        </p>
+
+        <!-- Assessment Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6 text-left">
+            <h3 class="font-semibold text-gray-700 mb-3">Assessment Summary</h3>
+            <div class="space-y-2 text-sm text-gray-600">
+                <div class="flex justify-between">
+                    <span>Candidate:</span>
+                    <span class="font-medium">{{ assessment.candidate_name }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Email:</span>
+                    <span class="font-medium">{{ assessment.candidate_email }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Position:</span>
+                    <span class="font-medium">{{ job_role.title }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Completed:</span>
+                    <span class="font-medium">{{ assessment.completed_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Questions Answered:</span>
+                    <span class="font-medium">{{ assessment.results.count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's Next -->
+        <div class="border-l-4 border-blue-500 pl-4 mb-6 text-left">
+            <h3 class="font-semibold text-gray-700 mb-2">What happens next?</h3>
+            <ul class="text-gray-600 space-y-1 text-sm">
+                <li>• Your responses are being analyzed using AI technology</li>
+                <li>• The hiring team will review your assessment results</li>
+                <li>• You may be contacted for the next steps in the process</li>
+                <li>• Results typically take 24-48 hours to process</li>
+            </ul>
+        </div>
+
+        <!-- Action Button -->
+        <div class="space-y-4">
+            <a href="{% url 'persona_frontend:home' %}" 
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200">
+                Return to Home
+            </a>
+            
+            <p class="text-sm text-gray-500">
+                Questions about your assessment? Contact the hiring team directly.
+            </p>
+        </div>
+
+        <!-- Reference Number -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <p class="text-xs text-gray-400">
+                Assessment Reference: {{ assessment.id }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="mt-8 bg-blue-50 rounded-lg p-6">
+        <h3 class="font-semibold text-blue-800 mb-3">About Our Assessment Process</h3>
+        <div class="text-blue-700 text-sm space-y-2">
+            <p>Our AI-powered assessment analyzes your responses for:</p>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+                <li>Communication clarity and structure</li>
+                <li>Relevant experience and skills</li>
+                <li>Problem-solving approach</li>
+                <li>Cultural fit indicators</li>
+            </ul>
+            <p class="mt-3">
+                This technology helps ensure fair and consistent evaluation of all candidates.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

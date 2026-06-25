@@ -1,0 +1,464 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment Setup - {{ job_title.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .requirement-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+    .requirement-item.checked {
+        background-color: #f0fdf4;
+        border-color: #10b981;
+    }
+    .requirement-item.failed {
+        background-color: #fef2f2;
+        border-color: #ef4444;
+    }
+    .status-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+    }
+    .status-pending {
+        background-color: #6b7280;
+    }
+    .status-success {
+        background-color: #10b981;
+    }
+    .status-error {
+        background-color: #ef4444;
+    }
+    .feature-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .feature-available {
+        background-color: #10b981;
+        color: white;
+    }
+    .feature-unavailable {
+        background-color: #ef4444;
+        color: white;
+    }
+    .fullscreen-demo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Assessment Setup</h1>
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start">
+                <div class="flex-1">
+                    <h2 class="text-xl font-semibold text-blue-800">{{ job_title.title }}</h2>
+                    <p class="text-blue-600 mt-1">{{ job_title.description }}</p>
+                    <div class="mt-3 flex items-center space-x-6 text-sm text-blue-700">
+                        <span><strong>Questions:</strong> {{ total_questions }}</span>
+                        <span><strong>Estimated Time:</strong> {{ estimated_duration }} minutes</span>
+                        <span><strong>Category:</strong> {{ job_title.get_category_display }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis Features -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">AI Analysis Features</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 border rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-medium">Professional Attire Analysis</h3>
+                    <span class="feature-status {% if analysis_status.attire_available %}feature-available{% else %}feature-unavailable{% endif %}">
+                        {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">AI-powered analysis of your professional appearance and dress code compliance.</p>
+            </div>
+            
+            <div class="p-4 border rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-medium">Body Language Analysis</h3>
+                    <span class="feature-status {% if analysis_status.body_language_available %}feature-available{% else %}feature-unavailable{% endif %}">
+                        {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">Real-time analysis of posture, eye contact, and professional gestures.</p>
+            </div>
+            
+            <div class="p-4 border rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-medium">Speech Analysis</h3>
+                    <span class="feature-status {% if analysis_status.speech_available %}feature-available{% else %}feature-unavailable{% endif %}">
+                        {% if analysis_status.speech_available %}Available{% else %}feature-unavailable{% endif %}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">Advanced analysis of fluency, pronunciation, and content quality.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Requirements Check -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">System Requirements Check</h2>
+        
+        <div class="space-y-3">
+            <div class="requirement-item" id="webcam-check">
+                <div class="status-icon status-pending" id="webcam-status">?</div>
+                <div class="flex-1">
+                    <h3 class="font-medium">Webcam Access</h3>
+                    <p class="text-sm text-gray-600">Required for body language and attire analysis</p>
+                </div>
+            </div>
+            
+            <div class="requirement-item" id="microphone-check">
+                <div class="status-icon status-pending" id="microphone-status">?</div>
+                <div class="flex-1">
+                    <h3 class="font-medium">Microphone Access</h3>
+                    <p class="text-sm text-gray-600">Required for speech recording and analysis</p>
+                </div>
+            </div>
+            
+            <div class="requirement-item" id="fullscreen-check">
+                <div class="status-icon status-pending" id="fullscreen-status">?</div>
+                <div class="flex-1">
+                    <h3 class="font-medium">Fullscreen Capability</h3>
+                    <p class="text-sm text-gray-600">Assessment will run in fullscreen mode to prevent distractions</p>
+                </div>
+                <button id="test-fullscreen" class="ml-4 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                    Test
+                </button>
+            </div>
+            
+            <div class="requirement-item" id="browser-check">
+                <div class="status-icon status-pending" id="browser-status">?</div>
+                <div class="flex-1">
+                    <h3 class="font-medium">Browser Compatibility</h3>
+                    <p class="text-sm text-gray-600">Modern browser with WebRTC support</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6">
+            <button id="run-system-check" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                Run System Check
+            </button>
+        </div>
+    </div>
+
+    <!-- Assessment Instructions -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Assessment Instructions</h2>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">1</div>
+                <div>
+                    <h3 class="font-medium">Professional Setup</h3>
+                    <p class="text-gray-600">Dress professionally and ensure good lighting. Position yourself clearly in front of the camera.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">2</div>
+                <div>
+                    <h3 class="font-medium">Quiet Environment</h3>
+                    <p class="text-gray-600">Choose a quiet location without distractions. Close other applications and silence notifications.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">3</div>
+                <div>
+                    <h3 class="font-medium">Fullscreen Mode</h3>
+                    <p class="text-gray-600">The assessment will run in fullscreen mode. Exiting fullscreen will be tracked and may affect your score.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">4</div>
+                <div>
+                    <h3 class="font-medium">Natural Responses</h3>
+                    <p class="text-gray-600">Speak naturally and maintain good posture. You'll be analyzed continuously for professional presence.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">5</div>
+                <div>
+                    <h3 class="font-medium">Complete the Assessment</h3>
+                    <p class="text-gray-600">Answer all questions thoughtfully. You'll receive detailed feedback on your performance.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Assessment -->
+    <div class="text-center">
+        <a href="{% url 'analysis:start_individual_assessment_session' session_id=assessment.session_id %}" 
+           id="start-assessment-btn"
+           class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+           style="pointer-events: none; opacity: 0.5;">
+            Start Assessment
+        </a>
+        <p class="text-sm text-gray-600 mt-2">Please complete the system check first</p>
+    </div>
+</div>
+
+<!-- Fullscreen Demo -->
+<div id="fullscreen-demo" class="fullscreen-demo">
+    <div>
+        <h2 class="text-2xl font-bold mb-4">Fullscreen Mode Test</h2>
+        <p class="mb-4">This is how the assessment will appear in fullscreen mode.</p>
+        <p class="mb-8">Press ESC or click the button below to exit.</p>
+        <button id="exit-fullscreen" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600">
+            Exit Fullscreen
+        </button>
+    </div>
+</div>
+
+<script>
+let systemChecksPassed = {
+    webcam: false,
+    microphone: false,
+    fullscreen: false,
+    browser: false
+};
+
+let mediaStream = null;
+
+// Browser compatibility check
+function checkBrowser() {
+    const item = document.getElementById('browser-check');
+    const status = document.getElementById('browser-status');
+    
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        item.classList.add('checked');
+        status.classList.remove('status-pending');
+        status.classList.add('status-success');
+        status.textContent = '✓';
+        systemChecksPassed.browser = true;
+    } else {
+        item.classList.add('failed');
+        status.classList.remove('status-pending');
+        status.classList.add('status-error');
+        status.textContent = '✗';
+        systemChecksPassed.browser = false;
+    }
+}
+
+// Webcam access check
+async function checkWebcam() {
+    const item = document.getElementById('webcam-check');
+    const status = document.getElementById('webcam-status');
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
+        });
+        
+        // Store stream for later use
+        mediaStream = stream;
+        
+        item.classList.add('checked');
+        status.classList.remove('status-pending');
+        status.classList.add('status-success');
+        status.textContent = '✓';
+        systemChecksPassed.webcam = true;
+        
+    } catch (error) {
+        console.error('Webcam access failed:', error);
+        item.classList.add('failed');
+        status.classList.remove('status-pending');
+        status.classList.add('status-error');
+        status.textContent = '✗';
+        systemChecksPassed.webcam = false;
+    }
+}
+
+// Microphone access check
+async function checkMicrophone() {
+    const item = document.getElementById('microphone-check');
+    const status = document.getElementById('microphone-status');
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true 
+        });
+        
+        // Stop the stream immediately after testing
+        stream.getTracks().forEach(track => track.stop());
+        
+        item.classList.add('checked');
+        status.classList.remove('status-pending');
+        status.classList.add('status-success');
+        status.textContent = '✓';
+        systemChecksPassed.microphone = true;
+        
+    } catch (error) {
+        console.error('Microphone access failed:', error);
+        item.classList.add('failed');
+        status.classList.remove('status-pending');
+        status.classList.add('status-error');
+        status.textContent = '✗';
+        systemChecksPassed.microphone = false;
+    }
+}
+
+// Fullscreen capability check
+function checkFullscreen() {
+    const item = document.getElementById('fullscreen-check');
+    const status = document.getElementById('fullscreen-status');
+    
+    if (document.documentElement.requestFullscreen || 
+        document.documentElement.webkitRequestFullscreen || 
+        document.documentElement.mozRequestFullScreen ||
+        document.documentElement.msRequestFullscreen) {
+        
+        item.classList.add('checked');
+        status.classList.remove('status-pending');
+        status.classList.add('status-success');
+        status.textContent = '✓';
+        systemChecksPassed.fullscreen = true;
+    } else {
+        item.classList.add('failed');
+        status.classList.remove('status-pending');
+        status.classList.add('status-error');
+        status.textContent = '✗';
+        systemChecksPassed.fullscreen = false;
+    }
+}
+
+// Test fullscreen functionality
+function testFullscreen() {
+    const demo = document.getElementById('fullscreen-demo');
+    demo.style.display = 'flex';
+    
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+    }
+}
+
+// Exit fullscreen
+function exitFullscreen() {
+    const demo = document.getElementById('fullscreen-demo');
+    demo.style.display = 'none';
+    
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+    }
+}
+
+// Update start button based on system checks
+function updateStartButton() {
+    const button = document.getElementById('start-assessment-btn');
+    const allPassed = Object.values(systemChecksPassed).every(check => check);
+    
+    if (allPassed) {
+        button.style.pointerEvents = 'auto';
+        button.style.opacity = '1';
+        button.nextElementSibling.textContent = 'All system checks passed! You can start the assessment.';
+    } else {
+        button.style.pointerEvents = 'none';
+        button.style.opacity = '0.5';
+        button.nextElementSibling.textContent = 'Please complete all system checks first.';
+    }
+}
+
+// Run all system checks
+async function runSystemCheck() {
+    checkBrowser();
+    await checkWebcam();
+    await checkMicrophone();
+    checkFullscreen();
+    updateStartButton();
+}
+
+// Event listeners
+document.getElementById('run-system-check').addEventListener('click', runSystemCheck);
+document.getElementById('test-fullscreen').addEventListener('click', testFullscreen);
+document.getElementById('exit-fullscreen').addEventListener('click', exitFullscreen);
+
+// Handle ESC key for fullscreen exit
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const demo = document.getElementById('fullscreen-demo');
+        if (demo.style.display === 'flex') {
+            exitFullscreen();
+        }
+    }
+});
+
+// Handle fullscreen change events
+document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement) {
+        const demo = document.getElementById('fullscreen-demo');
+        demo.style.display = 'none';
+    }
+});
+
+document.addEventListener('webkitfullscreenchange', function() {
+    if (!document.webkitFullscreenElement) {
+        const demo = document.getElementById('fullscreen-demo');
+        demo.style.display = 'none';
+    }
+});
+
+// Initial browser check on page load
+window.addEventListener('load', function() {
+    checkBrowser();
+});
+
+// Cleanup media stream when leaving page
+window.addEventListener('beforeunload', function() {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,197 @@
+{
+  "image_path": ".\\hatter.jpg",
+  "analysis_time": 13.519965410232544,
+  "final_assessment": {
+    "final_score": 49.26908212825656,
+    "category": "Smart Casual",
+    "detailed_feedback": [
+      "Smart casual appearance - may be suitable for creative or casual workplaces",
+      "Smart casual attire detected",
+      "Colors not ideal for professional settings",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 63.05032432079315,
+        "weight": 0.4,
+        "feedback": [
+          "Smart casual attire detected"
+        ]
+      },
+      "blip": {
+        "score": 50,
+        "weight": 0.25,
+        "feedback": []
+      },
+      "color": {
+        "score": 20,
+        "weight": 0.2,
+        "feedback": [
+          "Colors not ideal for professional settings"
+        ]
+      },
+      "fashion": {
+        "score": 50.32634933292866,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.004248486831784248,
+          0.017087897285819054,
+          0.008941714651882648,
+          0.3050324320793152,
+          0.2502332329750061,
+          0.0849912166595459,
+          0.005539539270102978,
+          0.02388727106153965,
+          0.195950448513031,
+          0.10408774763345718
+        ],
+        "best_match": "a person wearing smart casual clothes",
+        "confidence": 0.3050324320793152
+      }
+    },
+    "blip": {
+      "captions": [
+        "there is a man in a kimono jacket and sunglasses posing for a picture",
+        "this is an image of a man in a kimono robe and sunglasses"
+      ],
+      "primary_description": "there is a man in a kimono jacket and sunglasses posing for a picture",
+      "detailed_description": "this is an image of a man in a kimono robe and sunglasses"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "sarong",
+        "kimono",
+        "sunglass",
+        "abaya",
+        "maillot, tank suit",
+        "maillot",
+        "sunglasses, dark glasses, shades",
+        "vestment",
+        "cloak",
+        "stole"
+      ],
+      "confidences": [
+        0.6786138415336609,
+        0.16315957903862,
+        0.0319250226020813,
+        0.022811174392700195,
+        0.01813051849603653,
+        0.012935665436089039,
+        0.008615996688604355,
+        0.007445544935762882,
+        0.006816597189754248,
+        0.0040890732780098915
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            156,
+            88,
+            69
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            7,
+            142,
+            156
+          ]
+        },
+        {
+          "rgb": [
+            26,
+            20,
+            24
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            160,
+            59,
+            26
+          ]
+        },
+        {
+          "rgb": [
+            187,
+            146,
+            129
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            9,
+            79,
+            187
+          ]
+        },
+        {
+          "rgb": [
+            231,
+            204,
+            192
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            9,
+            43,
+            231
+          ]
+        },
+        {
+          "rgb": [
+            91,
+            53,
+            49
+          ],
+          "name": "burgundy/wine",
+          "professional": true,
+          "hsv": [
+            3,
+            118,
+            91
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 3466.470717550955,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 20,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": false,
+    "regions_extracted": {
+      "upper_body": false,
+      "lower_body": false
+    }
+  }
+}

@@ -1,0 +1,237 @@
+{
+  "image_path": ".\\khush.jpg",
+  "analysis_time": 18.47195029258728,
+  "final_assessment": {
+    "final_score": 46.99704414457082,
+    "category": "Smart Casual",
+    "detailed_feedback": [
+      "Smart casual appearance - may be suitable for creative or casual workplaces",
+      "Casual attire - not ideal for professional settings",
+      "Good professional colors",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 35.14475256204605,
+        "weight": 0.4,
+        "feedback": [
+          "Casual attire - not ideal for professional settings"
+        ]
+      },
+      "blip": {
+        "score": 50,
+        "weight": 0.25,
+        "feedback": []
+      },
+      "color": {
+        "score": 64,
+        "weight": 0.2,
+        "feedback": [
+          "Good professional colors"
+        ]
+      },
+      "fashion": {
+        "score": 50.92762079834938,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.0007044626981951296,
+          0.0038339768070727587,
+          0.02394716441631317,
+          0.3506166636943817,
+          0.4855247437953949,
+          0.011623752303421497,
+          0.007526733912527561,
+          0.04539097473025322,
+          0.01643591746687889,
+          0.05439566820859909
+        ],
+        "best_match": "a person wearing casual everyday clothes",
+        "confidence": 0.4855247437953949
+      },
+      "upper_body": {
+        "prompts": [
+          "formal dress shirt with tie",
+          "business blazer or suit jacket",
+          "professional blouse or shirt",
+          "casual shirt or top",
+          "t-shirt or casual wear",
+          "inappropriate or revealing top"
+        ],
+        "probabilities": [
+          0.008243260905146599,
+          0.1801738291978836,
+          0.12438522279262543,
+          0.056498605757951736,
+          0.6106163263320923,
+          0.020082799717783928
+        ],
+        "best_match": "t-shirt or casual wear",
+        "confidence": 0.6106163263320923
+      },
+      "lower_body": {
+        "prompts": [
+          "formal dress pants or suit trousers",
+          "business casual pants or chinos",
+          "professional skirt or dress pants",
+          "casual jeans or pants",
+          "shorts or inappropriate bottoms",
+          "athletic or gym wear"
+        ],
+        "probabilities": [
+          0.11364128440618515,
+          0.41950252652168274,
+          0.026874171569943428,
+          0.4312993288040161,
+          0.0059881978668272495,
+          0.002694555325433612
+        ],
+        "best_match": "casual jeans or pants",
+        "confidence": 0.4312993288040161
+      }
+    },
+    "blip": {
+      "captions": [
+        "there is a man that is walking down the street with a cell phone",
+        "there is a man that is walking down the street with a cell phone in his hand"
+      ],
+      "primary_description": "there is a man that is walking down the street with a cell phone",
+      "detailed_description": "there is a man that is walking down the street with a cell phone in his hand"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "knee pad",
+        "bulletproof vest",
+        "sweatshirt",
+        "hatchet",
+        "maraca",
+        "bolo tie, bolo, bola tie, bola",
+        "whistle",
+        "ski mask",
+        "holster",
+        "plunger, plumber's helper"
+      ],
+      "confidences": [
+        0.5622825622558594,
+        0.08699190616607666,
+        0.038650866597890854,
+        0.023893555626273155,
+        0.019929418340325356,
+        0.015751920640468597,
+        0.011146102100610733,
+        0.009400502778589725,
+        0.008655689656734467,
+        0.006779961287975311
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            32,
+            33,
+            24
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            33,
+            70,
+            33
+          ]
+        },
+        {
+          "rgb": [
+            114,
+            106,
+            97
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            16,
+            38,
+            114
+          ]
+        },
+        {
+          "rgb": [
+            150,
+            143,
+            135
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            16,
+            25,
+            150
+          ]
+        },
+        {
+          "rgb": [
+            75,
+            74,
+            67
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            26,
+            27,
+            75
+          ]
+        },
+        {
+          "rgb": [
+            203,
+            198,
+            191
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            18,
+            15,
+            203
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 2140.316845350043,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 64,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": true,
+    "regions_extracted": {
+      "upper_body": true,
+      "lower_body": true
+    }
+  }
+}

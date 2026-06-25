@@ -1,0 +1,217 @@
+{
+  "image_path": ".\\indian.jpeg",
+  "analysis_time": 12.77843713760376,
+  "final_assessment": {
+    "final_score": 35.793101931270215,
+    "category": "Too Casual",
+    "detailed_feedback": [
+      "Too casual for most professional environments - consider more formal attire",
+      "Inappropriate attire detected",
+      "Acceptable color choices",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 14.479206502437592,
+        "weight": 0.4,
+        "feedback": [
+          "Inappropriate attire detected"
+        ]
+      },
+      "blip": {
+        "score": 50,
+        "weight": 0.25,
+        "feedback": []
+      },
+      "color": {
+        "score": 50,
+        "weight": 0.2,
+        "feedback": [
+          "Acceptable color choices"
+        ]
+      },
+      "fashion": {
+        "score": 50.009462201967835,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.01826375164091587,
+          0.00988428108394146,
+          0.07206740975379944,
+          0.15977086126804352,
+          0.1421486884355545,
+          0.3680528998374939,
+          0.057030677795410156,
+          0.008628536015748978,
+          0.004675027448683977,
+          0.15947796404361725
+        ],
+        "best_match": "a person wearing inappropriate work attire",
+        "confidence": 0.3680528998374939
+      },
+      "upper_body": {
+        "prompts": [
+          "formal dress shirt with tie",
+          "business blazer or suit jacket",
+          "professional blouse or shirt",
+          "casual shirt or top",
+          "t-shirt or casual wear",
+          "inappropriate or revealing top"
+        ],
+        "probabilities": [
+          0.010302435606718063,
+          0.004111923277378082,
+          0.0712447315454483,
+          0.02340412326157093,
+          0.8790258765220642,
+          0.011910892091691494
+        ],
+        "best_match": "t-shirt or casual wear",
+        "confidence": 0.8790258765220642
+      }
+    },
+    "blip": {
+      "captions": [
+        "there is a shirtless man with no shirt on posing for a picture",
+        "there is a shirtless man with no shirt on posing for a picture"
+      ],
+      "primary_description": "there is a shirtless man with no shirt on posing for a picture",
+      "detailed_description": "there is a shirtless man with no shirt on posing for a picture"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "swimming trunks, bathing trunks",
+        "sarong",
+        "maillot",
+        "knee pad",
+        "brassiere, bra, bandeau",
+        "bikini, two-piece",
+        "maillot, tank suit",
+        "neck brace",
+        "sunscreen, sunblock, sun blocker",
+        "punching bag, punch bag, punching ball, punchball"
+      ],
+      "confidences": [
+        0.9525921940803528,
+        0.02145371213555336,
+        0.0045141857117414474,
+        0.004150021821260452,
+        0.00224541244097054,
+        0.0017441860400140285,
+        0.0007885168306529522,
+        0.0007828511297702789,
+        0.0005843712715432048,
+        0.0004761368618346751
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            251,
+            224,
+            207
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            12,
+            45,
+            251
+          ]
+        },
+        {
+          "rgb": [
+            211,
+            141,
+            107
+          ],
+          "name": "brown/tan",
+          "professional": true,
+          "hsv": [
+            10,
+            126,
+            211
+          ]
+        },
+        {
+          "rgb": [
+            74,
+            47,
+            36
+          ],
+          "name": "burgundy/wine",
+          "professional": true,
+          "hsv": [
+            9,
+            131,
+            74
+          ]
+        },
+        {
+          "rgb": [
+            239,
+            178,
+            144
+          ],
+          "name": "brown/tan",
+          "professional": true,
+          "hsv": [
+            11,
+            101,
+            239
+          ]
+        },
+        {
+          "rgb": [
+            165,
+            101,
+            73
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            9,
+            142,
+            165
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 8337.099842084572,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 50,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": true,
+    "regions_extracted": {
+      "upper_body": true,
+      "lower_body": false
+    }
+  }
+}

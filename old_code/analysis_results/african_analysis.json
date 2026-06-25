@@ -1,0 +1,237 @@
+{
+  "image_path": ".\\african.jpeg",
+  "analysis_time": 15.69864535331726,
+  "final_assessment": {
+    "final_score": 38.98661923576147,
+    "category": "Too Casual",
+    "detailed_feedback": [
+      "Too casual for most professional environments - consider more formal attire",
+      "Inappropriate attire detected",
+      "Good professional colors",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 14.350546300411224,
+        "weight": 0.4,
+        "feedback": [
+          "Inappropriate attire detected"
+        ]
+      },
+      "blip": {
+        "score": 50,
+        "weight": 0.25,
+        "feedback": []
+      },
+      "color": {
+        "score": 66,
+        "weight": 0.2,
+        "feedback": [
+          "Good professional colors"
+        ]
+      },
+      "fashion": {
+        "score": 50.309338103979826,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.012075257487595081,
+          0.019162919372320175,
+          0.08572971820831299,
+          0.1472558230161667,
+          0.15905030071735382,
+          0.3766302466392517,
+          0.030812939628958702,
+          0.04240328073501587,
+          0.019688820466399193,
+          0.10719066858291626
+        ],
+        "best_match": "a person wearing inappropriate work attire",
+        "confidence": 0.3766302466392517
+      },
+      "upper_body": {
+        "prompts": [
+          "formal dress shirt with tie",
+          "business blazer or suit jacket",
+          "professional blouse or shirt",
+          "casual shirt or top",
+          "t-shirt or casual wear",
+          "inappropriate or revealing top"
+        ],
+        "probabilities": [
+          0.03572256863117218,
+          0.015282091684639454,
+          0.14611667394638062,
+          0.05227569118142128,
+          0.7327311038970947,
+          0.01787194237112999
+        ],
+        "best_match": "t-shirt or casual wear",
+        "confidence": 0.7327311038970947
+      },
+      "lower_body": {
+        "prompts": [
+          "formal dress pants or suit trousers",
+          "business casual pants or chinos",
+          "professional skirt or dress pants",
+          "casual jeans or pants",
+          "shorts or inappropriate bottoms",
+          "athletic or gym wear"
+        ],
+        "probabilities": [
+          0.020414765924215317,
+          0.03586677461862564,
+          0.0030195522122085094,
+          0.8560470342636108,
+          0.0711819976568222,
+          0.013469807803630829
+        ],
+        "best_match": "casual jeans or pants",
+        "confidence": 0.8560470342636108
+      }
+    },
+    "blip": {
+      "captions": [
+        "this is an image of a man with no shirt on posing for a picture",
+        "this is an image of a man with no shirt on posing for a picture"
+      ],
+      "primary_description": "this is an image of a man with no shirt on posing for a picture",
+      "detailed_description": "this is an image of a man with no shirt on posing for a picture"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "dumbbell",
+        "barbell",
+        "swimming trunks, bathing trunks",
+        "punching bag, punch bag, punching ball, punchball",
+        "brassiere, bra, bandeau",
+        "jersey, T-shirt, tee shirt",
+        "knee pad",
+        "sweatshirt",
+        "bulletproof vest",
+        "jean, blue jean, denim"
+      ],
+      "confidences": [
+        0.5350866913795471,
+        0.12930142879486084,
+        0.09779830276966095,
+        0.02550642192363739,
+        0.01919887401163578,
+        0.014310070313513279,
+        0.012168996036052704,
+        0.010520783253014088,
+        0.01020024809986353,
+        0.007406372576951981
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            142,
+            141,
+            145
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            128,
+            7,
+            145
+          ]
+        },
+        {
+          "rgb": [
+            22,
+            17,
+            17
+          ],
+          "name": "burgundy/wine",
+          "professional": true,
+          "hsv": [
+            0,
+            58,
+            22
+          ]
+        },
+        {
+          "rgb": [
+            205,
+            206,
+            211
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            115,
+            7,
+            211
+          ]
+        },
+        {
+          "rgb": [
+            58,
+            46,
+            42
+          ],
+          "name": "burgundy/wine",
+          "professional": true,
+          "hsv": [
+            8,
+            70,
+            58
+          ]
+        },
+        {
+          "rgb": [
+            96,
+            89,
+            88
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            4,
+            21,
+            96
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 2025.982686413721,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 66,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": true,
+    "regions_extracted": {
+      "upper_body": true,
+      "lower_body": true
+    }
+  }
+}

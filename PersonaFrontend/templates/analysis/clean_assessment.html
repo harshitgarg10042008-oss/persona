@@ -1,0 +1,749 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment - {{ assessment.platform_job_title.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #eee8dd;
+        overflow: hidden;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    .assessment-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #eee8dd;
+    }
+    
+    .header {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 20px 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .progress-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 14px;
+        color: #374151;
+    }
+    
+    .progress-bar {
+        width: 200px;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        transition: width 0.3s ease;
+        border-radius: 4px;
+    }
+    
+    .main-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+    }
+    
+    .question-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 24px;
+        padding: 48px;
+        max-width: 800px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(20px);
+    }
+    
+    .question-meta {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    
+    .question-type {
+        background: #6366f1;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .mandatory-badge {
+        background: #ef4444;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .question-text {
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #1f2937;
+        margin-bottom: 40px;
+    }
+    
+    .timer-display {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ef4444;
+        margin-bottom: 32px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .timer-display.active {
+        opacity: 1;
+    }
+    
+    .record-button {
+        width: 100px;
+        height: 100px;
+        border: none;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        font-size: 32px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+    }
+    
+    .record-button:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 12px 40px rgba(239, 68, 68, 0.4);
+    }
+    
+    .record-button.recording {
+        animation: pulse-recording 2s infinite;
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+    }
+    
+    .record-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    @keyframes pulse-recording {
+        0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+        50% { 
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(239, 68, 68, 0.6);
+        }
+    }
+    
+    .status-text {
+        font-size: 16px;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 24px;
+    }
+    
+    .warning-message {
+        color: #ef4444;
+        font-weight: 600;
+        font-size: 18px;
+        margin-top: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .warning-message.show {
+        opacity: 1;
+    }
+    
+    /* Fullscreen warning overlay */
+    .fullscreen-warning {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        color: white;
+        text-align: center;
+    }
+    
+    .warning-content {
+        max-width: 500px;
+        padding: 40px;
+    }
+    
+    .warning-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #ef4444;
+    }
+    
+    .warning-timer {
+        font-size: 48px;
+        font-weight: 900;
+        margin: 30px 0;
+        color: #ef4444;
+    }
+    
+    .return-button {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .return-button:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+    
+    /* Hide video element */
+    #video-feed {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    #canvas {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-container" id="assessment-container">
+    <!-- Hidden video elements for background capture -->
+    <video id="video-feed" autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    
+    <!-- Fullscreen Warning Overlay -->
+    <div class="fullscreen-warning" id="fullscreen-warning">
+        <div class="warning-content">
+            <div class="warning-title">⚠️ FULLSCREEN REQUIRED</div>
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                You must return to fullscreen mode to continue your assessment.
+            </p>
+            <div class="warning-timer" id="warning-timer">15</div>
+            <p style="margin-bottom: 30px;">
+                Assessment will terminate automatically if you don't return to fullscreen.
+            </p>
+            <button class="return-button" onclick="returnToFullscreen()">
+                Return to Fullscreen
+            </button>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1 style="font-size: 20px; font-weight: 600; color: #1f2937;">
+                {{ assessment.platform_job_title.title }} Assessment
+            </h1>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">
+                Session: {{ session_id|slice:":8" }}...
+            </p>
+        </div>
+        
+        <div class="progress-info">
+            <span>Question {{ current_question_number }} of {{ total_questions }}</span>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ progress_percentage }}%"></div>
+            </div>
+            <span>{{ progress_percentage|floatformat:0 }}% Complete</span>
+        </div>
+        
+        <div id="session-timer" style="font-family: monospace; font-size: 16px; font-weight: 600;">
+            00:00
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="question-card">
+            <div class="question-meta">
+                <span class="question-type">{{ current_question.get_question_type_display }}</span>
+                {% if current_question.is_mandatory %}
+                <span class="mandatory-badge">Mandatory</span>
+                {% endif %}
+            </div>
+            
+            <div class="question-text" id="question-text">
+                {{ current_question.question_text }}
+            </div>
+            
+            <div class="timer-display" id="timer-display">
+                Time remaining: <span id="countdown">15</span>s
+            </div>
+            
+            <button class="record-button" id="record-button" onclick="toggleRecording()">
+                <i class="fas fa-microphone"></i>
+            </button>
+            
+            <div class="status-text" id="status-text">
+                Click the microphone to start recording your response
+            </div>
+            
+            <div class="warning-message" id="warning-message">
+                Uh Oh! You missed that question. Be faster!
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let mediaRecorder = null;
+let videoStream = null;
+let audioChunks = [];
+let isRecording = false;
+let questionTimer = null;
+let warningTimer = null;
+let sessionStartTime = new Date();
+let currentQuestionStartTime = new Date();
+let bodyLanguageInterval = null;
+let attireInterval = null;
+let fullscreenViolations = 0;
+
+// Initialize assessment
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing assessment...');
+    initializeFullscreen();
+    initializeCamera();
+    startSessionTimer();
+    startQuestionTimer();
+    
+    // Disable right-click
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Disable text selection
+    document.onselectstart = function() {
+        return false;
+    };
+    
+    // Disable drag
+    document.ondragstart = function() {
+        return false;
+    };
+});
+
+// Fullscreen management
+function initializeFullscreen() {
+    console.log('Initializing fullscreen...');
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // Request fullscreen
+    const container = document.getElementById('assessment-container');
+    if (container.requestFullscreen) {
+        container.requestFullscreen();
+    } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+    } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+    } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+    }
+}
+
+function handleFullscreenChange() {
+    const isFullscreen = !!(document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement);
+    
+    if (!isFullscreen) {
+        fullscreenViolations++;
+        showFullscreenWarning();
+    }
+}
+
+function showFullscreenWarning() {
+    const warning = document.getElementById('fullscreen-warning');
+    warning.style.display = 'flex';
+    
+    let timeLeft = 15;
+    const timerElement = document.getElementById('warning-timer');
+    
+    warningTimer = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            // Terminate assessment
+            alert('Assessment terminated due to fullscreen violation.');
+            window.location.href = '/dashboard/individual/';
+        }
+    }, 1000);
+}
+
+function returnToFullscreen() {
+    const container = document.getElementById('assessment-container');
+    
+    if (container.requestFullscreen) {
+        container.requestFullscreen();
+    } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+    } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+    } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+    }
+    
+    clearInterval(warningTimer);
+    document.getElementById('fullscreen-warning').style.display = 'none';
+}
+
+// Camera initialization
+async function initializeCamera() {
+    console.log('Initializing camera...');
+    
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user'
+            },
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        });
+        
+        const video = document.getElementById('video-feed');
+        video.srcObject = videoStream;
+        
+        video.onloadedmetadata = function() {
+            console.log('Camera ready!');
+            startBackgroundAnalysis();
+        };
+        
+    } catch (error) {
+        console.error('Camera initialization failed:', error);
+        alert('Camera access is required for this assessment. Please allow camera access and refresh the page.');
+    }
+}
+
+// Background analysis
+function startBackgroundAnalysis() {
+    console.log('Starting background analysis...');
+    
+    // Body language analysis every 2 seconds
+    bodyLanguageInterval = setInterval(() => {
+        captureSnapshot('body_language');
+    }, 2000);
+    
+    // Attire analysis every 10 seconds
+    attireInterval = setInterval(() => {
+        captureSnapshot('attire');
+    }, 10000);
+}
+
+function captureSnapshot(analysisType) {
+    const video = document.getElementById('video-feed');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Send to analysis endpoint
+    fetch(`/analysis/capture-snapshot/{{ session_id }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            image_data: imageData,
+            analysis_type: analysisType,
+            question_id: {{ current_question.id }},
+            timestamp: new Date().toISOString()
+        })
+    }).catch(error => {
+        console.error(`${analysisType} analysis failed:`, error);
+    });
+}
+
+// Question timer
+function startQuestionTimer() {
+    let timeLeft = 15;
+    const timerDisplay = document.getElementById('timer-display');
+    const countdown = document.getElementById('countdown');
+    
+    timerDisplay.classList.add('active');
+    
+    questionTimer = setInterval(() => {
+        timeLeft--;
+        countdown.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(questionTimer);
+            timerDisplay.classList.remove('active');
+            showMissedQuestionWarning();
+        }
+    }, 1000);
+}
+
+function showMissedQuestionWarning() {
+    const warning = document.getElementById('warning-message');
+    warning.classList.add('show');
+    
+    setTimeout(() => {
+        moveToNextQuestion();
+    }, 3000);
+}
+
+// Recording functions
+async function toggleRecording() {
+    if (!isRecording) {
+        await startRecording();
+    } else {
+        await stopRecording();
+    }
+}
+
+async function startRecording() {
+    console.log('Starting recording...');
+    
+    // Clear question timer
+    if (questionTimer) {
+        clearInterval(questionTimer);
+        document.getElementById('timer-display').classList.remove('active');
+    }
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                sampleRate: 44100
+            }
+        });
+        
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+        });
+        
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = function() {
+            console.log('Recording stopped');
+            processRecording();
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        
+        // Update UI
+        const button = document.getElementById('record-button');
+        const status = document.getElementById('status-text');
+        
+        button.classList.add('recording');
+        button.innerHTML = '<i class="fas fa-stop"></i>';
+        status.textContent = 'Recording... Click to stop and submit your response';
+        
+    } catch (error) {
+        console.error('Recording failed:', error);
+        alert('Microphone access is required. Please allow microphone access.');
+    }
+}
+
+async function stopRecording() {
+    console.log('Stopping recording...');
+    
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        // Stop audio stream
+        if (mediaRecorder.stream) {
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+        
+        // Update UI
+        const button = document.getElementById('record-button');
+        const status = document.getElementById('status-text');
+        
+        button.classList.remove('recording');
+        button.innerHTML = '<i class="fas fa-microphone"></i>';
+        button.disabled = true;
+        status.textContent = 'Processing your response...';
+    }
+}
+
+function processRecording() {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = function() {
+        const audioData = reader.result.split(',')[1]; // Remove data:audio/webm;base64, prefix
+        submitResponse(audioData);
+    };
+    reader.readAsDataURL(audioBlob);
+}
+
+async function submitResponse(audioData) {
+    console.log('Submitting response...');
+    
+    const responseData = {
+        question_id: {{ current_question.id }},
+        audio_data: audioData,
+        response_time: Math.floor((new Date() - currentQuestionStartTime) / 1000),
+        fullscreen_violations: fullscreenViolations
+    };
+    
+    try {
+        const response = await fetch(`/analysis/submit-response/{{ session_id }}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(responseData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            if (result.is_complete) {
+                // Assessment complete
+                setTimeout(() => {
+                    window.location.href = result.complete_url;
+                }, 2000);
+            } else {
+                // Next question
+                setTimeout(() => {
+                    moveToNextQuestion();
+                }, 2000);
+            }
+        } else {
+            alert('Failed to submit response: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Submit failed:', error);
+        alert('Failed to submit response. Please check your connection.');
+    }
+}
+
+function moveToNextQuestion() {
+    window.location.href = `/analysis/assessment/{{ session_id }}/question/`;
+}
+
+// Session timer
+function startSessionTimer() {
+    setInterval(() => {
+        const elapsed = Math.floor((new Date() - sessionStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
+        document.getElementById('session-timer').textContent = 
+            String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+    }, 1000);
+}
+
+// Utility functions
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+    if (attireInterval) clearInterval(attireInterval);
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

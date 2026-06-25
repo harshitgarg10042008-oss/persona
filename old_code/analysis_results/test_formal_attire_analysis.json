@@ -1,0 +1,200 @@
+{
+  "image_path": "test_formal_attire.jpg",
+  "analysis_time": 22.05287742614746,
+  "final_assessment": {
+    "final_score": 44.23226044178009,
+    "category": "Smart Casual",
+    "detailed_feedback": [
+      "Smart casual appearance - may be suitable for creative or casual workplaces",
+      "Inappropriate attire detected",
+      "Professional clothing elements identified",
+      "Acceptable color choices",
+      "Casual clothing items detected"
+    ],
+    "score_components": {
+      "clip": {
+        "score": 9.080651104450226,
+        "weight": 0.4,
+        "feedback": [
+          "Inappropriate attire detected"
+        ]
+      },
+      "blip": {
+        "score": 90,
+        "weight": 0.25,
+        "feedback": [
+          "Professional clothing elements identified"
+        ]
+      },
+      "color": {
+        "score": 53,
+        "weight": 0.2,
+        "feedback": [
+          "Acceptable color choices"
+        ]
+      },
+      "fashion": {
+        "score": 50,
+        "weight": 0.15,
+        "feedback": [
+          "Casual clothing items detected"
+        ]
+      }
+    },
+    "confidence": 0.5
+  },
+  "detailed_analyses": {
+    "clip": {
+      "full_person": {
+        "prompts": [
+          "a person wearing a formal business suit with tie",
+          "a person wearing a professional blazer and dress shirt",
+          "a person wearing business casual attire",
+          "a person wearing smart casual clothes",
+          "a person wearing casual everyday clothes",
+          "a person wearing inappropriate work attire",
+          "a person in formal professional business attire",
+          "a person dressed for a corporate meeting",
+          "a person wearing expensive formal clothing",
+          "a person wearing high-quality professional attire"
+        ],
+        "probabilities": [
+          0.012512696906924248,
+          0.006036761682480574,
+          0.02162635326385498,
+          0.017802895978093147,
+          0.10659757256507874,
+          0.7279565930366516,
+          0.030594265088438988,
+          0.02768644131720066,
+          0.012375249527394772,
+          0.03681110963225365
+        ],
+        "best_match": "a person wearing inappropriate work attire",
+        "confidence": 0.7279565930366516
+      }
+    },
+    "blip": {
+      "captions": [
+        "there is a man in a suit and tie standing in front of a black background",
+        "this is an image of a man in a suit and tie standing in front of a black background"
+      ],
+      "primary_description": "there is a man in a suit and tie standing in front of a black background",
+      "detailed_description": "this is an image of a man in a suit and tie standing in front of a black background"
+    },
+    "fashion_vit": {
+      "top_classes": [
+        "lipstick, lip rouge",
+        "pill bottle",
+        "whistle",
+        "lighter, light, igniter, ignitor",
+        "matchstick",
+        "ping-pong ball",
+        "syringe",
+        "soap dispenser",
+        "can opener, tin opener",
+        "nipple"
+      ],
+      "confidences": [
+        0.20066767930984497,
+        0.09441541880369186,
+        0.07251490652561188,
+        0.05110159143805504,
+        0.03426486998796463,
+        0.02166091836988926,
+        0.01476103626191616,
+        0.013579641468822956,
+        0.013536138460040092,
+        0.013374635949730873
+      ]
+    },
+    "color_analysis": {
+      "dominant_colors": [
+        {
+          "rgb": [
+            1,
+            0,
+            126
+          ],
+          "name": "navy blue",
+          "professional": true,
+          "hsv": [
+            120,
+            255,
+            126
+          ]
+        },
+        {
+          "rgb": [
+            252,
+            240,
+            228
+          ],
+          "name": "white/light gray",
+          "professional": true,
+          "hsv": [
+            15,
+            24,
+            252
+          ]
+        },
+        {
+          "rgb": [
+            134,
+            1,
+            4
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            179,
+            253,
+            134
+          ]
+        },
+        {
+          "rgb": [
+            168,
+            168,
+            171
+          ],
+          "name": "gray",
+          "professional": true,
+          "hsv": [
+            120,
+            4,
+            171
+          ]
+        },
+        {
+          "rgb": [
+            182,
+            213,
+            228
+          ],
+          "name": "unknown",
+          "professional": false,
+          "hsv": [
+            100,
+            51,
+            228
+          ]
+        }
+      ],
+      "pattern_analysis": {
+        "variance": 1535.0977603715958,
+        "pattern_complexity": "high",
+        "professional_pattern": false
+      },
+      "professional_color_score": 53,
+      "color_count": 5
+    }
+  },
+  "image_data": {
+    "has_person": false,
+    "regions_extracted": {
+      "upper_body": false,
+      "lower_body": false
+    }
+  }
+}

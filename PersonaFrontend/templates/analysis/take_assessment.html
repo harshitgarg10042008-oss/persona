@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment - {{ job_role.title }} - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Interview Assessment</h1>
+        <h2 class="text-xl text-gray-600 mb-4">{{ job_role.title }}</h2>
+        
+        {% if job_role.description %}
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-gray-700 mb-2">About this role:</h3>
+                <p class="text-gray-600">{{ job_role.description }}</p>
+            </div>
+        {% endif %}
+
+        <div class="border-l-4 border-blue-500 pl-4 mb-6">
+            <h3 class="font-semibold text-gray-700 mb-2">Instructions:</h3>
+            <ul class="text-gray-600 space-y-1">
+                <li>• Please provide your contact information below</li>
+                <li>• Answer each question thoughtfully and thoroughly</li>
+                <li>• Take your time - there's no time limit</li>
+                <li>• Your responses will be analyzed for communication skills and personality traits</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Assessment Form -->
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        <!-- Candidate Information -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Your Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="candidate_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name *
+                    </label>
+                    <input type="text" 
+                           id="candidate_name" 
+                           name="candidate_name" 
+                           value="{{ assessment.candidate_name|default:'' }}"
+                           required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="candidate_email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address *
+                    </label>
+                    <input type="email" 
+                           id="candidate_email" 
+                           name="candidate_email" 
+                           value="{{ assessment.candidate_email|default:'' }}"
+                           required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions -->
+        {% for question in questions %}
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-bold text-gray-800">Question {{ forloop.counter }}</h3>
+                        <span class="inline-block bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded">
+                            {{ question.get_question_type_display }}
+                        </span>
+                    </div>
+                    <p class="text-gray-700 text-lg">{{ question.question_text }}</p>
+                </div>
+
+                <div>
+                    <label for="answer_{{ question.id }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Answer *
+                    </label>
+                    <textarea id="answer_{{ question.id }}" 
+                              name="answer_{{ question.id }}" 
+                              required
+                              rows="6"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Please provide a detailed response..."></textarea>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Tip: Be specific and provide examples where possible. This helps our AI provide more accurate analysis.
+                    </p>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Submit Section -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <div class="text-center">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Ready to Submit?</h3>
+                <p class="text-gray-600 mb-6">
+                    Once you submit, your responses will be analyzed and the results will be shared with the hiring team.
+                </p>
+                
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition duration-200">
+                    Submit Assessment
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Progress indicator -->
+    <div class="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4">
+        <div class="text-sm text-gray-600 mb-2">Progress</div>
+        <div class="w-32 bg-gray-200 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%" id="progress-bar"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1" id="progress-text">0 of {{ questions.count }} questions</div>
+    </div>
+</div>
+
+<script>
+// Progress tracking
+document.addEventListener('DOMContentLoaded', function() {
+    const textareas = document.querySelectorAll('textarea[name^="answer_"]');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const totalQuestions = parseInt('{{ questions.count }}');
+    
+    function updateProgress() {
+        let completed = 0;
+        textareas.forEach(textarea => {
+            if (textarea.value.trim().length > 10) { // At least 10 characters
+                completed++;
+            }
+        });
+        
+        const percentage = (completed / totalQuestions) * 100;
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = completed + ' of ' + totalQuestions + ' questions';
+    }
+    
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', updateProgress);
+    });
+    
+    updateProgress(); // Initial check
+});
+
+// Auto-save functionality (optional enhancement)
+let saveTimeout;
+function autoSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        // Could implement auto-save functionality here
+        console.log('Auto-saving...');
+    }, 2000);
+}
+
+document.querySelectorAll('input, textarea').forEach(element => {
+    element.addEventListener('input', autoSave);
+});
+</script>
+{% endblock %}
