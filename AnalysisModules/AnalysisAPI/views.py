@@ -391,8 +391,7 @@ def business_assessment_complete(request, assessment_id):
                 
                 if body_scores:
                     assessment.body_language_score = sum(body_scores) / len(body_scores)
-                else:
-                    assessment.body_language_score = 6.0  # Fallback
+                # If no valid scores, leave body_language_score as None (not a fake number)
             
             # Calculate average attire score from snapshots  
             if attire_snapshots.exists():
@@ -403,8 +402,7 @@ def business_assessment_complete(request, assessment_id):
                 
                 if attire_scores:
                     assessment.attire_score = sum(attire_scores) / len(attire_scores)
-                else:
-                    assessment.attire_score = 8.0  # Fallback
+                # If no valid scores, leave attire_score as None (not a fake number)
         
         # Calculate overall score
         scores = [s for s in [
@@ -423,6 +421,7 @@ def business_assessment_complete(request, assessment_id):
         'responses': responses,
         'job_title': assessment.assessment_link.job_role,
         'duration_minutes': duration_minutes,
+        'duration_seconds': int(duration_seconds),
         'business_view': True,  # Flag to indicate this is for business users
     }
     
@@ -534,13 +533,19 @@ def business_submit_response(request, assessment_id):
                         import tempfile
                         import os
                         
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+                        # IMPORTANT: use .webm because MediaRecorder produces WebM/Opus
+                        # regardless of the Blob MIME type hint given in the frontend.
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_file:
                             for chunk in audio_data.chunks():
                                 temp_file.write(chunk)
                             temp_file_path = temp_file.name
                         
-                        # Perform speech analysis
-                        speech_analysis = analyze_speech(temp_file_path)
+                        # Read bytes and perform speech analysis
+                        with open(temp_file_path, 'rb') as f:
+                            audio_bytes = f.read()
+                        
+                        # Perform speech analysis (expects bytes, not a file path)
+                        speech_analysis = analyze_speech(audio_bytes)
                         
                         # Clean up temp file
                         os.unlink(temp_file_path)
@@ -936,13 +941,22 @@ def complete_individual_assessment(request, session_id):
         user=request.user
     )
     
+    responses = assessment.responses.all().order_by('question_order')
+    
+    # Check if any responses are still processing speech analysis
+    if any(r.analysis_data.get('speech_analysis_status') == 'pending' for r in responses):
+        context = {
+            'assessment': assessment,
+            'session_id': session_id,
+        }
+        return render(request, 'analysis/processing_results.html', context)
+        
     if assessment.status != 'completed':
         # Mark as completed
         assessment.status = 'completed'
         assessment.completed_at = timezone.now()
         
         # Calculate overall scores
-        responses = assessment.responses.all()
         snapshots = assessment.snapshots.all()
         
         if responses.exists():
@@ -1032,7 +1046,8 @@ def complete_individual_assessment(request, session_id):
         'job_title': assessment.platform_job_title,
         'responses': responses,
         'snapshots': snapshots,
-        'duration_minutes': (assessment.completed_at - assessment.started_at).total_seconds() // 60 if assessment.completed_at and assessment.started_at else 0,
+        'duration_seconds': int((assessment.completed_at - assessment.started_at).total_seconds()) if assessment.completed_at and assessment.started_at else 0,
+        'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
 
@@ -1300,8 +1315,22 @@ def capture_snapshot_combined(request, session_id):
                 analysis_result = {"error": str(e)}
         
         # Save snapshot with analysis
-        # For now, we'll save the base64 image data in analysis_data
-        # In production, you'd want to save as a proper image file
+        # Extract numeric score from analysis result for proper aggregation on results page
+        snapshot_score = None
+        if isinstance(analysis_result, dict) and not analysis_result.get('error'):
+            # Try common score keys from both analyzers
+            for key in ('overall_score', 'score', 'confidence_score', 'posture_score', 'attire_score'):
+                val = analysis_result.get(key)
+                if val is not None:
+                    try:
+                        snapshot_score = float(val)
+                        # Normalize to 0-10 scale if analyzer returns 0-1
+                        if snapshot_score <= 1.0:
+                            snapshot_score *= 10
+                        break
+                    except (ValueError, TypeError):
+                        pass
+        
         snapshot_data = {
             'image_base64': image_data[:100] + '...' if len(image_data) > 100 else image_data,
             'question_id': question_id,
@@ -1312,6 +1341,7 @@ def capture_snapshot_combined(request, session_id):
             assessment=assessment,
             analysis_type=analysis_type,
             timestamp=timezone.now(),
+            score=snapshot_score,
             analysis_data=snapshot_data
         )
         
@@ -1382,9 +1412,14 @@ def submit_response_combined(request, session_id):
         # Handle audio data if provided
         if audio_data:
             try:
-                # Store audio data in analysis_data for now
-                # In production, you'd want to save as a proper file
-                response.analysis_data['audio_base64'] = audio_data[:100] + '...' if len(audio_data) > 100 else audio_data
+                audio_len = len(audio_data)
+                est_bytes = int(audio_len * 3 / 4)
+                print(f"[Audio] Response Q{IndividualAssessmentResponse.objects.filter(assessment=assessment).count()+1}: "
+                      f"base64_len={audio_len} chars, est_decoded={est_bytes} bytes ({est_bytes/1024:.1f} KB)")
+                # Store truncated preview only — full data goes to background task
+                response.analysis_data['audio_base64_preview'] = audio_data[:60] + '...' if len(audio_data) > 60 else audio_data
+                response.analysis_data['audio_b64_length'] = audio_len
+                response.analysis_data['audio_est_bytes'] = est_bytes
                 response.analysis_data['speech_analysis_status'] = 'pending'
                 response.save()
             except Exception as e:
@@ -1392,47 +1427,16 @@ def submit_response_combined(request, session_id):
         
         # Start speech analysis in background (don't wait for it)
         if audio_data and SPEECH_ANALYSIS_AVAILABLE:
-            # Import threading to run analysis in background
-            import threading
+            from django_q.tasks import async_task
+            from .tasks import run_speech_analysis_task
             
-            def run_speech_analysis():
-                try:
-                    # Decode audio data
-                    audio_bytes = base64.b64decode(audio_data)
-                    
-                    # Analyze speech
-                    speech_analysis = analyze_speech(audio_bytes, question.question_text)
-                    
-                    # Convert numpy types to native Python types for JSON serialization
-                    def convert_numpy_types(obj):
-                        if hasattr(obj, 'item'):  # numpy scalar
-                            return obj.item()
-                        elif hasattr(obj, 'tolist'):  # numpy array
-                            return obj.tolist()
-                        elif isinstance(obj, dict):
-                            return {key: convert_numpy_types(value) for key, value in obj.items()}
-                        elif isinstance(obj, list):
-                            return [convert_numpy_types(item) for item in obj]
-                        return obj
-                    
-                    # Clean the analysis results
-                    cleaned_analysis = convert_numpy_types(speech_analysis)
-                    
-                    # Update response with analysis
-                    response.analysis_data['speech_analysis'] = cleaned_analysis
-                    response.analysis_data['speech_analysis_status'] = 'completed'
-                    response.save()
-                    
-                except Exception as e:
-                    print(f"Speech analysis failed: {e}")
-                    response.analysis_data['speech_analysis'] = {"error": str(e)}
-                    response.analysis_data['speech_analysis_status'] = 'failed'
-                    response.save()
-            
-            # Start background thread
-            analysis_thread = threading.Thread(target=run_speech_analysis)
-            analysis_thread.daemon = True
-            analysis_thread.start()
+            # Enqueue the background task
+            async_task(
+                run_speech_analysis_task, 
+                response.id, 
+                audio_data, 
+                question.question_text
+            )
         
         # Check if assessment is complete
         answered_questions = IndividualAssessmentResponse.objects.filter(

@@ -381,11 +381,13 @@ document.getElementById('record-btn').addEventListener('click', startRecording);
 document.getElementById('stop-btn').addEventListener('click', stopRecording);
 document.getElementById('next-btn').addEventListener('click', nextQuestion);
 
-function startRecording() {
+let recordingPromise = null;
+
+async function startRecording() {
     if (!currentVideo) return;
     
     try {
-        mediaRecorder = new MediaRecorder(currentVideo);
+        mediaRecorder = new MediaRecorder(currentVideo, { mimeType: 'audio/webm' });
         recordedChunks = [];
         
         mediaRecorder.ondataavailable = function(event) {
@@ -394,12 +396,15 @@ function startRecording() {
             }
         };
         
-        mediaRecorder.onstop = function() {
-            const blob = new Blob(recordedChunks, { type: 'audio/wav' });
-            submitResponse(blob);
-        };
+        recordingPromise = new Promise(resolve => {
+            mediaRecorder.onstop = function() {
+                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                submitResponse(blob);
+                resolve();
+            };
+        });
         
-        mediaRecorder.start();
+        mediaRecorder.start(1000);
         isRecording = true;
         startTime = Date.now();
         
@@ -418,11 +423,17 @@ function startRecording() {
     }
 }
 
-function stopRecording() {
+async function stopRecording() {
     if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
         isRecording = false;
         clearInterval(timer);
+        
+        try { mediaRecorder.requestData(); } catch(e) {}
+        mediaRecorder.stop();
+        
+        if (recordingPromise) {
+            await recordingPromise;
+        }
         
         // Update UI
         document.getElementById('stop-btn').style.display = 'none';

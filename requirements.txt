@@ -1,5 +1,5 @@
 opencv-python
-mediapipe
+mediapipe==0.10.14
 numpy
 torch
 torchvision
@@ -9,10 +9,8 @@ Pillow
 ftfy
 regex
 tqdm
-Django
-flask
-flask-cors
-clip-by-openai
+django
 scikit-learn
 matplotlib
 seaborn
+django-q2

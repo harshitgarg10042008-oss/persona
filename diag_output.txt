@@ -1,0 +1,10 @@
+C:\Users\vishe\OneDrive\Desktop\Samyak\persona\diag_all_issues.py:3: SyntaxWarning: invalid escape sequence '\S'
+  Run with: venv\Scripts\python.exe diag_all_issues.py
+Traceback (most recent call last):
+  File "C:\Users\vishe\OneDrive\Desktop\Samyak\persona\diag_all_issues.py", line 19, in <module>
+    from AnalysisModules.AnalysisAPI.models import IndividualAssessment, IndividualAssessmentResponse
+  File "C:\Users\vishe\OneDrive\Desktop\Samyak\persona\AnalysisModules\AnalysisAPI\models.py", line 10, in <module>
+    class PlatformJobTitle(models.Model):
+  File "C:\Users\vishe\OneDrive\Desktop\Samyak\persona\venv\Lib\site-packages\django\db\models\base.py", line 136, in __new__
+    raise RuntimeError(
+RuntimeError: Model class AnalysisModules.AnalysisAPI.models.PlatformJobTitle doesn't declare an explicit app_label and isn't in an application in INSTALLED_APPS.

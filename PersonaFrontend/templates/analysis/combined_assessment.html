@@ -905,6 +905,8 @@ async function toggleRecording() {
     }
 }
 
+let recordingPromise = null;
+
 async function startRecording() {
     console.log('Starting recording...');
     
@@ -936,12 +938,15 @@ async function startRecording() {
             }
         };
         
-        mediaRecorder.onstop = function() {
-            console.log('Recording stopped');
-            processRecording();
-        };
+        recordingPromise = new Promise(resolve => {
+            mediaRecorder.onstop = function() {
+                console.log('Recording stopped');
+                processRecording();
+                resolve();
+            };
+        });
         
-        mediaRecorder.start();
+        mediaRecorder.start(1000);
         isRecording = true;
         
         // Update UI
@@ -962,8 +967,14 @@ async function stopRecording() {
     console.log('Stopping recording...');
     
     if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
         isRecording = false;
+        
+        try { mediaRecorder.requestData(); } catch(e) {}
+        mediaRecorder.stop();
+        
+        if (recordingPromise) {
+            await recordingPromise;
+        }
         
         // Stop audio stream
         if (mediaRecorder.stream) {

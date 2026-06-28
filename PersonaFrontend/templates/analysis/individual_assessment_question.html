@@ -166,11 +166,6 @@
             transform: scale(1.1);
             box-shadow: 0 12px 40px rgba(239, 68, 68, 0.4);
         }
-        }
-        50% { 
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            transform: scale(1.05);
-        }
     }
     .next-button {
         padding: 16px 32px;
@@ -603,6 +598,8 @@ async function toggleRecording() {
 }
 
 // Start recording
+let recordingPromise = null;
+
 async function startRecording() {
     try {
         audioChunks = [];
@@ -618,9 +615,12 @@ async function startRecording() {
             }
         };
         
-        mediaRecorder.onstop = function() {
-            processAudioRecording();
-        };
+        recordingPromise = new Promise(resolve => {
+            mediaRecorder.onstop = function() {
+                processAudioRecording();
+                resolve();
+            };
+        });
         
         mediaRecorder.start(1000); // Collect data every second
         isRecording = true;
@@ -643,8 +643,14 @@ async function startRecording() {
 // Stop recording
 async function stopRecording() {
     if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
         isRecording = false;
+        
+        try { mediaRecorder.requestData(); } catch(e) {}
+        mediaRecorder.stop();
+        
+        if (recordingPromise) {
+            await recordingPromise;
+        }
         
         // Update UI
         const recordButton = document.getElementById('record-button');

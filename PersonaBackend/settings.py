@@ -10,10 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add AnalysisModules to Python path so AnalysisAPI can be found
+sys.path.insert(0, str(BASE_DIR / 'AnalysisModules'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -41,6 +45,7 @@ INSTALLED_APPS = [
     'UserAPI',
     'AnalysisAPI',
     'DataAPI',
+    'django_q',
 ]
 
 MIDDLEWARE = [
@@ -140,3 +145,13 @@ AUTH_USER_MODEL = 'UserAPI.CustomUser'
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Django-Q2 Configuration
+Q_CLUSTER = {
+    'name': 'persona_cluster',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 60,
+    'catch_up': False,
+    'orm': 'default'
+}

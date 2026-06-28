@@ -74,7 +74,7 @@
             <h2 class="text-2xl font-semibold text-blue-800">{{ job_title.title }}</h2>
             <p class="text-blue-600 mt-2">{{ job_title.description }}</p>
             <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700">
-                <span><strong>Duration:</strong> {{ duration_minutes|floatformat:0 }} minutes</span>
+                <span><strong>Duration:</strong> {% if duration_seconds < 60 %}{{ duration_seconds }} seconds{% else %}{{ duration_minutes }} minutes{% endif %}</span>
                 <span><strong>Questions:</strong> {{ responses.count }}</span>
                 <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
             </div>
@@ -89,12 +89,22 @@
         <div class="metric-card">
             <div class="text-center mb-4">
                 <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
-                <div class="text-4xl font-bold text-blue-600 mb-2">
-                    69/100
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-blue-600 h-3 rounded-full" style="width: 69%"></div>
-                </div>
+                {% if assessment.overall_score %}
+                    {% with pct=assessment.overall_score|floatformat:0 %}
+                    <div class="text-4xl font-bold text-blue-600 mb-2">
+                        {{ pct }}/10
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ pct }}"></div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">No analysis data recorded</p>
+                {% endif %}
             </div>
             <p class="text-center text-gray-600">Complete assessment</p>
         </div>
@@ -103,30 +113,58 @@
         <div class="metric-card">
             <div class="text-center mb-4">
                 <h3 class="text-xl font-semibold text-gray-800 mb-2">Body Language</h3>
-                <div class="text-4xl font-bold text-green-600 mb-2">
-                    60/100
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-green-600 h-3 rounded-full" style="width: 60%"></div>
-                </div>
+                {% if assessment.body_language_score %}
+                    {% with pct=assessment.body_language_score|floatformat:0 %}
+                    <div class="text-4xl font-bold text-green-600 mb-2">
+                        {{ pct }}/10
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-green-600 h-3 rounded-full score-bar" data-score="{{ pct }}"></div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+                {% endif %}
             </div>
-            <p class="text-center text-gray-600">Posture & gestures</p>
+            <p class="text-center text-gray-600">Posture &amp; gestures</p>
         </div>
 
         <!-- Attire Score -->
         <div class="metric-card">
             <div class="text-center mb-4">
                 <h3 class="text-xl font-semibold text-gray-800 mb-2">Professional Attire</h3>
-                <div class="text-4xl font-bold text-purple-600 mb-2">
-                    80/100
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-purple-600 h-3 rounded-full" style="width: 80%"></div>
-                </div>
+                {% if assessment.attire_score %}
+                    {% with pct=assessment.attire_score|floatformat:0 %}
+                    <div class="text-4xl font-bold text-purple-600 mb-2">
+                        {{ pct }}/10
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-purple-600 h-3 rounded-full score-bar" data-score="{{ pct }}"></div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+                {% endif %}
             </div>
-            <p class="text-center text-gray-600">Appearance & grooming</p>
+            <p class="text-center text-gray-600">Appearance &amp; grooming</p>
         </div>
     </div>
+
+    <script>
+        // Set progress bar widths from data-score attributes (scores are 0-10 scale)
+        document.querySelectorAll('.score-bar[data-score]').forEach(function(bar) {
+            var pct = Math.min(parseFloat(bar.dataset.score) * 10, 100);
+            bar.style.width = pct + '%';
+        });
+    </script>
 
     <!-- Detailed Analysis - HIDDEN -->
     <div class="space-y-8 mb-12" style="display: none;">
@@ -447,7 +485,7 @@
             </div>
             
             <div>
-                <div class="text-2xl font-bold text-green-600">{{ duration_minutes|floatformat:0 }}m</div>
+                <div class="text-2xl font-bold text-green-600">{% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{ duration_minutes }}m{% endif %}</div>
                 <div class="text-sm text-gray-600">Total Duration</div>
             </div>
             

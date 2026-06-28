@@ -371,7 +371,7 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Duration:</span>
-                <span class="info-value">{{ assessment.duration_minutes }} minutes</span>
+                <span class="info-value">{% if assessment.duration_seconds < 60 %}{{ assessment.duration_seconds }} seconds{% else %}{{ assessment.duration_minutes }} minutes{% endif %}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Questions Answered:</span>

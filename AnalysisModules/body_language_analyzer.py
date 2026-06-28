@@ -20,10 +20,19 @@ class WebBodyLanguageAnalyzer:
     """Web-optimized body language analyzer for Django assessment system"""
     
     def __init__(self):
-        self.mp_pose = mp.solutions.pose
-        self.mp_face_mesh = mp.solutions.face_mesh
-        self.mp_hands = mp.solutions.hands
-        self.mp_drawing = mp.solutions.drawing_utils
+        try:
+            self.mp_pose = mp.solutions.pose
+            self.mp_face_mesh = mp.solutions.face_mesh
+            self.mp_hands = mp.solutions.hands
+            self.mp_drawing = mp.solutions.drawing_utils
+            self.mediapipe_available = True
+        except AttributeError:
+            logger.warning("Mediapipe solutions not available. Body language analysis will be disabled.")
+            self.mp_pose = None
+            self.mp_face_mesh = None
+            self.mp_hands = None
+            self.mp_drawing = None
+            self.mediapipe_available = False
         
         # Initialize MediaPipe components
         self.pose_detector = None
@@ -55,6 +64,10 @@ class WebBodyLanguageAnalyzer:
     def initialize_detectors(self):
         """Initialize MediaPipe detectors - call once when needed"""
         try:
+            if not getattr(self, 'mediapipe_available', True):
+                logger.warning("Cannot initialize detectors: mediapipe not available")
+                return False
+                
             if self.is_initialized:
                 return True
                 

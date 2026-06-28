@@ -5,6 +5,10 @@
 opencv-python
 pillow
 numpy
+scikit-learn
+matplotlib
+seaborn
+django-q2
 
 # MediaPipe for body language analysis
 #mediapipe

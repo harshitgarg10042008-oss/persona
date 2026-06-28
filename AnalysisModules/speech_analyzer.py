@@ -139,7 +139,11 @@ class WebSpeechAnalyzer:
             }
             
             # Save audio to temporary file for processing
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            # IMPORTANT: use .webm suffix because the browser records audio/webm;codecs=opus.
+            # ffmpeg (used by Whisper) relies on the file extension to identify the container
+            # format. If the extension is .wav but the bytes are WebM, ffmpeg decodes silence
+            # and Whisper returns an empty transcription → "No speech detected".
+            with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as temp_file:
                 temp_file.write(audio_data)
                 temp_audio_path = temp_file.name
             
@@ -660,7 +664,7 @@ def quick_transcribe(audio_data):
     if not speech_analyzer.is_initialized:
         speech_analyzer.initialize_models()
     
-    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as temp_file:
         temp_file.write(audio_data)
         temp_audio_path = temp_file.name
     
