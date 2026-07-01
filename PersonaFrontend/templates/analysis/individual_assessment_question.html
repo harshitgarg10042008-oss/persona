@@ -600,14 +600,41 @@ async function toggleRecording() {
 // Start recording
 let recordingPromise = null;
 
+function getSupportedAudioMimeType() {
+    const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+    ];
+    for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    return '';
+}
+
 async function startRecording() {
     try {
         audioChunks = [];
         responseStartTime = Date.now();
-        
-        mediaRecorder = new MediaRecorder(videoStream, {
-            mimeType: 'audio/webm'
-        });
+
+        if (!videoStream) {
+            showWarning('Camera/microphone not ready. Please wait for initialization.');
+            return;
+        }
+
+        const audioTracks = videoStream.getAudioTracks();
+        if (!audioTracks.length) {
+            showWarning('No microphone track available. Please refresh and allow mic access.');
+            return;
+        }
+
+        const audioStream = new MediaStream(audioTracks);
+        const mimeType = getSupportedAudioMimeType();
+        const recorderOptions = mimeType ? { mimeType } : {};
+        mediaRecorder = new MediaRecorder(audioStream, recorderOptions);
         
         mediaRecorder.ondataavailable = function(event) {
             if (event.data.size > 0) {
@@ -622,7 +649,7 @@ async function startRecording() {
             };
         });
         
-        mediaRecorder.start(1000); // Collect data every second
+        mediaRecorder.start(250);
         isRecording = true;
         
         // Update UI
@@ -668,6 +695,20 @@ function processAudioRecording() {
     }
     
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    console.log('Recorded audio blob size:', audioBlob.size, 'bytes');
+
+    if (audioBlob.size < 1024) {
+        showWarning('Recording too short or empty. Please speak for at least 2 seconds.');
+        const recordButton = document.getElementById('record-button');
+        recordButton.style.display = 'block';
+        recordButton.disabled = false;
+        recordButton.classList.remove('stop');
+        recordButton.classList.add('start');
+        recordButton.querySelector('#record-text').textContent = 'Start Recording';
+        audioChunks = [];
+        return;
+    }
+    
     const reader = new FileReader();
     
     reader.onload = function() {

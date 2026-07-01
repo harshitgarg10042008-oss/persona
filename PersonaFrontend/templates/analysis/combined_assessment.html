@@ -907,6 +907,21 @@ async function toggleRecording() {
 
 let recordingPromise = null;
 
+function getSupportedAudioMimeType() {
+    const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+    ];
+    for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    return '';
+}
+
 async function startRecording() {
     console.log('Starting recording...');
     
@@ -917,18 +932,20 @@ async function startRecording() {
     }
     
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                sampleRate: 44100
-            }
-        });
-        
-        mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'audio/webm;codecs=opus'
-        });
+        if (!videoStream) {
+            throw new Error('Camera/microphone stream not initialized');
+        }
+
+        const audioTracks = videoStream.getAudioTracks();
+        if (!audioTracks.length) {
+            throw new Error('No audio track available on camera stream');
+        }
+
+        // Re-use the setup mic track — avoid a second getUserMedia call that can yield silent audio on Windows
+        const audioStream = new MediaStream(audioTracks);
+        const mimeType = getSupportedAudioMimeType();
+        const recorderOptions = mimeType ? { mimeType } : {};
+        mediaRecorder = new MediaRecorder(audioStream, recorderOptions);
         
         audioChunks = [];
         
@@ -946,7 +963,7 @@ async function startRecording() {
             };
         });
         
-        mediaRecorder.start(1000);
+        mediaRecorder.start(250);
         isRecording = true;
         
         // Update UI
@@ -976,10 +993,7 @@ async function stopRecording() {
             await recordingPromise;
         }
         
-        // Stop audio stream
-        if (mediaRecorder.stream) {
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        }
+        // Do NOT stop videoStream tracks — camera/mic must stay live for snapshots and later questions
         
         // Update UI
         const button = document.getElementById('record-button');
@@ -994,6 +1008,18 @@ async function stopRecording() {
 
 function processRecording() {
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    console.log('Recorded audio blob size:', audioBlob.size, 'bytes, chunks:', audioChunks.length);
+
+    if (audioBlob.size < 1024) {
+        alert('Recording too short or empty. Please speak for at least 2 seconds and try again.');
+        const button = document.getElementById('record-button');
+        const status = document.getElementById('status-text');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-microphone"></i>';
+        status.textContent = 'Recording failed — click to try again';
+        audioChunks = [];
+        return;
+    }
     
     // Convert to base64
     const reader = new FileReader();

@@ -1,4 +1,5 @@
 import base64
+import hashlib
 from .models import IndividualAssessmentResponse
 
 try:
@@ -6,6 +7,17 @@ try:
 except ImportError:
     def analyze_speech(*args, **kwargs):
         return {"error": "Speech analysis not available"}
+
+
+def _decode_audio_base64(audio_data: str) -> bytes:
+    """Decode base64 audio, stripping a data-URL prefix when present."""
+    if not audio_data:
+        return b''
+    raw = audio_data.strip()
+    if raw.startswith('data:') and ',' in raw:
+        raw = raw.split(',', 1)[1]
+    return base64.b64decode(raw)
+
 
 def run_speech_analysis_task(response_id, audio_data, question_text):
     """
@@ -18,40 +30,49 @@ def run_speech_analysis_task(response_id, audio_data, question_text):
         return
 
     try:
-        # Decode audio data
-        audio_bytes = base64.b64decode(audio_data)
-        
-        # Analyze speech
+        audio_bytes = _decode_audio_base64(audio_data)
+        audio_hash = hashlib.md5(audio_bytes).hexdigest()
+
+        analysis_data = response.analysis_data or {}
+        analysis_data['debug_audio'] = {
+            'base64_len': len(audio_data),
+            'bytes_len': len(audio_bytes),
+            'hash': audio_hash,
+        }
+
+        if len(audio_bytes) < 1024:
+            analysis_data['speech_analysis'] = {
+                'error': f'Audio too small ({len(audio_bytes)} bytes) — recording likely empty',
+                'transcription': '',
+                'word_count': 0,
+            }
+            analysis_data['speech_analysis_status'] = 'completed'
+            response.analysis_data = analysis_data
+            response.save()
+            print(f"Speech analysis skipped for response {response_id}: audio only {len(audio_bytes)} bytes")
+            return
+
         speech_analysis = analyze_speech(audio_bytes, question_text)
-        
-        # Convert numpy types to native Python types for JSON serialization
+
         def convert_numpy_types(obj):
-            if hasattr(obj, 'item'):  # numpy scalar
+            if hasattr(obj, 'item'):
                 return obj.item()
-            elif hasattr(obj, 'tolist'):  # numpy array
+            elif hasattr(obj, 'tolist'):
                 return obj.tolist()
             elif isinstance(obj, dict):
                 return {key: convert_numpy_types(value) for key, value in obj.items()}
             elif isinstance(obj, list):
                 return [convert_numpy_types(item) for item in obj]
             return obj
-        
-        # Clean the analysis results
+
         cleaned_analysis = convert_numpy_types(speech_analysis)
-        
-        # Update response with analysis
-        # Using dict unpacking or copy might be safer if analysis_data isn't mutating well, 
-        # but the original code did `response.analysis_data['speech_analysis'] = ...`
-        # We should assign a new dict to ensure Django JSONField detects the change if it's an older version,
-        # but direct assignment usually works in modern Django.
-        
-        analysis_data = response.analysis_data or {}
+
         analysis_data['speech_analysis'] = cleaned_analysis
         analysis_data['speech_analysis_status'] = 'completed'
         response.analysis_data = analysis_data
         response.save()
-        print(f"Speech analysis for response {response_id} completed successfully.")
-        
+        print(f"Speech analysis for response {response_id} completed successfully ({len(audio_bytes)} bytes).")
+
     except Exception as e:
         print(f"Speech analysis failed for response {response_id}: {e}")
         analysis_data = response.analysis_data or {}
