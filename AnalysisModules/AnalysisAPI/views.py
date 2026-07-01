@@ -43,6 +43,47 @@ except ImportError:
     SPEECH_ANALYSIS_AVAILABLE = False
 
 
+def _snapshot_score_from_data(snapshot):
+    """Return a 0-10 score from snapshot column or nested analysis_result."""
+    if snapshot.score is not None and snapshot.score > 0:
+        return float(snapshot.score)
+
+    data = snapshot.analysis_data or {}
+    result = data.get('analysis_result', data)
+    if not isinstance(result, dict):
+        return None
+
+    for key in ('overall_score', 'score', 'confidence_score', 'posture_score', 'attire_score'):
+        val = result.get(key)
+        if val is not None:
+            try:
+                score = float(val)
+                if score <= 1.0:
+                    score *= 10
+                return score
+            except (ValueError, TypeError):
+                continue
+    return None
+
+
+def _enqueue_speech_analysis(response_id, audio_data, question_text):
+    """Run speech analysis via django-q, falling back to a daemon thread."""
+    from .tasks import run_speech_analysis_task
+
+    try:
+        from django_q.tasks import async_task
+        async_task(run_speech_analysis_task, response_id, audio_data, question_text)
+    except Exception as e:
+        print(f"django-q enqueue failed ({e}), using thread fallback")
+        import threading
+        thread = threading.Thread(
+            target=run_speech_analysis_task,
+            args=(response_id, audio_data, question_text),
+            daemon=True,
+        )
+        thread.start()
+
+
 @login_required
 def business_dashboard(request):
     """Main dashboard for business users to manage job roles and assessments"""
@@ -950,11 +991,21 @@ def complete_individual_assessment(request, session_id):
             'session_id': session_id,
         }
         return render(request, 'analysis/processing_results.html', context)
-        
-    if assessment.status != 'completed':
-        # Mark as completed
-        assessment.status = 'completed'
-        assessment.completed_at = timezone.now()
+
+    needs_scoring = (
+        assessment.status != 'completed'
+        or assessment.overall_score is None
+        or (
+            assessment.snapshots.exists()
+            and assessment.body_language_score is None
+            and assessment.attire_score is None
+        )
+    )
+
+    if needs_scoring:
+        if assessment.status != 'completed':
+            assessment.status = 'completed'
+            assessment.completed_at = timezone.now()
         
         # Calculate overall scores
         snapshots = assessment.snapshots.all()
@@ -1009,8 +1060,12 @@ def complete_individual_assessment(request, session_id):
             if body_language_snapshots.exists():
                 body_scores = []
                 for snapshot in body_language_snapshots:
-                    if snapshot.score and snapshot.score > 0:
-                        body_scores.append(snapshot.score)
+                    score = _snapshot_score_from_data(snapshot)
+                    if score is not None and score > 0:
+                        body_scores.append(score)
+                        if snapshot.score is None:
+                            snapshot.score = score
+                            snapshot.save(update_fields=['score'])
                 
                 if body_scores:
                     assessment.body_language_score = sum(body_scores) / len(body_scores)
@@ -1019,8 +1074,12 @@ def complete_individual_assessment(request, session_id):
             if attire_snapshots.exists():
                 attire_scores = []
                 for snapshot in attire_snapshots:
-                    if snapshot.score and snapshot.score > 0:
-                        attire_scores.append(snapshot.score)
+                    score = _snapshot_score_from_data(snapshot)
+                    if score is not None and score > 0:
+                        attire_scores.append(score)
+                        if snapshot.score is None:
+                            snapshot.score = score
+                            snapshot.save(update_fields=['score'])
                 
                 if attire_scores:
                     assessment.attire_score = sum(attire_scores) / len(attire_scores)
@@ -1427,16 +1486,7 @@ def submit_response_combined(request, session_id):
         
         # Start speech analysis in background (don't wait for it)
         if audio_data and SPEECH_ANALYSIS_AVAILABLE:
-            from django_q.tasks import async_task
-            from .tasks import run_speech_analysis_task
-            
-            # Enqueue the background task
-            async_task(
-                run_speech_analysis_task, 
-                response.id, 
-                audio_data, 
-                question.question_text
-            )
+            _enqueue_speech_analysis(response.id, audio_data, question.question_text)
         
         # Check if assessment is complete
         answered_questions = IndividualAssessmentResponse.objects.filter(
