@@ -1,0 +1,76 @@
+=== Assessment: 31 ===
+  status    : completed
+  overall   : 4.323698366980134
+  speaking  : None
+  body lang : 5.002034325261912
+  attire    : 3.6453624086983565
+  started   : 2026-06-27 06:24:02.758392
+  completed : 2026-06-27 06:24:29.230944
+  duration  : 26.5s  (0.44 min)
+  display would show: 26 seconds
+
+--- Responses ---
+
+  Q1 (response id=70):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
+    stored truncated  : True
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
+    speech error      : none
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+
+  Q2 (response id=71):
+    audio_b64_length  : 103
+    audio_est_bytes   : 77
+    stored truncated  : True
+    content hash      : N/A
+    debug_audio       : none
+    speech_status     : completed
+    speech error      : No speech detected in audio
+    transcription     : ''
+
+  Q3 (response id=72):
+    audio_b64_length  : 103
+    audio_est_bytes   : 77
+    stored truncated  : True
+    content hash      : N/A
+    debug_audio       : none
+    speech_status     : completed
+    speech error      : No speech detected in audio
+    transcription     : ''
+
+  Q4 (response id=73):
+    audio_b64_length  : 103
+    audio_est_bytes   : 77
+    stored truncated  : True
+    content hash      : N/A
+    debug_audio       : none
+    speech_status     : completed
+    speech error      : No speech detected in audio
+    transcription     : ''
+
+  Q5 (response id=74):
+    audio_b64_length  : 103
+    audio_est_bytes   : 77
+    stored truncated  : True
+    content hash      : N/A
+    debug_audio       : none
+    speech_status     : completed
+    speech error      : No speech detected in audio
+    transcription     : ''
+
+--- Audio Uniqueness Check ---
+  Unique content hashes: 2 out of 5 responses
+    Q1: 52e9bec7b0ca
+    Q2: N/A
+    Q3: N/A
+    Q4: N/A
+    Q5: N/A
+
+--- Snapshots ---
+  Total: 84
+  id=780 type=body_language col_score=6.020600179036459 result_overall=0.6020600179036459
+  body_language result_overall avg: 0.500 (n=70)
+  attire result_overall avg: 0.365 (n=14)

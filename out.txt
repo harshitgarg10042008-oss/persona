@@ -1,5 +1,0 @@
-Line 254: return redirect('analysis:business_assessment_complete', session_id=session_id)
-Line 282: return redirect('analysis:business_assessment_complete', assessment_id=assessment_id)
-Line 303: return redirect('analysis:business_assessment_complete', assessment_id=assessment.id)
-Line 321: def business_assessment_complete(request, assessment_id):
-Line 427: return render(request, 'analysis/business_assessment_complete.html', context)
