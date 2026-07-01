@@ -26,15 +26,20 @@ class WebBodyLanguageAnalyzer:
             self.mp_hands = mp.solutions.hands
             self.mp_drawing = mp.solutions.drawing_utils
             self.mediapipe_available = True
-        except AttributeError:
-            logger.warning("Mediapipe solutions not available. Body language analysis will be disabled.")
+        except Exception as e:
+            logger.warning(
+                f"MediaPipe initialization failed — body language analysis will be disabled. "
+                f"Reason: {e}"
+            )
             self.mp_pose = None
             self.mp_face_mesh = None
             self.mp_hands = None
             self.mp_drawing = None
             self.mediapipe_available = False
-        
-        # Initialize MediaPipe components
+            self.is_initialized = False
+            return
+
+        # Initialize MediaPipe detector handles (created lazily in initialize_detectors)
         self.pose_detector = None
         self.face_mesh_detector = None
         self.hands_detector = None

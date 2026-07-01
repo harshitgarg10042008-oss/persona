@@ -1,76 +1,78 @@
-=== Assessment: 31 ===
+=== Assessment: 32 ===
   status    : completed
-  overall   : 4.323698366980134
-  speaking  : None
-  body lang : 5.002034325261912
-  attire    : 3.6453624086983565
-  started   : 2026-06-27 06:24:02.758392
-  completed : 2026-06-27 06:24:29.230944
-  duration  : 26.5s  (0.44 min)
-  display would show: 26 seconds
+  overall   : 4.566480549474856
+  speaking  : 5.449899302039877
+  body lang : 4.246088139431911
+  attire    : 4.00345420695278
+  started   : 2026-07-01 06:00:28.480156
+  completed : 2026-07-01 06:01:51.673802
+  duration  : 83.2s  (1.39 min)
+  display would show: 1 minutes
 
 --- Responses ---
 
-  Q1 (response id=70):
-    audio_b64_length  : 83856
-    audio_est_bytes   : 62890
+  Q1 (response id=75):
+    audio_b64_length  : 143652
+    audio_est_bytes   : 107739
     stored truncated  : True
-    content hash      : 52e9bec7b0ca
-    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    content hash      : cd3243f63838
+    debug_audio       : {'base64_len': 143652, 'bytes_len': 107739, 'hash': 'cd3243f6383847037df155db20ade693'}
     speech_status     : completed
     speech error      : none
-    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+    transcription     : 'Hello nameagar ini'
 
-  Q2 (response id=71):
-    audio_b64_length  : 103
-    audio_est_bytes   : 77
+  Q2 (response id=76):
+    audio_b64_length  : 168188
+    audio_est_bytes   : 126141
     stored truncated  : True
-    content hash      : N/A
-    debug_audio       : none
+    content hash      : 164f4de298d3
+    debug_audio       : {'base64_len': 168188, 'bytes_len': 126141, 'hash': '164f4de298d3bf320ce751d60d74c221'}
     speech_status     : completed
-    speech error      : No speech detected in audio
-    transcription     : ''
+    speech error      : none
+    transcription     : 'How do you handle conflicting priorities and tight deadlines?'
 
-  Q3 (response id=72):
-    audio_b64_length  : 103
-    audio_est_bytes   : 77
+  Q3 (response id=77):
+    audio_b64_length  : 161728
+    audio_est_bytes   : 121295
     stored truncated  : True
-    content hash      : N/A
-    debug_audio       : none
+    content hash      : 8c9bc8c8bf83
+    debug_audio       : {'base64_len': 161728, 'bytes_len': 121295, 'hash': '8c9bc8c8bf839138c7a6da252471d9fe'}
     speech_status     : completed
-    speech error      : No speech detected in audio
-    transcription     : ''
+    speech error      : none
+    transcription     : 'Many projects didn't go as planned.'
 
-  Q4 (response id=73):
-    audio_b64_length  : 103
-    audio_est_bytes   : 77
+  Q4 (response id=78):
+    audio_b64_length  : 113924
+    audio_est_bytes   : 85441
     stored truncated  : True
-    content hash      : N/A
-    debug_audio       : none
+    content hash      : c5e894129e4e
+    debug_audio       : {'base64_len': 113924, 'bytes_len': 85441, 'hash': 'c5e894129e4ef4d5882ea4476832566a'}
     speech_status     : completed
-    speech error      : No speech detected in audio
-    transcription     : ''
+    speech error      : none
+    transcription     : 'I would talk to them and encourage them.'
 
-  Q5 (response id=74):
-    audio_b64_length  : 103
-    audio_est_bytes   : 77
+  Q5 (response id=79):
+    audio_b64_length  : 41560
+    audio_est_bytes   : 31169
     stored truncated  : True
-    content hash      : N/A
-    debug_audio       : none
+    content hash      : a23a08372263
+    debug_audio       : {'base64_len': 41560, 'bytes_len': 31169, 'hash': 'a23a083722639a69294d0fa30ead91f9'}
     speech_status     : completed
-    speech error      : No speech detected in audio
-    transcription     : ''
+    speech error      : none
+    transcription     : 'Hello'
 
 --- Audio Uniqueness Check ---
-  Unique content hashes: 2 out of 5 responses
-    Q1: 52e9bec7b0ca
-    Q2: N/A
-    Q3: N/A
-    Q4: N/A
-    Q5: N/A
+  Unique content hashes: 5 out of 5 responses
+    Q1: cd3243f63838
+    Q2: 164f4de298d3
+    Q3: 8c9bc8c8bf83
+    Q4: c5e894129e4e
+    Q5: a23a08372263
+  Distinct audio sizes (bytes/b64_len): [31169, 85441, 107739, 121295, 126141]
+  OK: Responses have different audio payload sizes
 
 --- Snapshots ---
-  Total: 84
-  id=780 type=body_language col_score=6.020600179036459 result_overall=0.6020600179036459
-  body_language result_overall avg: 0.500 (n=70)
-  attire result_overall avg: 0.365 (n=14)
+  Total: 189
+  id=864 type=body_language col_score=5.250134086608886 result_overall=0.5250134086608886
+  body_language result_overall avg: 0.425 (n=158)
+  attire result_overall avg: 0.402 (n=31)
