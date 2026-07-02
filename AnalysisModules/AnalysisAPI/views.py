@@ -21,6 +21,7 @@ from .models import (
     BusinessAssessmentResponse, BusinessAssessmentSnapshot
 )
 from UserAPI.models import BusinessUser
+from AnalysisModules.feedback_generator import evaluate_answer_content, generate_feedback_summary
 
 # Import analysis modules with fallback
 try:
@@ -888,7 +889,14 @@ def submit_assessment_response(request, session_id):
                     response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
                     response.relevance_score = speech_analysis.get('content_score', 0)
                     response.confidence_score = speech_analysis.get('confidence_score', 0)
-                    response.analysis_data = speech_analysis
+                    response.analysis_data = {
+                        'speech_analysis': speech_analysis,
+                        'content_evaluation': evaluate_answer_content(
+                            question_text=current_question.question_text,
+                            transcript=speech_analysis.get('transcription', ''),
+                            ideal_answer_points=current_question.ideal_answer_points,
+                        ),
+                    }
                     
             except Exception as e:
                 print(f"Audio processing error: {e}")
@@ -1094,12 +1102,34 @@ def complete_individual_assessment(request, session_id):
     # Get detailed results
     responses = assessment.responses.all().order_by('question_order')
     snapshots = assessment.snapshots.all().order_by('timestamp')
+
+    per_question_evaluations = []
+    for response in responses:
+        analysis_data = response.analysis_data or {}
+        evaluation = analysis_data.get('content_evaluation', {}) if isinstance(analysis_data, dict) else {}
+        if evaluation:
+            per_question_evaluations.append({
+                'question_text': response.question.question_text,
+                'content_correctness_score': evaluation.get('content_correctness_score'),
+                'explanation': evaluation.get('explanation', ''),
+            })
+
+    ai_feedback_summary = generate_feedback_summary(
+        {
+            'overall_score': assessment.overall_score,
+            'body_language_score': assessment.body_language_score,
+            'attire_score': assessment.attire_score,
+            'speaking_score': assessment.speaking_score,
+        },
+        per_question_evaluations,
+    )
     
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
         'responses': responses,
         'snapshots': snapshots,
+        'ai_feedback_summary': ai_feedback_summary,
         'duration_seconds': int((assessment.completed_at - assessment.started_at).total_seconds()) if assessment.completed_at and assessment.started_at else 0,
         'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
     }

@@ -29,6 +29,8 @@ sys.path.insert(0, str(BASE_DIR / 'AnalysisModules'))
 # Load from .env in project root (see python-decouple). .env is gitignored.
 # New developers without a .env file get a one-time random SECRET_KEY so the app still starts.
 SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
+GEMINI_API_KEY = config('GEMINI_API_KEY', default=None)
+GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-2.0-flash')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)

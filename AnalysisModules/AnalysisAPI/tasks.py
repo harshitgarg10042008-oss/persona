@@ -1,6 +1,7 @@
 import base64
 import hashlib
 from .models import IndividualAssessmentResponse
+from AnalysisModules.feedback_generator import evaluate_answer_content
 
 try:
     from AnalysisModules import analyze_speech
@@ -67,7 +68,16 @@ def run_speech_analysis_task(response_id, audio_data, question_text):
 
         cleaned_analysis = convert_numpy_types(speech_analysis)
 
+        speech_transcript = cleaned_analysis.get('transcription', '') or ''
+        ideal_answer_points = getattr(response.question, 'ideal_answer_points', None)
+        content_evaluation = evaluate_answer_content(
+            question_text=response.question.question_text,
+            transcript=speech_transcript,
+            ideal_answer_points=ideal_answer_points,
+        )
+
         analysis_data['speech_analysis'] = cleaned_analysis
+        analysis_data['content_evaluation'] = content_evaluation
         analysis_data['speech_analysis_status'] = 'completed'
         response.analysis_data = analysis_data
         response.save()

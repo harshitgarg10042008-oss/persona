@@ -45,6 +45,7 @@ class PlatformQuestion(models.Model):
     
     job_title = models.ForeignKey(PlatformJobTitle, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()
+    ideal_answer_points = models.TextField(blank=True, null=True, help_text="Optional key points a strong answer should cover")
     question_type = models.CharField(max_length=50, choices=QUESTION_TYPES, default='general')
     is_mandatory = models.BooleanField(default=False, help_text="Mandatory questions are always asked")
     difficulty_level = models.CharField(max_length=20, choices=[
@@ -81,6 +82,7 @@ class InterviewQuestion(models.Model):
     """Questions for specific job roles"""
     job_role = models.ForeignKey(JobRole, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()
+    ideal_answer_points = models.TextField(blank=True, null=True, help_text="Optional key points a strong answer should cover")
     question_type = models.CharField(max_length=50, choices=[
         ('behavioral', 'Behavioral'),
         ('technical', 'Technical'),
