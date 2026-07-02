@@ -1,33 +1,84 @@
 Script started
-=== Assessment: 34 ===
-  status    : in_progress
-  overall   : None
-  speaking  : None
-  body lang : None
-  attire    : None
-  started   : 2026-07-02 06:36:40.704937
-  completed : None
+=== Assessment: 40 ===
+  status    : completed
+  overall   : 5.313595549660109
+  speaking  : 7.716998263589091
+  body lang : 3.3800000000000003
+  attire    : 4.843788385391235
+  started   : 2026-07-02 09:04:07.862420
+  completed : 2026-07-02 09:04:34.254929
+  duration  : 26.4s  (0.44 min)
+  display would show: 26 seconds
 
 --- Responses ---
 
-  Q1 (response id=80):
-    audio_b64_length  : 5464
-    audio_est_bytes   : 4098
+  Q1 (response id=94):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
     stored truncated  : True
-    content hash      : e009747e74dd
-    debug_audio       : none
-    speech_status     : pending
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
     speech error      : none
-    transcription     : ''
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+
+  Q2 (response id=95):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
+    stored truncated  : True
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
+    speech error      : none
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+
+  Q3 (response id=96):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
+    stored truncated  : True
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
+    speech error      : none
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+
+  Q4 (response id=97):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
+    stored truncated  : True
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
+    speech error      : none
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
+
+  Q5 (response id=98):
+    audio_b64_length  : 83856
+    audio_est_bytes   : 62890
+    stored truncated  : True
+    content hash      : 52e9bec7b0ca
+    debug_audio       : {'base64_len': 83856, 'bytes_len': 62890, 'hash': '52e9bec7b0cab0fa34bf7bdaac3ef5e1'}
+    speech_status     : completed
+    speech error      : none
+    transcription     : 'Hello, my name is John and I have five years of experience in software engineering.'
 
 --- Audio Uniqueness Check ---
-  Unique content hashes: 1 out of 1 responses
-    Q1: e009747e74dd
-  OK: Each response has distinct audio content
+  Unique content hashes: 1 out of 5 responses
+    Q1: 52e9bec7b0ca
+    Q2: 52e9bec7b0ca
+    Q3: 52e9bec7b0ca
+    Q4: 52e9bec7b0ca
+    Q5: 52e9bec7b0ca
+  *** All responses share identical tiny/truncated audio — likely empty WebM header only ***
 
 --- Snapshots ---
-  Total: 1
-  id=1053 type=body_language col_score=3.3800000000000003 result_overall=0.338
-  body_language result_overall avg: 0.338 (n=1)
+  Total: 5
+  id=1067 type=body_language col_score=3.3800000000000003 result_overall=0.338
+  id=1068 type=attire col_score=4.843788385391235 result_overall=0.48437883853912356
+  id=1069 type=body_language col_score=3.3800000000000003 result_overall=0.338
+  id=1070 type=attire col_score=4.843788385391235 result_overall=0.48437883853912356
+  id=1071 type=body_language col_score=3.3800000000000003 result_overall=0.338
+  body_language result_overall avg: 0.338 (n=3)
+  attire result_overall avg: 0.484 (n=2)
 
 Done.

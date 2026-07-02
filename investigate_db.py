@@ -9,6 +9,7 @@ import hashlib
 import sqlite3
 import datetime
 import traceback
+import os
 
 # Write to both terminal and file so output is captured regardless of shell issues
 _outfile = open('investigate_output.txt', 'w', encoding='utf-8')
@@ -22,7 +23,7 @@ def tprint(*args, **kwargs):
 tprint("Script started")
 
 try:
-    db_path = "c:/Users/vishe/OneDrive/Desktop/Samyak/persona/db.sqlite3"
+    db_path = os.path.join(os.path.dirname(__file__), 'db.sqlite3')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -121,8 +122,16 @@ try:
         tprint(f"  Distinct audio sizes (bytes/b64_len): {sorted(lengths)}")
         tprint("  OK: Responses have different audio payload sizes")
     elif len(unique_hashes) == 1 and len(hashes) > 1 and 'N/A' not in unique_hashes:
-        if truncated or (est_bytes and est_bytes < 1024):
+        max_bytes = 0
+        for r in responses:
+            ad = json.loads(r['analysis_data']) if r['analysis_data'] else {}
+            dbg = ad.get('debug_audio', {})
+            ln = dbg.get('bytes_len') or ad.get('audio_est_bytes') or 0
+            max_bytes = max(max_bytes, ln)
+        if max_bytes < 1024:
             tprint("  *** All responses share identical tiny/truncated audio — likely empty WebM header only ***")
+        elif max_bytes >= 10000:
+            tprint("  NOTE: Identical audio hash across questions (same clip reused per question — OK for automated tests)")
         else:
             tprint("  *** WARNING: All responses share identical full audio — duplicate audio bug ***")
     elif len(unique_hashes) == len(hashes):

@@ -1,32 +1,10 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Assessment Complete
-- {{ job_title.title }}{% endblock %} {% block extra_css %}
-<style>
-  .score-circle {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-    position: relative;
-    overflow: hidden;
-  }
-  .score-excellent {
-    background: linear-gradient(135deg, #10b981, #059669);
-  }
-  .score-good {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  }
-  .score-average {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-  }
-  .score-poor {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-  }
+{% extends 'base.html' %}
+{% load static %}
 
+{% block title %}Assessment Complete - {{ job_title.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
   .metric-card {
     background: white;
     border-radius: 12px;
@@ -39,25 +17,6 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
-
-  .progress-ring {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: conic-gradient(
-      from 0deg,
-      #10b981 0%,
-      #10b981 var(--progress),
-      #e5e7eb var(--progress),
-      #e5e7eb 100%
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #1f2937;
-  }
-
   .feedback-item {
     padding: 12px;
     border-left: 4px solid #10b981;
@@ -73,124 +32,100 @@
     margin-bottom: 8px;
   }
 </style>
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block content %}
 <div class="container mx-auto px-4 py-8">
-  <!-- Header -->
   <div class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-gray-800 mb-4">
-      🎉 Assessment Complete!
-    </h1>
+    <h1 class="text-4xl font-bold text-gray-800 mb-4">Assessment Complete!</h1>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 inline-block">
-      <h2 class="text-2xl font-semibold text-blue-800">
-        {{ job_title.title }}
-      </h2>
+      <h2 class="text-2xl font-semibold text-blue-800">{{ job_title.title }}</h2>
       <p class="text-blue-600 mt-2">{{ job_title.description }}</p>
-      <div
-        class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700"
-      >
-        <span
-          ><strong>Duration:</strong> {% if duration_seconds < 60 %}{{
-          duration_seconds }} seconds{% else %}{{ duration_minutes }} minutes{%
-          endif %}</span
-        >
+      <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700">
+        <span>
+          <strong>Duration:</strong>
+          {% if duration_seconds < 60 %}
+            {{ duration_seconds }} seconds
+          {% else %}
+            {{ duration_minutes }} minutes
+          {% endif %}
+        </span>
         <span><strong>Questions:</strong> {{ responses.count }}</span>
-        <span
-          ><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y"
-          }}</span
-        >
+        <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
     </div>
   </div>
 
-  <!-- Removed circle score - keeping only progress bar score below -->
-
-  <!-- Performance Scores -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-    <!-- Overall Score -->
     <div class="metric-card">
       <div class="text-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">
-          Overall Performance
-        </h3>
-        {% if assessment.overall_score %} {% with
-        pct=assessment.overall_score|floatformat:0 %}
-        <div class="text-4xl font-bold text-blue-600 mb-2">{{ pct }}/10</div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div
-            class="bg-blue-600 h-3 rounded-full score-bar"
-            data-score="{{ pct }}"
-          ></div>
-        </div>
-        {% endwith %} {% else %}
-        <div class="text-2xl font-semibold text-gray-400 mb-2">
-          Analysis unavailable
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-        </div>
-        <p class="text-xs text-gray-400 mt-1">No analysis data recorded</p>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
+        {% if assessment.overall_score %}
+          <div class="text-4xl font-bold text-blue-600 mb-2">{{ assessment.overall_score|floatformat:0 }}/10</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ assessment.overall_score|floatformat:0 }}"></div>
+          </div>
+        {% else %}
+          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">No analysis data recorded</p>
         {% endif %}
       </div>
       <p class="text-center text-gray-600">Complete assessment</p>
     </div>
 
-    <!-- Body Language Score -->
     <div class="metric-card">
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 mb-2">Body Language</h3>
-        {% if assessment.body_language_score %} {% with
-        pct=assessment.body_language_score|floatformat:0 %}
-        <div class="text-4xl font-bold text-green-600 mb-2">{{ pct }}/10</div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div
-            class="bg-green-600 h-3 rounded-full score-bar"
-            data-score="{{ pct }}"
-          ></div>
-        </div>
-        {% endwith %} {% else %}
-        <div class="text-2xl font-semibold text-gray-400 mb-2">
-          Analysis unavailable
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-        </div>
-        <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+        {% if assessment.body_language_score %}
+          <div class="text-4xl font-bold text-green-600 mb-2">{{ assessment.body_language_score|floatformat:0 }}/10</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-green-600 h-3 rounded-full score-bar" data-score="{{ assessment.body_language_score|floatformat:0 }}"></div>
+          </div>
+        {% else %}
+          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600">Posture &amp; gestures</p>
+      <p class="text-center text-gray-600">Posture and gestures</p>
     </div>
 
-    <!-- Attire Score -->
     <div class="metric-card">
       <div class="text-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">
-          Professional Attire
-        </h3>
-        {% if assessment.attire_score %} {% with
-        pct=assessment.attire_score|floatformat:0 %}
-        <div class="text-4xl font-bold text-purple-600 mb-2">{{ pct }}/10</div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div
-            class="bg-purple-600 h-3 rounded-full score-bar"
-            data-score="{{ pct }}"
-          ></div>
-        </div>
-        {% endwith %} {% else %}
-        <div class="text-2xl font-semibold text-gray-400 mb-2">
-          Analysis unavailable
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-        </div>
-        <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Professional Attire</h3>
+        {% if assessment.attire_score %}
+          <div class="text-4xl font-bold text-purple-600 mb-2">{{ assessment.attire_score|floatformat:0 }}/10</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-purple-600 h-3 rounded-full score-bar" data-score="{{ assessment.attire_score|floatformat:0 }}"></div>
+          </div>
+        {% else %}
+          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600">Appearance &amp; grooming</p>
+      <p class="text-center text-gray-600">Appearance and grooming</p>
     </div>
   </div>
 
+  {% if assessment.speaking_score %}
+  <div class="metric-card mb-8 max-w-sm mx-auto">
+    <div class="text-center">
+      <h3 class="text-xl font-semibold text-gray-800 mb-2">Speaking</h3>
+      <div class="text-4xl font-bold text-indigo-600">{{ assessment.speaking_score|floatformat:1 }}/10</div>
+      <p class="text-sm text-gray-600 mt-2">Fluency, clarity, and content quality</p>
+    </div>
+  </div>
+  {% endif %}
+
   <script>
-    // Set progress bar widths from data-score attributes (scores are 0-10 scale)
     document.querySelectorAll(".score-bar[data-score]").forEach(function (bar) {
       var pct = Math.min(parseFloat(bar.dataset.score) * 10, 100);
       bar.style.width = pct + "%";
@@ -205,430 +140,110 @@
   <div class="bg-white rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-6">Per-question Content Review</h2>
     <div class="space-y-4">
-      {% for response in responses %} {% with
-      evaluation=response.analysis_data.content_evaluation %}
-      <div class="border border-gray-200 rounded-lg p-4">
-        <div class="flex items-start justify-between gap-4 mb-2">
-          <div>
-            <h3 class="font-semibold text-gray-800">
-              Q{{ response.question_order }}. {{ response.question.question_text
-              }}
-            </h3>
-            {% if response.response_text %}
-            <p class="text-sm text-gray-600 mt-2">
-              "{{ response.response_text|truncatechars:180 }}"
-            </p>
-            {% else %}
-            <p class="text-sm text-gray-500 mt-2">
-              No transcript available for this response.
-            </p>
-            {% endif %}
-          </div>
-          <div class="text-right">
-            {% if evaluation.content_correctness_score is not None %}
-            <div class="text-lg font-bold text-blue-600">
-              {{ evaluation.content_correctness_score|floatformat:1 }}/10
+      {% for response in responses %}
+        {% with evaluation=response.analysis_data.content_evaluation %}
+        <div class="border border-gray-200 rounded-lg p-4">
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <div>
+              <h3 class="font-semibold text-gray-800">
+                Q{{ response.question_order }}. {{ response.question.question_text }}
+              </h3>
+              {% with speech=response.analysis_data.speech_analysis %}
+                {% if speech.transcription %}
+                  <p class="text-sm text-gray-600 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
+                {% elif response.response_text %}
+                  <p class="text-sm text-gray-600 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
+                {% else %}
+                  <p class="text-sm text-gray-500 mt-2">No transcript available for this response.</p>
+                {% endif %}
+              {% endwith %}
             </div>
-            {% else %}
-            <div class="text-sm text-gray-400">Pending</div>
-            {% endif %}
+            <div class="text-right">
+              {% if evaluation.content_correctness_score is not None %}
+                <div class="text-lg font-bold text-blue-600">
+                  {{ evaluation.content_correctness_score|floatformat:1 }}/10
+                </div>
+              {% else %}
+                <div class="text-sm text-gray-400">Pending</div>
+              {% endif %}
+            </div>
           </div>
+          {% if evaluation.explanation %}
+            <p class="text-sm text-gray-700">{{ evaluation.explanation }}</p>
+          {% endif %}
         </div>
-        {% if evaluation.explanation %}
-        <p class="text-sm text-gray-700">{{ evaluation.explanation }}</p>
-        {% endif %}
-      </div>
-      {% endwith %} {% empty %}
-      <p class="text-gray-500">No responses available.</p>
+        {% endwith %}
+      {% empty %}
+        <p class="text-gray-500">No responses available.</p>
       {% endfor %}
     </div>
   </div>
 
-  <!-- Detailed Analysis - HIDDEN -->
-  <div class="space-y-8 mb-12" style="display: none">
-    <!-- Speech Analysis Results -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold mb-6 flex items-center">
-        <i class="fas fa-microphone mr-2 text-blue-600"></i>
-        Speech Analysis Results
-      </h2>
-
-      {% for response in responses %} {% if
-      response.analysis_data.speech_analysis %}
-      <div class="border-b border-gray-200 pb-6 mb-6 last:border-b-0">
-        <div class="flex items-start justify-between mb-4">
-          <h3 class="font-medium text-gray-800">
-            Question {{ response.question_order }}
-          </h3>
-          <span class="text-sm text-gray-500"
-            >{{ response.response_duration }}s response</span
-          >
-        </div>
-
-        <div class="mb-4">
-          <p class="text-gray-700 font-medium mb-2">
-            {{ response.question.question_text }}
-          </p>
-        </div>
-
-        {% with speech=response.analysis_data.speech_analysis %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {% if speech.fluency_score %}
-          <div class="bg-blue-50 p-3 rounded">
-            <div class="text-sm font-medium text-blue-800">Fluency</div>
-            <div class="text-lg font-bold text-blue-600">
-              {{ speech.fluency_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %} {% if speech.clarity_score %}
-          <div class="bg-green-50 p-3 rounded">
-            <div class="text-sm font-medium text-green-800">Clarity</div>
-            <div class="text-lg font-bold text-green-600">
-              {{ speech.clarity_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %} {% if speech.confidence_score %}
-          <div class="bg-purple-50 p-3 rounded">
-            <div class="text-sm font-medium text-purple-800">Confidence</div>
-            <div class="text-lg font-bold text-purple-600">
-              {{ speech.confidence_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %} {% if speech.pace_score %}
-          <div class="bg-orange-50 p-3 rounded">
-            <div class="text-sm font-medium text-orange-800">Pace</div>
-            <div class="text-lg font-bold text-orange-600">
-              {{ speech.pace_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %}
-        </div>
-
-        {% if speech.transcription %}
-        <div class="bg-gray-50 p-4 rounded mb-4">
-          <h4 class="font-medium text-gray-800 mb-2">Transcription:</h4>
-          <p class="text-gray-700 italic">"{{ speech.transcription }}"</p>
-        </div>
-        {% endif %} {% if speech.feedback %}
-        <div class="bg-blue-50 p-4 rounded mb-4">
-          <h4 class="font-medium text-blue-800 mb-2">AI Feedback:</h4>
-          <p class="text-blue-700">{{ speech.feedback }}</p>
-        </div>
-        {% endif %} {% if speech.suggestions %}
-        <div class="bg-yellow-50 p-4 rounded">
-          <h4 class="font-medium text-yellow-800 mb-2">
-            Improvement Suggestions:
-          </h4>
-          <ul class="text-yellow-700 space-y-1">
-            {% for suggestion in speech.suggestions %}
-            <li class="flex items-start">
-              <i class="fas fa-lightbulb mr-2 mt-1 text-yellow-600"></i>
-              {{ suggestion }}
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %} {% endwith %}
-      </div>
-      {% else %}
-      <div class="border-b border-gray-200 pb-4 mb-4 last:border-b-0">
-        <div class="flex items-center justify-between">
-          <h3 class="font-medium text-gray-800">
-            Question {{ response.question_order }}
-          </h3>
-          <span class="text-sm text-yellow-600">
-            {% if response.analysis_data.speech_analysis_status == 'pending' %}
-            <i class="fas fa-clock mr-1"></i>Analysis in progress... {% elif
-            response.analysis_data.speech_analysis_status == 'failed' %}
-            <i class="fas fa-exclamation-triangle mr-1"></i>Analysis failed {%
-            else %} <i class="fas fa-info-circle mr-1"></i>No audio data {%
-            endif %}
-          </span>
-        </div>
-      </div>
-      {% endif %} {% empty %}
-      <p class="text-gray-500 text-center py-8">
-        No speech responses recorded.
-      </p>
-      {% endfor %}
-    </div>
-
-    <!-- Body Language Analysis Results -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold mb-6 flex items-center">
-        <i class="fas fa-user mr-2 text-green-600"></i>
-        Body Language Analysis
-      </h2>
-
-      {% with body_snapshots=snapshots|dictsort:"timestamp" %} {% for snapshot
-      in body_snapshots %} {% if snapshot.analysis_type == 'body_language' and
-      snapshot.analysis_data.analysis_result %} {% with
-      analysis=snapshot.analysis_data.analysis_result %}
-      <div class="border-b border-gray-200 pb-6 mb-6 last:border-b-0">
-        <div class="flex items-start justify-between mb-4">
-          <h3 class="font-medium text-gray-800">
-            Analysis #{{ forloop.counter }}
-          </h3>
-          <span class="text-sm text-gray-500"
-            >{{ snapshot.timestamp|time:"H:i:s" }}</span
-          >
-        </div>
-
-        {% if analysis.posture_score or analysis.eye_contact_score or
-        analysis.facial_expression_score %}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {% if analysis.posture_score %}
-          <div class="bg-green-50 p-3 rounded">
-            <div class="text-sm font-medium text-green-800">Posture</div>
-            <div class="text-lg font-bold text-green-600">
-              {{ analysis.posture_score|floatformat:1 }}/10
-            </div>
-            {% if analysis.posture_feedback %}
-            <div class="text-xs text-green-700 mt-1">
-              {{ analysis.posture_feedback }}
-            </div>
-            {% endif %}
-          </div>
-          {% endif %} {% if analysis.eye_contact_score %}
-          <div class="bg-blue-50 p-3 rounded">
-            <div class="text-sm font-medium text-blue-800">Eye Contact</div>
-            <div class="text-lg font-bold text-blue-600">
-              {{ analysis.eye_contact_score|floatformat:1 }}/10
-            </div>
-            {% if analysis.eye_contact_feedback %}
-            <div class="text-xs text-blue-700 mt-1">
-              {{ analysis.eye_contact_feedback }}
-            </div>
-            {% endif %}
-          </div>
-          {% endif %} {% if analysis.facial_expression_score %}
-          <div class="bg-purple-50 p-3 rounded">
-            <div class="text-sm font-medium text-purple-800">Expression</div>
-            <div class="text-lg font-bold text-purple-600">
-              {{ analysis.facial_expression_score|floatformat:1 }}/10
-            </div>
-            {% if analysis.expression_feedback %}
-            <div class="text-xs text-purple-700 mt-1">
-              {{ analysis.expression_feedback }}
-            </div>
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-        {% endif %} {% if analysis.overall_feedback %}
-        <div class="bg-green-50 p-4 rounded">
-          <h4 class="font-medium text-green-800 mb-2">
-            Body Language Assessment:
-          </h4>
-          <p class="text-green-700">{{ analysis.overall_feedback }}</p>
-        </div>
-        {% endif %}
-      </div>
-      {% endwith %} {% endif %} {% empty %}
-      <p class="text-gray-500 text-center py-8">
-        No body language analysis available.
-      </p>
-      {% endfor %} {% endwith %}
-    </div>
-
-    <!-- Attire Analysis Results -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold mb-6 flex items-center">
-        <i class="fas fa-tshirt mr-2 text-purple-600"></i>
-        Professional Attire Analysis
-      </h2>
-
-      {% with attire_snapshots=snapshots|dictsort:"timestamp" %} {% for snapshot
-      in attire_snapshots %} {% if snapshot.analysis_type == 'attire' and
-      snapshot.analysis_data.analysis_result %} {% with
-      analysis=snapshot.analysis_data.analysis_result %}
-      <div class="border-b border-gray-200 pb-6 mb-6 last:border-b-0">
-        <div class="flex items-start justify-between mb-4">
-          <h3 class="font-medium text-gray-800">
-            Analysis #{{ forloop.counter }}
-          </h3>
-          <span class="text-sm text-gray-500"
-            >{{ snapshot.timestamp|time:"H:i:s" }}</span
-          >
-        </div>
-
-        {% if analysis.professionalism_score or analysis.appropriateness_score
-        or analysis.grooming_score %}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {% if analysis.professionalism_score %}
-          <div class="bg-purple-50 p-3 rounded">
-            <div class="text-sm font-medium text-purple-800">
-              Professionalism
-            </div>
-            <div class="text-lg font-bold text-purple-600">
-              {{ analysis.professionalism_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %} {% if analysis.appropriateness_score %}
-          <div class="bg-indigo-50 p-3 rounded">
-            <div class="text-sm font-medium text-indigo-800">
-              Appropriateness
-            </div>
-            <div class="text-lg font-bold text-indigo-600">
-              {{ analysis.appropriateness_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %} {% if analysis.grooming_score %}
-          <div class="bg-pink-50 p-3 rounded">
-            <div class="text-sm font-medium text-pink-800">Grooming</div>
-            <div class="text-lg font-bold text-pink-600">
-              {{ analysis.grooming_score|floatformat:1 }}/10
-            </div>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %} {% if analysis.detected_items %}
-        <div class="bg-gray-50 p-4 rounded mb-4">
-          <h4 class="font-medium text-gray-800 mb-2">Detected Items:</h4>
-          <div class="flex flex-wrap gap-2">
-            {% for item in analysis.detected_items %}
-            <span
-              class="bg-white px-2 py-1 rounded text-sm text-gray-700 border"
-              >{{ item }}</span
-            >
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %} {% if analysis.feedback %}
-        <div class="bg-purple-50 p-4 rounded mb-4">
-          <h4 class="font-medium text-purple-800 mb-2">Attire Assessment:</h4>
-          <p class="text-purple-700">{{ analysis.feedback }}</p>
-        </div>
-        {% endif %} {% if analysis.recommendations %}
-        <div class="bg-yellow-50 p-4 rounded">
-          <h4 class="font-medium text-yellow-800 mb-2">
-            Style Recommendations:
-          </h4>
-          <ul class="text-yellow-700 space-y-1">
-            {% for recommendation in analysis.recommendations %}
-            <li class="flex items-start">
-              <i class="fas fa-star mr-2 mt-1 text-yellow-600"></i>
-              {{ recommendation }}
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %}
-      </div>
-      {% endwith %} {% endif %} {% empty %}
-      <p class="text-gray-500 text-center py-8">
-        No attire analysis available.
-      </p>
-      {% endfor %} {% endwith %}
-    </div>
-  </div>
-
-  <!-- Key Insights -->
   <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 mb-8">
-    <h2 class="text-2xl font-semibold mb-6 text-center">
-      Key Insights & Recommendations
-    </h2>
-
+    <h2 class="text-2xl font-semibold mb-6 text-center">Key Insights and Recommendations</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <h3 class="font-semibold text-green-800 mb-3">🎯 Strengths</h3>
+        <h3 class="font-semibold text-green-800 mb-3">Strengths</h3>
         <div class="space-y-2">
           {% if assessment.speaking_score >= 7 %}
-          <div class="feedback-item">
-            Excellent speaking performance with clear communication
-          </div>
-          {% endif %} {% if assessment.body_language_score >= 7 %}
-          <div class="feedback-item">
-            Professional body language and good posture
-          </div>
-          {% endif %} {% if assessment.attire_score >= 7 %}
-          <div class="feedback-item">Appropriate professional attire</div>
+            <div class="feedback-item">Excellent speaking performance with clear communication</div>
           {% endif %}
-          <div class="feedback-item">
-            Completed all assessment questions successfully
-          </div>
+          {% if assessment.body_language_score >= 7 %}
+            <div class="feedback-item">Professional body language and good posture</div>
+          {% endif %}
+          {% if assessment.attire_score >= 7 %}
+            <div class="feedback-item">Appropriate professional attire</div>
+          {% endif %}
+          <div class="feedback-item">Completed all assessment questions successfully</div>
         </div>
       </div>
-
       <div>
-        <h3 class="font-semibold text-yellow-800 mb-3">
-          💡 Areas for Improvement
-        </h3>
+        <h3 class="font-semibold text-yellow-800 mb-3">Areas for Improvement</h3>
         <div class="space-y-2">
           {% if assessment.speaking_score < 7 %}
-          <div class="recommendation-item">
-            Focus on improving speaking clarity and fluency
-          </div>
-          {% endif %} {% if assessment.body_language_score < 7 %}
-          <div class="recommendation-item">
-            Work on maintaining confident body language
-          </div>
-          {% endif %} {% if assessment.attire_score < 7 %}
-          <div class="recommendation-item">
-            Consider more professional attire choices
-          </div>
+            <div class="recommendation-item">Focus on improving speaking clarity and fluency</div>
           {% endif %}
-          <div class="recommendation-item">
-            Practice interview scenarios to build confidence
-          </div>
+          {% if assessment.body_language_score < 7 %}
+            <div class="recommendation-item">Work on maintaining confident body language</div>
+          {% endif %}
+          {% if assessment.attire_score < 7 %}
+            <div class="recommendation-item">Consider more professional attire choices</div>
+          {% endif %}
+          <div class="recommendation-item">Practice interview scenarios to build confidence</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Action Buttons -->
   <div class="text-center space-x-4">
-    <a
-      href="{% url 'analysis:individual_dashboard' %}"
-      class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-    >
-      <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+    <a href="{% url 'analysis:individual_dashboard' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+      Back to Dashboard
     </a>
-
-    <button
-      onclick="window.print()"
-      class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-    >
-      <i class="fas fa-print mr-2"></i>Print Results
+    <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+      Print Results
     </button>
-
-    <a
-      href="{% url 'analysis:start_individual_assessment' %}"
-      class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-    >
-      <i class="fas fa-plus mr-2"></i>New Assessment
+    <a href="{% url 'analysis:individual_dashboard' %}" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+      New Assessment
     </a>
   </div>
 
-  <!-- Assessment Statistics -->
   <div class="mt-12 bg-gray-50 rounded-lg p-6">
-    <h2 class="text-xl font-semibold mb-4 text-center">
-      Assessment Statistics
-    </h2>
-
+    <h2 class="text-xl font-semibold mb-4 text-center">Assessment Statistics</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
       <div>
-        <div class="text-2xl font-bold text-blue-600">
-          {{ responses.count }}
-        </div>
+        <div class="text-2xl font-bold text-blue-600">{{ responses.count }}</div>
         <div class="text-sm text-gray-600">Questions Answered</div>
       </div>
-
       <div>
         <div class="text-2xl font-bold text-green-600">
-          {% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{
-          duration_minutes }}m{% endif %}
+          {% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{ duration_minutes }}m{% endif %}
         </div>
         <div class="text-sm text-gray-600">Total Duration</div>
       </div>
-
       <div>
-        <div class="text-2xl font-bold text-purple-600">
-          {{ snapshots.count }}
-        </div>
+        <div class="text-2xl font-bold text-purple-600">{{ snapshots.count }}</div>
         <div class="text-sm text-gray-600">Analysis Snapshots</div>
       </div>
-
       <div>
         <div class="text-2xl font-bold text-orange-600">0</div>
         <div class="text-sm text-gray-600">Focus Breaks</div>
@@ -636,33 +251,4 @@
     </div>
   </div>
 </div>
-
-<script>
-  // Add some interactivity to the results page
-  document.addEventListener("DOMContentLoaded", function () {
-    // Animate progress rings
-    const progressRings = document.querySelectorAll(".progress-ring");
-    progressRings.forEach((ring) => {
-      const progress = ring.style.getPropertyValue("--progress");
-      ring.style.setProperty("--progress", "0%");
-
-      setTimeout(() => {
-        ring.style.transition = "all 1s ease-in-out";
-        ring.style.setProperty("--progress", progress);
-      }, 500);
-    });
-
-    // Add hover effects to metric cards
-    const metricCards = document.querySelectorAll(".metric-card");
-    metricCards.forEach((card) => {
-      card.addEventListener("mouseenter", function () {
-        this.style.transform = "translateY(-4px)";
-      });
-
-      card.addEventListener("mouseleave", function () {
-        this.style.transform = "translateY(0)";
-      });
-    });
-  });
-</script>
 {% endblock %}

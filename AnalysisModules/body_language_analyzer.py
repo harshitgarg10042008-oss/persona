@@ -78,7 +78,7 @@ class WebBodyLanguageAnalyzer:
                 
             logger.info("Initializing body language analysis detectors...")
             
-            # Initialize pose detection
+            # Pose is required for posture analysis
             self.pose_detector = self.mp_pose.Pose(
                 static_image_mode=True,
                 model_complexity=1,
@@ -87,22 +87,35 @@ class WebBodyLanguageAnalyzer:
                 min_tracking_confidence=0.5
             )
             
-            # Initialize face mesh
-            self.face_mesh_detector = self.mp_face_mesh.FaceMesh(
-                static_image_mode=True,
-                max_num_faces=1,
-                refine_landmarks=True,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
-            )
+            # Face mesh may fail on some Windows/MediaPipe builds — degrade gracefully
+            self.face_mesh_detector = None
+            if self.mp_face_mesh is not None:
+                try:
+                    self.face_mesh_detector = self.mp_face_mesh.FaceMesh(
+                        static_image_mode=True,
+                        max_num_faces=1,
+                        refine_landmarks=False,
+                        min_detection_confidence=0.5,
+                        min_tracking_confidence=0.5
+                    )
+                except Exception as face_err:
+                    logger.warning(
+                        "Face mesh detector unavailable — eye contact analysis disabled: %s",
+                        face_err,
+                    )
             
-            # Initialize hand detection
-            self.hands_detector = self.mp_hands.Hands(
-                static_image_mode=True,
-                max_num_hands=2,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
-            )
+            # Hand detection is optional
+            self.hands_detector = None
+            if self.mp_hands is not None:
+                try:
+                    self.hands_detector = self.mp_hands.Hands(
+                        static_image_mode=True,
+                        max_num_hands=2,
+                        min_detection_confidence=0.5,
+                        min_tracking_confidence=0.5
+                    )
+                except Exception as hands_err:
+                    logger.warning("Hand detector unavailable: %s", hands_err)
             
             self.is_initialized = True
             logger.info("Body language analysis detectors initialized successfully")
@@ -244,6 +257,13 @@ class WebBodyLanguageAnalyzer:
     
     def _analyze_face_orientation(self, image: np.ndarray) -> Dict:
         """Analyze face orientation and estimate eye contact"""
+        if self.face_mesh_detector is None:
+            return {
+                'eye_contact_score': 0.5,
+                'orientation_score': 0.5,
+                'detected': False,
+                'error': 'Face mesh detector unavailable',
+            }
         try:
             face_results = self.face_mesh_detector.process(image)
             
@@ -313,6 +333,13 @@ class WebBodyLanguageAnalyzer:
     
     def _analyze_gestures(self, image: np.ndarray) -> Dict:
         """Analyze hand gestures and movement"""
+        if self.hands_detector is None:
+            return {
+                'score': 0.6,
+                'detected': False,
+                'hands_count': 0,
+                'message': 'Hand detector unavailable',
+            }
         try:
             hand_results = self.hands_detector.process(image)
             
