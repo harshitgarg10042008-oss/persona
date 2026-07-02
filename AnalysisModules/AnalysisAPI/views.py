@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db import models
 from django.core.paginator import Paginator
@@ -469,7 +468,6 @@ def business_assessment_complete(request, assessment_id):
     return render(request, 'analysis/business_assessment_complete.html', context)
 
 
-@csrf_exempt
 def business_capture_snapshot(request, assessment_id):
     """Capture analysis snapshots for business assessments"""
     if request.method != 'POST':
@@ -527,7 +525,6 @@ def business_capture_snapshot(request, assessment_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@csrf_exempt  
 def business_submit_response(request, assessment_id):
     """Submit response for business assessment"""
     if request.method != 'POST':
@@ -836,7 +833,6 @@ def individual_assessment_question(request, session_id):
     return render(request, 'analysis/individual_assessment_question.html', context)
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def submit_assessment_response(request, session_id):
     """Submit response for current question and move to next"""
@@ -917,7 +913,6 @@ def submit_assessment_response(request, session_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def capture_assessment_snapshot(request, session_id):
     """Capture and analyze webcam snapshot during assessment"""
@@ -1188,7 +1183,6 @@ def clean_assessment_question(request, session_id):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 def capture_snapshot_clean(request, session_id):
     """Handle background snapshot capture for analysis"""
     try:
@@ -1254,7 +1248,6 @@ def capture_snapshot_clean(request, session_id):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 def submit_response_clean(request, session_id):
     """Handle clean response submission with speech analysis"""
     try:
@@ -1330,7 +1323,6 @@ def submit_response_clean(request, session_id):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 def capture_snapshot_combined(request, session_id):
     """Handle combined assessment snapshot capture with background analysis"""
     try:
@@ -1416,7 +1408,6 @@ def capture_snapshot_combined(request, session_id):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 def submit_response_combined(request, session_id):
     """Handle combined assessment response submission with speech analysis"""
     try:

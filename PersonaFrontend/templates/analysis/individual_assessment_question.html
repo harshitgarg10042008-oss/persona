@@ -272,6 +272,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="assessment-container">
     <!-- Fullscreen Exit Warning -->
     <div id="fullscreen-warning" class="fullscreen-exit-warning">

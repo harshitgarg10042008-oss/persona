@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import sys
 from pathlib import Path
 
+from decouple import Csv, config
+from django.core.management.utils import get_random_secret_key
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,13 +26,14 @@ sys.path.insert(0, str(BASE_DIR / 'AnalysisModules'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8f4m^y4n@bagzyhqsu(8j=3l$*qt+pta@s&qeu(ujmenued*j2'
+# Load from .env in project root (see python-decouple). .env is gitignored.
+# New developers without a .env file get a one-time random SECRET_KEY so the app still starts.
+SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',

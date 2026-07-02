@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import json
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
 from .models import CustomUser, IndividualUser, BusinessUser

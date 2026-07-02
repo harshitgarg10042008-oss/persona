@@ -1,16 +1,24 @@
-opencv-python
+# Core web framework
+Django==6.0.6
+django-q2==1.10.0
+python-decouple==3.8
+
+# Computer vision & image processing
+opencv-python==4.13.0.92
 mediapipe==0.10.14
-numpy
-torch
-torchvision
-transformers
-requests
-Pillow
-ftfy
-regex
-tqdm
-django
-scikit-learn
-matplotlib
-seaborn
-django-q2
+Pillow==12.2.0
+numpy==2.4.6
+
+# Machine learning
+torch==2.12.1
+torchvision==0.27.1
+transformers==5.12.1
+scikit-learn==1.9.0
+
+# Plotting & utilities
+matplotlib==3.11.0
+seaborn==0.13.2
+requests==2.34.2
+ftfy==6.3.1
+regex==2026.5.9
+tqdm==4.68.3

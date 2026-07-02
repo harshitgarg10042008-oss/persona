@@ -409,6 +409,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="assessment-container" id="assessment-container">
     <!-- Hidden video elements for background capture -->
     <video id="video-feed" autoplay muted></video>

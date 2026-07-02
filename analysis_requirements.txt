@@ -2,36 +2,36 @@
 # These packages are required for the comprehensive assessment analysis features
 
 # Computer Vision and Image Processing
-opencv-python
-pillow
-numpy
-scikit-learn
-matplotlib
-seaborn
-django-q2
+opencv-python==4.13.0.92
+Pillow==12.2.0
+numpy==2.4.6
+scikit-learn==1.9.0
+matplotlib==3.11.0
+seaborn==0.13.2
+django-q2==1.10.0
 
 # MediaPipe for body language analysis
-#mediapipe
+mediapipe==0.10.14
 
 # Machine Learning Models
-torch
-torchvision
-transformers
+torch==2.12.1
+torchvision==0.27.1
+transformers==5.12.1
 
 # Audio Processing and Speech Analysis
-librosa
-soundfile
-openai-whisper
-SpeechRecognition
-pyaudio
+librosa==0.11.0
+soundfile==0.14.0
+openai-whisper==20250625
+SpeechRecognition==3.17.0
+PyAudio==0.2.14
 
 # Natural Language Processing
-nltk
-textblob
+nltk==3.9.4
+textblob==0.20.0
 
 # Additional utilities
-requests
-tqdm
+requests==2.34.2
+tqdm==4.68.3
 
 # Note: Some packages may require additional system dependencies:
 # - For pyaudio on Windows: Microsoft Visual C++ 14.0 or greater
@@ -40,13 +40,10 @@ tqdm
 
 # Installation commands:
 # Basic ML packages (required for attire and body language):
-# pip install opencv-python pillow numpy mediapipe torch torchvision transformers
+# pip install -r requirements.txt
 
 # Audio analysis packages (required for speech analysis):
-# pip install librosa soundfile openai-whisper SpeechRecognition pyaudio
-
-# NLP packages:
-# pip install nltk textblob
+# pip install -r analysis_requirements.txt
 
 # After installation, you may need to run:
 # python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
