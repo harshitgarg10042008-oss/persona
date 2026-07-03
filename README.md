@@ -28,11 +28,27 @@ persona/
 
 ---
 
+## 🧠 ML Pipeline & Features
+
+This project integrates a comprehensive Machine Learning and AI pipeline:
+
+- **Attire & Professionalism**: Uses **CLIP**, **BLIP**, and **ViT** models to assess the candidate's clothing and environment from video frames.
+- **Body Language**: Uses **MediaPipe** to track posture, gestures, and facial landmarks for engagement and confidence metrics.
+- **Speech & Fluency**: Uses **OpenAI Whisper** and `librosa` for robust audio transcription and vocal delivery analysis.
+- **Content Correctness**: Utilizes **Google Gemini (3.1 Pro)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
+- **Asynchronous Task Queue**: Leverages **Django-Q2** (via ORM broker) to process heavy ML operations in the background without blocking the main server threads.
+- **PDF Reports & Tracking**: Generates downloadable PDF reports with detailed performance breakdowns and tracks progress via interactive charts (Chart.js) over time.
+
+---
+
 ## 🚀 How to Run Locally
 
-Currently, there are no deployment configurations (no Dockerfile, Procfile, or production DB). The project is meant to be run locally using the Django development server.
+Currently, there are no heavy production deployment configurations (like Docker or Kubernetes). The project runs using the local Django server but requires an asynchronous worker for ML tasks.
 
-**Step 1: Create and activate a virtual environment**
+**Step 1: Install System Dependencies**
+- You must have **FFmpeg** installed on your system and available in your PATH for audio processing.
+
+**Step 2: Create and activate a virtual environment**
 ```bash
 python -m venv venv
 
@@ -42,19 +58,30 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-**Step 2: Install Dependencies**
+**Step 3: Setup Environment Variables**
+- Copy `.env.example` to `.env` (or create a `.env` file).
+- Ensure `SECRET_KEY`, `DEBUG`, and `GEMINI_API_KEY` are configured properly.
+
+**Step 4: Install Dependencies**
 ```bash
 # This will install Django as well as all heavy ML libraries (PyTorch, Transformers, MediaPipe, Whisper)
 # NOTE: This may take 10-20 minutes depending on your internet speed.
 pip install -r requirements.txt
 ```
 
-**Step 3: Run the Development Server**
+**Step 5: Run the Task Worker (Django-Q2)**
+In a new terminal (with the venv activated), run the task cluster for background audio processing:
+```bash
+python manage.py qcluster
+```
+
+**Step 6: Run the Development Server**
+In your main terminal, run:
 ```bash
 python manage.py runserver
 ```
 
-**Step 4: Access the Website & Admin Panel**
+**Step 7: Access the Website & Admin Panel**
 - **Website:** Go to `http://127.0.0.1:8000`
 - **Admin Panel:** Go to `http://127.0.0.1:8000/admin/`
   - *(To create an admin, run `python manage.py createsuperuser` in your terminal)*
@@ -63,14 +90,8 @@ python manage.py runserver
 
 ## ⚠️ Known Flaws and Limitations
 
-1. **MediaPipe Compatibility on Python 3.12:**
-   - There is a known bug with `mediapipe` on Python 3.12 where it fails to expose its `solutions` module (usually due to an underlying C++ DLL issue on Windows). 
-   - **Current Workaround:** The code in `body_language_analyzer.py` catches this error gracefully and simply disables body language analysis without crashing the server.
-2. **No Deployment Configuration:**
-   - The application has no production-ready deployment configurations (e.g., Dockerfile, Gunicorn, Nginx, or cloud hosting scripts).
-   - The database uses the default local `db.sqlite3` file, which is not suitable for production. It should be migrated to PostgreSQL.
-   - `DEBUG = True` is still set in `settings.py`.
-3. **Heavy ML Dependencies:**
-   - The project installs large ML libraries natively (PyTorch is ~2.5 GB). In a production environment, you might want to run the ML analysis on a separate microservice, or heavily utilize caching, because deploying these models inside a single monolithic Django app will cause huge memory usage and slow server boot times.
-4. **Synchronous Audio Processing:**
-   - While some ML tasks are threaded, running Whisper and Librosa processing directly in Django views can block the server or result in timeout errors if the audio files are too long. A task queue like **Celery + Redis** is highly recommended for production.
+1. **No Production Deployment Configuration:**
+   - The application lacks production-ready deployment setups (e.g., Dockerfile, Gunicorn, Nginx, or cloud hosting scripts).
+   - The database still uses the default local `db.sqlite3` file, which is not suitable for high-concurrency production and should be migrated to PostgreSQL.
+2. **Heavy ML Dependencies:**
+   - The project installs large ML libraries natively (PyTorch is ~2.5 GB). In a true production environment, the ML analysis should be decoupled into a separate microservice, or heavily utilize caching, because deploying these models inside a single monolithic Django app will cause huge memory usage.

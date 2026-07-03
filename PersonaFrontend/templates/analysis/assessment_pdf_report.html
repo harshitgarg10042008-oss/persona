@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Assessment Report</title>
+    <style>
+        @page {
+            size: a4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #2980b9;
+        }
+        .header-info {
+            margin-bottom: 30px;
+        }
+        .header-info p {
+            margin: 5px 0;
+        }
+        .score-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .score-box h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .score-value {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .sub-scores {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .sub-scores th, .sub-scores td {
+            border: 1px solid #bdc3c7;
+            padding: 10px;
+            text-align: center;
+        }
+        .sub-scores th {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+        .feedback-summary {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 5px solid #3498db;
+            margin-bottom: 30px;
+        }
+        .question-breakdown {
+            margin-top: 20px;
+        }
+        .question-item {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #bdc3c7;
+        }
+        .question-text {
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        .transcript {
+            font-style: italic;
+            color: #7f8c8d;
+            margin: 10px 0;
+            background-color: #f1f2f6;
+            padding: 10px;
+            border-left: 3px solid #95a5a6;
+        }
+        .evaluation {
+            margin-top: 10px;
+        }
+        .score-badge {
+            display: inline-block;
+            background-color: #2980b9;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Assessment Report</h1>
+    
+    <div class="header-info">
+        <p><strong>Candidate:</strong> {{ assessment.user.get_full_name|default:assessment.user.username }}</p>
+        <p><strong>Email:</strong> {{ assessment.user.email }}</p>
+        <p><strong>Job Role:</strong> {{ job_title.title }}</p>
+        <p><strong>Date:</strong> {{ assessment.created_at|date:"F j, Y" }}</p>
+        <p><strong>Duration:</strong> {{ duration_minutes }} minutes</p>
+    </div>
+
+    <div class="score-box">
+        <h3>Overall Score</h3>
+        <div class="score-value">
+            {% if assessment.overall_score %}
+                {{ assessment.overall_score|floatformat:1 }}/10
+            {% else %}
+                N/A
+            {% endif %}
+        </div>
+    </div>
+
+    <table class="sub-scores">
+        <tr>
+            <th>Speaking</th>
+            <th>Body Language</th>
+            <th>Professional Attire</th>
+        </tr>
+        <tr>
+            <td>
+                {% if assessment.speaking_score %}
+                    {{ assessment.speaking_score|floatformat:1 }}/10
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                {% if assessment.body_language_score %}
+                    {{ assessment.body_language_score|floatformat:1 }}/10
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                {% if assessment.attire_score %}
+                    {{ assessment.attire_score|floatformat:1 }}/10
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <h2>AI Feedback Summary</h2>
+    <div class="feedback-summary">
+        {% if ai_feedback_summary %}
+            {{ ai_feedback_summary|linebreaks }}
+        {% else %}
+            <p>No overall feedback available.</p>
+        {% endif %}
+    </div>
+
+    <h2>Per-Question Breakdown</h2>
+    <div class="question-breakdown">
+        {% for eval in per_question_evaluations %}
+            <div class="question-item">
+                <div class="question-text">Q{{ forloop.counter }}: {{ eval.question_text }}</div>
+                
+                {% if eval.transcript %}
+                    <div class="transcript">
+                        "{{ eval.transcript }}"
+                    </div>
+                {% endif %}
+                
+                <div class="evaluation">
+                    <p>
+                        <span class="score-badge">Content Score: {{ eval.content_correctness_score|floatformat:1 }}/10</span>
+                    </p>
+                    <p>{{ eval.explanation }}</p>
+                </div>
+            </div>
+        {% empty %}
+            <p>No detailed question breakdowns available.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

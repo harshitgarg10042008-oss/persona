@@ -3,9 +3,12 @@ from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.http import JsonResponse
 import json
+from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
 from .models import CustomUser, IndividualUser, BusinessUser
 
+@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True)
 def signup_view(request):
     if request.method == 'POST':
         user_type = request.POST.get('user_type')
@@ -45,6 +48,7 @@ def signup_view(request):
     }
     return render(request, 'auth/signup.html', context)
 
+@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True)
 def login_view(request):
     if request.method == 'POST':
         form = CustomLoginForm(request, data=request.POST)

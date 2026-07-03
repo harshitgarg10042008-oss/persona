@@ -37,6 +37,7 @@ urlpatterns = [
     path('individual/<uuid:session_id>/submit/', views.submit_assessment_response, name='submit_assessment_response'),
     path('individual/<uuid:session_id>/snapshot/', views.capture_assessment_snapshot, name='capture_assessment_snapshot'),
     path('individual/<uuid:session_id>/complete/', views.complete_individual_assessment, name='complete_individual_assessment'),
+    path('individual/<uuid:session_id>/pdf/', views.download_assessment_report, name='download_assessment_report'),
     
     # Combined Assessment System (Setup + Questions)
     path('assessment/<uuid:session_id>/combined/', views.combined_assessment, name='combined_assessment'),

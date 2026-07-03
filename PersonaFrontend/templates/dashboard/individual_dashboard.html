@@ -30,6 +30,15 @@
         </div>
     </div>
 
+    <!-- Progress Tracking Chart -->
+    <div class="mb-8 bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Progress</h2>
+        <div id="chartContainer" class="relative w-full h-64 flex items-center justify-center">
+            <canvas id="progressChart"></canvas>
+            <p id="chartFallbackMessage" class="text-gray-500 hidden">Complete more assessments to see your progress.</p>
+        </div>
+    </div>
+
     <!-- Main Content Areas -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Practice Interview -->
@@ -148,4 +157,59 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const chartDataStr = '{{ chart_json|escapejs }}';
+        if (chartDataStr) {
+            const chartData = JSON.parse(chartDataStr);
+            const ctx = document.getElementById('progressChart');
+            const fallbackMsg = document.getElementById('chartFallbackMessage');
+            
+            if (chartData.scores && chartData.scores.length > 1) {
+                // We have enough data to show a progress chart
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: 'Overall Score',
+                            data: chartData.scores,
+                            borderColor: '#3b82f6', // blue-500
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#2563eb', // blue-600
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                title: {
+                                    display: true,
+                                    text: 'Score (out of 10)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Not enough data
+                ctx.style.display = 'none';
+                fallbackMsg.classList.remove('hidden');
+            }
+        }
+    });
+</script>
 {% endblock %}

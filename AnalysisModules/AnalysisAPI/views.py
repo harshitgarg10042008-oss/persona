@@ -12,6 +12,9 @@ import json
 import uuid
 import base64
 from datetime import datetime, timedelta
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+
 
 # Import models
 from .models import (
@@ -21,7 +24,9 @@ from .models import (
     BusinessAssessmentResponse, BusinessAssessmentSnapshot
 )
 from UserAPI.models import BusinessUser
-from AnalysisModules.feedback_generator import evaluate_answer_content, generate_feedback_summary
+from AnalysisModules.feedback_generator import evaluate_answer_content, generate_feedback_summary, generate_improvement_roadmap
+from django_ratelimit.decorators import ratelimit
+from .upload_validators import validate_audio_b64, validate_image_b64
 
 # Import analysis modules with fallback
 try:
@@ -673,10 +678,30 @@ def individual_dashboard(request):
         'speech_available': SPEECH_ANALYSIS_AVAILABLE,
     }
     
+    # Chart data for completed assessments
+    completed_assessments = IndividualAssessment.objects.filter(
+        user=request.user, 
+        status='completed', 
+        overall_score__isnull=False
+    ).order_by('completed_at')
+    
+    chart_dates = []
+    chart_scores = []
+    for a in completed_assessments:
+        if a.completed_at:
+            chart_dates.append(a.completed_at.strftime('%b %d'))
+            chart_scores.append(float(a.overall_score))
+            
+    chart_data = {
+        'labels': chart_dates,
+        'scores': chart_scores
+    }
+    
     context = {
         'recent_assessments': recent_assessments,
         'job_titles': job_titles,
         'analysis_status': analysis_status,
+        'chart_json': json.dumps(chart_data),
     }
     return render(request, 'analysis/individual_dashboard.html', context)
 
@@ -835,6 +860,7 @@ def individual_assessment_question(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SUBMISSION, block=True)
 def submit_assessment_response(request, session_id):
     """Submit response for current question and move to next"""
     try:
@@ -866,7 +892,10 @@ def submit_assessment_response(request, session_id):
         )
         
         # Process audio if provided
-        if 'audio_data' in data:
+        if 'audio_data' in data and data['audio_data']:
+            is_valid, error_msg = validate_audio_b64(data['audio_data'])
+            if not is_valid:
+                return JsonResponse({'error': error_msg}, status=400)
             try:
                 # Decode base64 audio
                 audio_data = base64.b64decode(data['audio_data'].split(',')[1])
@@ -922,6 +951,7 @@ def submit_assessment_response(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SNAPSHOT, block=True)
 def capture_assessment_snapshot(request, session_id):
     """Capture and analyze webcam snapshot during assessment"""
     try:
@@ -938,6 +968,10 @@ def capture_assessment_snapshot(request, session_id):
         
         if not image_data:
             return JsonResponse({'error': 'No image data provided'}, status=400)
+            
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'error': error_msg}, status=400)
         
         # Analyze based on type
         analysis_result = {}
@@ -977,6 +1011,7 @@ def capture_assessment_snapshot(request, session_id):
 
 
 @login_required
+@ratelimit(key='user', rate=settings.RATE_LIMIT_COMPLETION, block=True)
 def complete_individual_assessment(request, session_id):
     """Complete the individual assessment and show results"""
     assessment = get_object_or_404(
@@ -1124,6 +1159,28 @@ def complete_individual_assessment(request, session_id):
         per_question_evaluations,
     )
     
+    # Generate improvement roadmap based on confirmed metrics
+    speech_details = {}
+    if responses.exists():
+        first_resp_data = responses.first().analysis_data
+        if isinstance(first_resp_data, dict):
+            speech_details = first_resp_data.get('speech_analysis', {})
+
+    improvement_roadmap = generate_improvement_roadmap(
+        {
+            'overall_score': assessment.overall_score,
+            'body_language_score': assessment.body_language_score,
+            'attire_score': assessment.attire_score,
+            'speaking_score': assessment.speaking_score,
+        },
+        speech_details
+    )
+    
+    # Save the generated roadmap back to the database
+    if improvement_roadmap:
+        assessment.improvement_roadmap = improvement_roadmap
+        assessment.save(update_fields=['improvement_roadmap'])
+    
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -1135,6 +1192,64 @@ def complete_individual_assessment(request, session_id):
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
 
+
+@login_required
+def download_assessment_report(request, session_id):
+    """Generate and download PDF report for an individual assessment"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+    
+    responses = assessment.responses.all().order_by('question_order')
+    
+    per_question_evaluations = []
+    for response in responses:
+        analysis_data = response.analysis_data or {}
+        evaluation = analysis_data.get('content_evaluation', {}) if isinstance(analysis_data, dict) else {}
+        if evaluation:
+            # Get a brief transcript snippet
+            speech = analysis_data.get('speech_analysis', {})
+            transcript = speech.get('transcript', '') if isinstance(speech, dict) else ''
+            
+            per_question_evaluations.append({
+                'question_text': response.question.question_text,
+                'content_correctness_score': evaluation.get('content_correctness_score'),
+                'explanation': evaluation.get('explanation', ''),
+                'transcript': transcript[:200] + '...' if len(transcript) > 200 else transcript
+            })
+
+    ai_feedback_summary = generate_feedback_summary(
+        {
+            'overall_score': assessment.overall_score,
+            'body_language_score': assessment.body_language_score,
+            'attire_score': assessment.attire_score,
+            'speaking_score': assessment.speaking_score,
+        },
+        per_question_evaluations,
+    )
+    
+    context = {
+        'assessment': assessment,
+        'job_title': assessment.platform_job_title,
+        'responses': responses,
+        'ai_feedback_summary': ai_feedback_summary,
+        'per_question_evaluations': per_question_evaluations,
+        'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
+    }
+    
+    template = get_template('analysis/assessment_pdf_report.html')
+    html = template.render(context)
+    
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"assessment_report_{assessment.created_at.strftime('%Y%m%d')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors generating your PDF <pre>' + html + '</pre>')
+    return response
 
 @login_required
 def assessment_history(request):
@@ -1213,6 +1328,7 @@ def clean_assessment_question(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SNAPSHOT, block=True)
 def capture_snapshot_clean(request, session_id):
     """Handle background snapshot capture for analysis"""
     try:
@@ -1231,6 +1347,10 @@ def capture_snapshot_clean(request, session_id):
         
         if not image_data:
             return JsonResponse({'success': False, 'error': 'No image data provided'})
+            
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
         
         # Get question
         question = None
@@ -1278,6 +1398,7 @@ def capture_snapshot_clean(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SUBMISSION, block=True)
 def submit_response_clean(request, session_id):
     """Handle clean response submission with speech analysis"""
     try:
@@ -1306,22 +1427,27 @@ def submit_response_clean(request, session_id):
         )
         
         # Perform speech analysis in background
-        if audio_data and SPEECH_ANALYSIS_AVAILABLE:
-            try:
-                # Decode audio data
-                audio_bytes = base64.b64decode(audio_data)
+        if audio_data:
+            is_valid, error_msg = validate_audio_b64(audio_data)
+            if not is_valid:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
                 
-                # Analyze speech
-                speech_analysis = analyze_speech(audio_bytes, question.question_text)
-                
-                # Update response with analysis
-                response.speech_analysis = speech_analysis
-                response.save()
-                
-            except Exception as e:
-                print(f"Speech analysis failed: {e}")
-                response.speech_analysis = {"error": str(e)}
-                response.save()
+            if SPEECH_ANALYSIS_AVAILABLE:
+                try:
+                    # Decode audio data
+                    audio_bytes = base64.b64decode(audio_data)
+                    
+                    # Analyze speech
+                    speech_analysis = analyze_speech(audio_bytes, question.question_text)
+                    
+                    # Update response with analysis
+                    response.speech_analysis = speech_analysis
+                    response.save()
+                    
+                except Exception as e:
+                    print(f"Speech analysis failed: {e}")
+                    response.speech_analysis = {"error": str(e)}
+                    response.save()
         
         # Check if assessment is complete
         answered_questions = IndividualAssessmentResponse.objects.filter(
@@ -1353,6 +1479,7 @@ def submit_response_clean(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SNAPSHOT, block=True)
 def capture_snapshot_combined(request, session_id):
     """Handle combined assessment snapshot capture with background analysis"""
     try:
@@ -1371,6 +1498,13 @@ def capture_snapshot_combined(request, session_id):
         if image_data.startswith('data:image/'):
             image_data = image_data.split(',', 1)[1]
         
+        if not image_data:
+            return JsonResponse({'success': False, 'error': 'No image data provided'})
+            
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            
         # Get question if provided
         question = None
         if question_id:
@@ -1438,6 +1572,7 @@ def capture_snapshot_combined(request, session_id):
 
 
 @require_http_methods(["POST"])
+@ratelimit(key='user', rate=settings.RATE_LIMIT_SUBMISSION, block=True)
 def submit_response_combined(request, session_id):
     """Handle combined assessment response submission with speech analysis"""
     try:
@@ -1491,6 +1626,9 @@ def submit_response_combined(request, session_id):
         
         # Handle audio data if provided
         if audio_data:
+            is_valid, error_msg = validate_audio_b64(audio_data)
+            if not is_valid:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
             try:
                 audio_len = len(audio_data)
                 est_bytes = int(audio_len * 3 / 4)

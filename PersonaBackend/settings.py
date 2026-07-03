@@ -29,8 +29,16 @@ sys.path.insert(0, str(BASE_DIR / 'AnalysisModules'))
 # Load from .env in project root (see python-decouple). .env is gitignored.
 # New developers without a .env file get a one-time random SECRET_KEY so the app still starts.
 SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
-GEMINI_API_KEY = config('GEMINI_API_KEY', default=None)
-GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-2.0-flash')
+GROQ_API_KEY = config('GROQ_API_KEY', default=None)
+GROQ_MODEL = config('GROQ_MODEL', default='llama-3.3-70b-versatile')
+
+# Rate limiting and upload sizes
+RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default='5/m')
+RATE_LIMIT_SUBMISSION = config('RATE_LIMIT_SUBMISSION', default='10/m')
+RATE_LIMIT_SNAPSHOT = config('RATE_LIMIT_SNAPSHOT', default='30/m')
+RATE_LIMIT_COMPLETION = config('RATE_LIMIT_COMPLETION', default='5/m')
+MAX_AUDIO_MB = config('MAX_AUDIO_MB', default=10, cast=int)
+MAX_IMAGE_MB = config('MAX_IMAGE_MB', default=2, cast=int)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -67,6 +75,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csp.middleware.CSPMiddleware',
+    'PersonaBackend.middleware.RequestSizeLimitMiddleware',
+    'PersonaBackend.middleware.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'PersonaBackend.urls'
@@ -166,3 +177,30 @@ Q_CLUSTER = {
     'catch_up': False,
     'orm': 'default'
 }
+
+# Caching for Rate Limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+RATELIMIT_USE_CACHE = 'default'
+
+# Security Headers (Part C)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# CSP (django-csp)
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "data:")
+CSP_IMG_SRC = ("'self'", "data:", "blob:")
+CSP_CONNECT_SRC = ("'self'", "api.groq.com")  # For APIs
+CSP_MEDIA_SRC = ("'self'", "blob:", "data:")
+CSP_FRAME_SRC = ("'self'",)
+
+# Email Backend for Password Reset (Console for local testing)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
