@@ -6,14 +6,7 @@
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/cs                <div class="text-center mb-6">
-                    <button id="record-button" class="record-button start disabled" disabled>
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <div class="mt-3 text-sm opacity-75" id="record-status">
-                        Prepare to Record
-                    </div>
-                </div>y=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     body {
@@ -771,10 +764,6 @@ function nextQuestion() {
     window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
 }
     
-    // Navigate to next question
-    window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
-}
-
 // Show warning
 function showWarning(message) {
     const banner = document.getElementById('warning-banner');
