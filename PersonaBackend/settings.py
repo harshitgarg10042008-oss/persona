@@ -49,14 +49,22 @@ MAX_AUDIO_MB = config('MAX_AUDIO_MB', default=10, cast=int)
 MAX_IMAGE_MB = config('MAX_IMAGE_MB', default=2, cast=int)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
+REPLIT_DEV_DOMAIN = os.environ.get('REPLIT_DEV_DOMAIN', '')
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
 ]
+if REPLIT_DEV_DOMAIN:
+    CSRF_TRUSTED_ORIGINS += [
+        f'https://{REPLIT_DEV_DOMAIN}',
+        f'http://{REPLIT_DEV_DOMAIN}',
+    ]
 
 
 # Application definition
