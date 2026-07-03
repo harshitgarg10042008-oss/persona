@@ -5,6 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db import models
+from django.db.models import Max
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.conf import settings
@@ -15,6 +16,11 @@ from datetime import datetime, timedelta
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+
 
 # Import models
 from .models import (
@@ -24,7 +30,12 @@ from .models import (
     BusinessAssessmentResponse, BusinessAssessmentSnapshot
 )
 from UserAPI.models import BusinessUser
-from AnalysisModules.feedback_generator import evaluate_answer_content, generate_feedback_summary, generate_improvement_roadmap
+from AnalysisModules.feedback_generator import (
+    evaluate_answer_content,
+    generate_feedback_summary,
+    generate_improvement_roadmap,
+    generate_tailored_questions,
+)
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
 
@@ -657,6 +668,49 @@ def assessment_complete(request, assessment_id):
 # =====================================
 
 @login_required
+def _resume_session_key(session_id):
+    return f'individual_assessment_resume_text_{session_id}'
+
+
+def _validate_resume_upload(resume_file):
+    if not resume_file:
+        return True, None
+
+    name = resume_file.name.lower()
+    if not (name.endswith('.pdf') or name.endswith('.txt')):
+        return False, 'Resume must be a PDF or plain text file.'
+
+    max_size = getattr(settings, 'MAX_RESUME_UPLOAD_MB', 5) * 1024 * 1024
+    if resume_file.size > max_size:
+        return False, f'Resume must be smaller than {getattr(settings, "MAX_RESUME_UPLOAD_MB", 5)}MB.'
+
+    return True, None
+
+
+def _extract_resume_text(resume_file):
+    file_name = resume_file.name.lower()
+    content_type = getattr(resume_file, 'content_type', '') or ''
+
+    resume_file.seek(0)
+    if file_name.endswith('.pdf') or 'pdf' in content_type:
+        if PdfReader is None:
+            raise RuntimeError('PDF resume extraction requires the pypdf package.')
+        reader = PdfReader(resume_file)
+        text_parts = []
+        for page in reader.pages:
+            page_text = page.extract_text() or ''
+            text_parts.append(page_text)
+        return '\n'.join(text_parts).strip()
+
+    if file_name.endswith('.txt') or content_type.startswith('text/'):
+        raw = resume_file.read()
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8', errors='ignore')
+        return raw.strip()
+
+    raise ValueError('Unsupported resume format. Please upload a PDF or plain text file.')
+
+
 def individual_dashboard(request):
     """Dashboard for individual users to practice assessments"""
     if hasattr(request.user, 'business_profile'):
@@ -726,11 +780,8 @@ def start_individual_assessment(request):
                 status='pending'
             )
             
-            # Select questions for this assessment
-            assessment.select_questions()
-            
             messages.success(request, f"Assessment for {job_title.title} has been created!")
-            return redirect('analysis:combined_assessment', session_id=assessment.session_id)
+            return redirect('analysis:individual_assessment_setup', session_id=assessment.session_id)
             
         except PlatformJobTitle.DoesNotExist:
             messages.error(request, "Invalid job title selected.")
@@ -748,12 +799,16 @@ def individual_assessment_setup(request, session_id):
         user=request.user,
         status='pending'
     )
+    resume_key = _resume_session_key(session_id)
+    resume_uploaded = bool(request.session.get(resume_key))
     
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
         'total_questions': assessment.total_questions,
+        'question_count_display': assessment.total_questions or 'TBD',
         'estimated_duration': assessment.estimated_duration // 60,  # Convert to minutes
+        'resume_uploaded': resume_uploaded,
         'analysis_status': {
             'attire_available': ATTIRE_ANALYSIS_AVAILABLE,
             'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE,
@@ -765,19 +820,79 @@ def individual_assessment_setup(request, session_id):
 
 @login_required
 def start_individual_assessment_session(request, session_id):
-    """Start the actual assessment session"""
+    """Start the actual assessment session, optionally processing an uploaded resume."""
     assessment = get_object_or_404(
         IndividualAssessment,
         session_id=session_id,
         user=request.user,
         status='pending'
     )
-    
-    # Update assessment status and start time
+
+    resume_text = None
+    if request.method == 'POST':
+        resume_file = request.FILES.get('resume')
+        if resume_file:
+            is_valid, error = _validate_resume_upload(resume_file)
+            if not is_valid:
+                messages.error(request, error)
+                return redirect('analysis:individual_assessment_setup', session_id=session_id)
+            try:
+                resume_text = _extract_resume_text(resume_file)
+                if resume_text:
+                    resume_text = resume_text[:20000]
+                    request.session[_resume_session_key(session_id)] = resume_text
+                    request.session.modified = True
+            except Exception as exc:
+                messages.error(request, f'Resume upload failed: {exc}')
+                return redirect('analysis:individual_assessment_setup', session_id=session_id)
+
+    resume_key = _resume_session_key(session_id)
+    stored_resume_text = request.session.get(resume_key)
+
+    if not assessment.selected_questions:
+        if stored_resume_text:
+            tailored_questions = generate_tailored_questions(
+                resume_text=stored_resume_text,
+                job_role=assessment.platform_job_title.title,
+                num_questions=5,
+            )
+            if tailored_questions:
+                created_question_ids = []
+                next_order = PlatformQuestion.objects.filter(
+                    job_title=assessment.platform_job_title
+                ).aggregate(models.Max('order'))['order__max'] or 0
+                for text in tailored_questions:
+                    next_order += 1
+                    question = PlatformQuestion.objects.create(
+                        job_title=assessment.platform_job_title,
+                        question_text=text,
+                        question_type='general',
+                        is_mandatory=False,
+                        difficulty_level='intermediate',
+                        expected_duration=120,
+                        order=next_order,
+                        is_active=False,
+                    )
+                    created_question_ids.append(question.id)
+                assessment.selected_questions = created_question_ids
+                assessment.total_questions = len(created_question_ids)
+                assessment.save()
+            else:
+                assessment.select_questions()
+        else:
+            assessment.select_questions()
+
+        if stored_resume_text:
+            try:
+                del request.session[resume_key]
+                request.session.modified = True
+            except KeyError:
+                pass
+
     assessment.status = 'in_progress'
     assessment.started_at = timezone.now()
     assessment.save()
-    
+
     return redirect('analysis:individual_assessment_question', session_id=session_id)
 
 
@@ -798,7 +913,15 @@ def combined_assessment(request, session_id):
         assessment.save()
     
     # Get all questions for this assessment
-    questions = list(assessment.platform_job_title.questions.all().order_by('id'))
+    if assessment.selected_questions:
+        questions = []
+        for question_id in assessment.selected_questions:
+            try:
+                questions.append(PlatformQuestion.objects.get(id=question_id))
+            except PlatformQuestion.DoesNotExist:
+                continue
+    else:
+        questions = list(assessment.platform_job_title.questions.filter(is_active=True).order_by('id'))
     
     # Prepare questions data for JavaScript
     questions_data = []

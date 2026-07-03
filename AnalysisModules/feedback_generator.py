@@ -126,6 +126,47 @@ Return ONLY valid JSON with two keys:
         }
 
 
+def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5) -> list[str]:
+    """Generate a small set of tailored interview questions from resume text."""
+    if not resume_text or not job_role:
+        return []
+
+    prompt = f"""
+You are an expert interview question generator.
+The resume text below describes a candidate's background, experience, projects, and skills.
+The target role is: {job_role}
+
+Resume text:
+{resume_text}
+
+Generate {num_questions} realistic interview questions specifically tailored to the candidate's actual experience. Avoid generic questions. If the resume mentions a project, technology, team, achievement, or responsibility, ask about those details directly.
+Return ONLY a JSON array of strings, with no additional explanation.
+"""
+
+    try:
+        text = _call_groq(prompt)
+        if not text:
+            raise ValueError('No Groq response')
+
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        try:
+            questions = json.loads(cleaned)
+            if isinstance(questions, list):
+                return [str(q).strip() for q in questions if str(q).strip()][:num_questions]
+        except json.JSONDecodeError:
+            pass
+
+        lines = [line.strip('-* \t\n') for line in cleaned.splitlines() if line.strip()]
+        questions = [line for line in lines if len(line) > 10]
+        return questions[:num_questions]
+
+    except Exception as exc:
+        logger.warning('Groq tailored question generation failed: %s', exc)
+        return []
+
+
 def generate_feedback_summary(scores: dict, per_question_evaluations: list) -> str:
     """Generate a concise, encouraging feedback paragraph for the full assessment."""
     overall_score = scores.get('overall_score')
