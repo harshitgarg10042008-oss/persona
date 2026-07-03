@@ -341,7 +341,7 @@
                 
                 <div class="text-center mb-6">
                     <button id="record-button" class="record-button start disabled" disabled>
-                        �️
+                        <span id="record-icon">🎙️</span>
                     </button>
                     <div class="mt-3 text-sm opacity-75" id="record-status">
                         Prepare to Record
@@ -500,28 +500,35 @@ async function initializeCamera() {
             console.log('Video is playing');
         } catch (playError) {
             console.warn('Video play failed, trying manual play:', playError);
-            // Sometimes autoplay is blocked, try manual play
             setTimeout(() => videoFeed.play(), 100);
         }
-        
-        // Wait for video to be ready
-        videoFeed.onloadedmetadata = function() {
-            console.log('Video metadata loaded - camera ready!');
+
+        // Helper: mark camera as ready (hides overlay, enables record button)
+        function markCameraReady() {
             const loadingElement = document.getElementById('video-loading');
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
-            }
-            
-            // Enable the record button now that camera is ready
+            if (loadingElement) loadingElement.style.display = 'none';
             const recordButton = document.getElementById('record-button');
             if (recordButton) {
                 recordButton.disabled = false;
                 recordButton.classList.remove('disabled');
             }
-            
-            // Start preparation timer
-            startPreparationTimer();
+        }
+
+        // Wait for video metadata — fire markCameraReady when ready
+        videoFeed.onloadedmetadata = function() {
+            console.log('Video metadata loaded - camera ready!');
+            markCameraReady();
         };
+
+        // Fallback: if onloadedmetadata never fires in sandboxed iframe,
+        // force-show the camera feed after 3 seconds (stream is already live)
+        setTimeout(() => {
+            if (document.getElementById('video-loading') &&
+                document.getElementById('video-loading').style.display !== 'none') {
+                console.log('Fallback: forcing camera overlay off after timeout');
+                markCameraReady();
+            }
+        }, 3000);
         
         // Handle video errors
         videoFeed.onerror = function(e) {
@@ -583,7 +590,6 @@ function startPreparationTimer() {
             const recordButton = document.getElementById('record-button');
             recordButton.disabled = false;
             recordButton.classList.remove('disabled');
-            recordButton.querySelector('#record-text').textContent = 'Start Recording';
             
             startResponseTimer();
         }
@@ -666,7 +672,6 @@ async function startRecording() {
         const recordButton = document.getElementById('record-button');
         recordButton.classList.remove('start');
         recordButton.classList.add('stop');
-        recordButton.querySelector('#record-text').textContent = 'Stop Recording';
         recordButton.querySelector('#record-icon').textContent = '⏹️';
         
         document.getElementById('recording-indicator').style.display = 'block';
@@ -714,7 +719,7 @@ function processAudioRecording() {
         recordButton.disabled = false;
         recordButton.classList.remove('stop');
         recordButton.classList.add('start');
-        recordButton.querySelector('#record-text').textContent = 'Start Recording';
+        recordButton.querySelector('#record-icon').textContent = '🎙️';
         audioChunks = [];
         return;
     }
@@ -751,10 +756,8 @@ async function submitResponse(audioData) {
         const result = await response.json();
         
         if (result.success) {
-            // Response submitted successfully
-            
+            _assessmentEnded = true;  // normal flow — do not abandon
             if (result.is_complete) {
-                // Assessment complete
                 setTimeout(() => {
                     window.location.href = result.complete_url;
                 }, 2000);
@@ -771,12 +774,10 @@ async function submitResponse(audioData) {
 
 // Next question
 function nextQuestion() {
-    // Clean up
+    _assessmentEnded = true;  // normal flow — do not abandon
     if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
     }
-    
-    // Navigate to next question
     window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
 }
 
@@ -822,6 +823,7 @@ async function skipQuestion() {
         const result = await response.json();
 
         if (result.success) {
+            _assessmentEnded = true;  // normal flow — do not abandon
             if (videoStream) videoStream.getTracks().forEach(t => t.stop());
             if (result.is_complete) {
                 window.location.href = result.complete_url;
@@ -881,10 +883,23 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Cleanup on page unload
+// Cleanup on page unload — stop camera and abandon the assessment
+let _assessmentEnded = false;  // set to true by nextQuestion/skipQuestion so normal flow skips abandon
+
 window.addEventListener('beforeunload', function() {
     if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
+    }
+
+    if (!_assessmentEnded) {
+        const csrfToken = getCookie('csrftoken');
+        const abandonUrl = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
+        // sendBeacon is fire-and-forget; works reliably even while the page is unloading
+        const blob = new Blob(
+            [JSON.stringify({csrfmiddlewaretoken: csrfToken})],
+            {type: 'application/json'}
+        );
+        navigator.sendBeacon(abandonUrl + '?_method=POST', blob);
     }
 });
 </script>

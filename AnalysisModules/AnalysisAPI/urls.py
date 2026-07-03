@@ -50,5 +50,6 @@ urlpatterns = [
     path('capture-snapshot/<uuid:session_id>/', views.capture_snapshot_clean, name='capture_snapshot_clean'),
     path('submit-response/<uuid:session_id>/', views.submit_response_clean, name='submit_response_clean'),
     
+    path('individual/<uuid:session_id>/abandon/', views.abandon_assessment, name='abandon_assessment'),
     path('history/', views.assessment_history, name='assessment_history'),
 ]

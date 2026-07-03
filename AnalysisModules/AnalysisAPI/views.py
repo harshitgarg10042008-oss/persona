@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db import models
 from django.db.models import Max, Count, Q
@@ -773,7 +774,13 @@ def start_individual_assessment(request):
         
         try:
             job_title = PlatformJobTitle.objects.get(id=job_title_id, is_active=True)
-            
+
+            # Terminate any previous incomplete sessions for this user
+            IndividualAssessment.objects.filter(
+                user=request.user,
+                status__in=['pending', 'in_progress']
+            ).update(status='terminated')
+
             # Create new assessment
             assessment = IndividualAssessment.objects.create(
                 user=request.user,
@@ -895,6 +902,24 @@ def start_individual_assessment_session(request, session_id):
     assessment.save()
 
     return redirect('analysis:individual_assessment_question', session_id=session_id)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def abandon_assessment(request, session_id):
+    """Mark an in-progress assessment as terminated (called via sendBeacon on page unload)"""
+    try:
+        updated = IndividualAssessment.objects.filter(
+            session_id=session_id,
+            user=request.user,
+            status='in_progress'
+        ).update(status='terminated')
+        if updated:
+            return JsonResponse({'success': True, 'terminated': True})
+        return JsonResponse({'success': True, 'terminated': False})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
