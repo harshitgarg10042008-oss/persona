@@ -436,30 +436,6 @@
             {% endwith %}
         </div>
     </div>
-                <p class="text-sm text-gray-600 mb-3">{{ response.question.question_text|truncatechars:100 }}</p>
-                
-                {% if response.response_text %}
-                <div class="bg-gray-50 p-3 rounded text-sm mb-3">
-                    <strong>Your Response:</strong> {{ response.response_text|truncatechars:150 }}
-                </div>
-                {% endif %}
-                
-                {% if response.fluency_score or response.relevance_score %}
-                <div class="flex space-x-4 text-xs">
-                    {% if response.fluency_score %}
-                    <span class="text-blue-600">Fluency: {{ response.fluency_score|floatformat:1 }}/10</span>
-                    {% endif %}
-                    {% if response.relevance_score %}
-                    <span class="text-green-600">Relevance: {{ response.relevance_score|floatformat:1 }}/10</span>
-                    {% endif %}
-                    {% if response.confidence_score %}
-                    <span class="text-purple-600">Confidence: {{ response.confidence_score|floatformat:1 }}/10</span>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
 
         <!-- Visual Analysis -->
         <div class="bg-white rounded-lg shadow-md p-6">
