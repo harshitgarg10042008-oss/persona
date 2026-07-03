@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db import models
-from django.db.models import Max
+from django.db.models import Max, Count, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.conf import settings
@@ -667,7 +667,6 @@ def assessment_complete(request, assessment_id):
 # INDIVIDUAL ASSESSMENT VIEWS
 # =====================================
 
-@login_required
 def _resume_session_key(session_id):
     return f'individual_assessment_resume_text_{session_id}'
 
@@ -722,8 +721,10 @@ def individual_dashboard(request):
         user=request.user
     ).order_by('-created_at')[:5]
     
-    # Get available job titles
-    job_titles = PlatformJobTitle.objects.filter(is_active=True).order_by('title')
+    # Get available job titles with active question counts
+    job_titles = PlatformJobTitle.objects.filter(is_active=True).annotate(
+        active_question_count=Count('questions', filter=Q(questions__is_active=True))
+    ).order_by('title')
     
     # Analysis module availability
     analysis_status = {

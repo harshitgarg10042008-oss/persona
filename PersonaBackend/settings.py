@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -27,8 +28,15 @@ sys.path.insert(0, str(BASE_DIR / 'AnalysisModules'))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # Load from .env in project root (see python-decouple). .env is gitignored.
-# New developers without a .env file get a one-time random SECRET_KEY so the app still starts.
-SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
+# Keep a stable secret key between app restarts so existing sessions do not get invalidated.
+SECRET_KEY_FILE = BASE_DIR / '.secret_key'
+if os.environ.get('SECRET_KEY'):
+    SECRET_KEY = os.environ['SECRET_KEY']
+elif SECRET_KEY_FILE.exists():
+    SECRET_KEY = SECRET_KEY_FILE.read_text(encoding='utf-8').strip()
+else:
+    SECRET_KEY = get_random_secret_key()
+    SECRET_KEY_FILE.write_text(SECRET_KEY, encoding='utf-8')
 GROQ_API_KEY = config('GROQ_API_KEY', default=None)
 GROQ_MODEL = config('GROQ_MODEL', default='llama-3.3-70b-versatile')
 
@@ -159,6 +167,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Session persistence for returning users
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Custom User Model
 AUTH_USER_MODEL = 'UserAPI.CustomUser'

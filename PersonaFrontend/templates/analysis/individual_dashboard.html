@@ -116,7 +116,7 @@ Dashboard{% endblock %} {% block extra_css %}
               {{ job_title.get_category_display }}
             </span>
             <span class="text-xs text-blue-600 font-medium">
-              {{ job_title.questions.filter(is_active=True).count }} questions
+              {{ job_title.active_question_count }} questions
             </span>
           </div>
         </div>

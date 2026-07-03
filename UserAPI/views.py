@@ -8,6 +8,14 @@ from django_ratelimit.decorators import ratelimit
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
 from .models import CustomUser, IndividualUser, BusinessUser
 
+
+def _apply_session_preference(request, remember_me):
+    if remember_me:
+        request.session.set_expiry(60 * 60 * 24 * 30)
+    else:
+        request.session.set_expiry(0)
+
+
 @ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True)
 def signup_view(request):
     if request.method == 'POST':
@@ -23,7 +31,9 @@ def signup_view(request):
         
         if form.is_valid():
             user = form.save()
+            remember_me = request.POST.get('remember_me') == 'on'
             login(request, user)
+            _apply_session_preference(request, remember_me)
             messages.success(request, f'Welcome to Persona! Your {user_type} account has been created successfully.')
             
             # Redirect based on user type
@@ -54,7 +64,9 @@ def login_view(request):
         form = CustomLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            remember_me = request.POST.get('remember_me') == 'on'
             login(request, user)
+            _apply_session_preference(request, remember_me)
             
             # Determine user type for personalized message and redirect
             if hasattr(user, 'business_profile'):
