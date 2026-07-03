@@ -1003,6 +1003,33 @@ def submit_assessment_response(request, session_id):
         # Parse request data
         data = json.loads(request.body)
         
+        # Handle skip
+        if data.get('skipped'):
+            IndividualAssessmentResponse.objects.create(
+                assessment=assessment,
+                question=current_question,
+                question_order=assessment.current_question_index + 1,
+                question_started_at=timezone.now(),
+                response_started_at=timezone.now(),
+                response_ended_at=timezone.now(),
+                response_duration=0,
+                time_to_start=0,
+                analysis_data={
+                    'skipped': True,
+                    'skip_reason': data.get('skip_reason', 'user_skipped'),
+                    'fullscreen_violations': data.get('fullscreen_violations', 0),
+                }
+            )
+            assessment.current_question_index += 1
+            assessment.save()
+            is_complete = assessment.current_question_index >= assessment.total_questions
+            return JsonResponse({
+                'success': True,
+                'is_complete': is_complete,
+                'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
+                'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+            })
+
         # Create response record
         response = IndividualAssessmentResponse.objects.create(
             assessment=assessment,

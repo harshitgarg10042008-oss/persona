@@ -351,6 +351,22 @@
                 <button id="next-button" class="next-button" style="display: none;">
                     Next Question →
                 </button>
+
+                <div style="text-align: center; margin-top: 16px;">
+                    <button id="skip-button" onclick="skipQuestion()" style="
+                        background: none;
+                        border: 1px solid rgba(0,0,0,0.2);
+                        border-radius: 10px;
+                        padding: 8px 20px;
+                        font-size: 13px;
+                        color: #6b7280;
+                        cursor: pointer;
+                        font-family: 'Inter', sans-serif;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'">
+                        Skip this question
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -763,7 +779,68 @@ function nextQuestion() {
     // Navigate to next question
     window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
 }
-    
+
+// Skip question
+async function skipQuestion() {
+    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
+
+    let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
+    if (isMandatory) {
+        confirmMsg = '⚠️ This is a mandatory question. Skipping it will be recorded and may affect your score. Are you sure?';
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    const skipButton = document.getElementById('skip-button');
+    skipButton.disabled = true;
+    skipButton.textContent = 'Skipping…';
+
+    let skipReason = 'user_skipped';
+    if (!videoStream) {
+        skipReason = 'camera_mic_unavailable';
+    } else {
+        const audioTracks = videoStream.getAudioTracks();
+        if (!audioTracks.length) skipReason = 'microphone_unavailable';
+    }
+
+    try {
+        const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                skipped: true,
+                skip_reason: skipReason,
+                response_duration: 0,
+                time_to_start: 0,
+                fullscreen_violations: fullscreenViolations
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            if (result.is_complete) {
+                window.location.href = result.complete_url;
+            } else {
+                window.location.href = result.next_question_url;
+            }
+        } else {
+            showWarning('Could not skip: ' + (result.error || 'Unknown error'));
+            skipButton.disabled = false;
+            skipButton.textContent = 'Skip this question';
+        }
+    } catch (err) {
+        console.error('Skip failed:', err);
+        showWarning('Failed to skip question. Please check your connection.');
+        skipButton.disabled = false;
+        skipButton.textContent = 'Skip this question';
+    }
+}
+
 // Show warning
 function showWarning(message) {
     const banner = document.getElementById('warning-banner');
