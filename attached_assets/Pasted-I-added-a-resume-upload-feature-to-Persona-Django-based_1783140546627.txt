@@ -1,0 +1,54 @@
+I added a resume-upload feature to Persona (Django-based AI interviewer) using 
+this spec:
+
+[paste your resume feature prompt above here for context]
+
+Since implementing this, THREE things broke that were working perfectly before:
+1. Camera stuck on "Initializing Camera..." on the assessment question page — 
+   never requests permission or shows live feed
+2. Old/existing user accounts can no longer log in or their sessions aren't 
+   persisting correctly
+3. Raw HTML entities (like "&amp;") are showing as literal text instead of 
+   rendering properly on the speech/body language analysis page
+
+These are almost certainly side effects of the resume feature changes, since 
+everything worked before that change and broke immediately after.
+
+Please investigate specifically:
+
+1. SESSION-RELATED BREAKAGE (likely cause of both login AND camera issues)
+   - The resume feature stores "extracted text temporarily tied to the session" 
+     — check exactly how this was implemented. Did it modify SESSION_ENGINE, 
+     session serialization, session cookie size/settings, or add large data 
+     into request.session that could be breaking session storage/deserialization 
+     for other users or old sessions?
+   - Check if session data structure changed in a way that's incompatible with 
+     already-existing (old) session data for old accounts
+   - Check if a new middleware was added for resume handling that runs on 
+     every request and could be interfering with auth or camera-page requests
+
+2. TEMPLATE ESCAPING BREAKAGE
+   - Check individual_assessment_setup.html and combined_assessment.html (or 
+     wherever questions are now displayed) for how the new Gemini-generated 
+     tailored questions are inserted — are they passed through `|safe`, 
+     escaped twice, or inserted via innerHTML on the frontend without decoding?
+   - Compare against how PlatformQuestion bank questions were rendered before 
+     (which worked correctly) and find the difference
+
+3. CAMERA BREAKAGE
+   - Check if the resume upload field/form changed the structure or JS loading 
+     order on individual_assessment_setup.html or the question page in a way 
+     that breaks the camera init script (e.g. new form causing a JS error 
+     earlier in the page that halts execution, or a duplicate/conflicting 
+     script tag)
+   - Check browser console for JS errors introduced by the new resume upload UI
+
+4. Show me:
+   - A diff of every file changed for the resume feature
+   - The specific root cause for each of the 3 broken items
+   - A minimal fix for each, WITHOUT removing the resume feature — I want to 
+     keep resume upload working, just fix what it broke elsewhere
+
+Do not do a blind revert. Isolate the resume feature's session/data handling 
+so it doesn't interfere with unrelated sessions, auth, or rendering for users 
+who don't use it.

@@ -1,0 +1,39 @@
+```markdown
+``
+Add a new feature: candidates can optionally upload their resume before 
+starting an individual practice assessment, and Gemini generates 
+questions tailored to their actual background instead of only using the 
+fixed platform question bank.
+
+1. Add a resume upload field to the individual assessment setup flow 
+   (check individual_assessment_setup.html and the relevant view) — 
+   accept PDF or plain text, store it temporarily (not permanently, for 
+   privacy — process it and discard, or store only extracted text 
+   temporarily tied to the session).
+2. Extract text from the uploaded resume (use a simple PDF text 
+   extraction library like pypdf if the file is a PDF — check if one is 
+   already in requirements.txt before adding a new dependency).
+3. In feedback_generator.py, add a new function 
+   `generate_tailored_questions(resume_text: str, job_role: str, 
+   num_questions: int = 5) -> list[str]` that sends the resume text and 
+   target job role to Groq and asks it to generate realistic interview 
+   questions specific to the candidate's actual experience (e.g. if the 
+   resume mentions a specific project or skill, ask about that 
+   specifically) rather than generic questions.
+4. Make resume upload OPTIONAL — if no resume is provided, fall back to 
+   the existing PlatformQuestion bank exactly as it works today. Do not 
+   change the default behavior for users who skip this.
+5. Wire the generated questions into the same assessment-taking flow that 
+   already exists (combined_assessment.html or wherever individual 
+   practice questions are currently displayed) so the rest of the 
+   pipeline (recording, scoring, Groq feedback) works unchanged.
+6. Add a privacy note near the resume upload field stating the resume is 
+   used only to generate relevant questions and is not permanently stored 
+   (only true if you've implemented it that way — confirm actual behavior 
+   matches what's stated).
+7. Test with a real resume (I will provide one) and confirm the generated 
+   questions are genuinely relevant to its content, not generic.
+
+Show me diffs for every file changed, and confirm what data retention 
+policy you actually implemented (temporary vs stored) before I test.
+```

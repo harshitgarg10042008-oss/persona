@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import os
@@ -154,12 +155,12 @@ Return ONLY a JSON array of strings, with no additional explanation.
         try:
             questions = json.loads(cleaned)
             if isinstance(questions, list):
-                return [str(q).strip() for q in questions if str(q).strip()][:num_questions]
+                return [html.unescape(str(q).strip()) for q in questions if str(q).strip()][:num_questions]
         except json.JSONDecodeError:
             pass
 
         lines = [line.strip('-* \t\n') for line in cleaned.splitlines() if line.strip()]
-        questions = [line for line in lines if len(line) > 10]
+        questions = [html.unescape(line) for line in lines if len(line) > 10]
         return questions[:num_questions]
 
     except Exception as exc:
@@ -197,7 +198,7 @@ Write a concise, encouraging 3-5 sentence paragraph that references both the del
     try:
         text = _call_groq(prompt)
         if text:
-            return text.strip()[:2000]
+            return html.unescape(text.strip())[:2000]
     except Exception as exc:  # pragma: no cover - defensive fallback
         logger.warning('Groq feedback summary failed: %s', exc)
 
@@ -438,6 +439,12 @@ Return ONLY valid JSON (no markdown fences, no prose outside the JSON) matching 
         roadmap['level'] = level
         roadmap['current_score'] = float(overall_score)
         roadmap['target_score'] = float(ROADMAP_TARGET_SCORE)
+
+        # Unescape any HTML entities Groq may have introduced in text fields
+        for item in roadmap.get('action_items', []):
+            for key in ('area', 'action', 'why'):
+                if isinstance(item.get(key), str):
+                    item[key] = html.unescape(item[key])
 
         return roadmap
 
