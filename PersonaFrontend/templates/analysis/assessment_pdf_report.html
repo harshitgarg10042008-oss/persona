@@ -1,193 +1,397 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Assessment Report</title>
-    <style>
-        @page {
-            size: a4;
-            margin: 2cm;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            color: #333;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            border-bottom: 2px solid #2c3e50;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #34495e;
-            margin-top: 30px;
-            border-bottom: 1px solid #bdc3c7;
-            padding-bottom: 5px;
-        }
-        h3 {
-            color: #2980b9;
-        }
-        .header-info {
-            margin-bottom: 30px;
-        }
-        .header-info p {
-            margin: 5px 0;
-        }
-        .score-box {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .score-box h3 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-        }
-        .score-value {
-            font-size: 24pt;
-            font-weight: bold;
-            color: #27ae60;
-        }
-        .sub-scores {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
-        .sub-scores th, .sub-scores td {
-            border: 1px solid #bdc3c7;
-            padding: 10px;
-            text-align: center;
-        }
-        .sub-scores th {
-            background-color: #ecf0f1;
-            color: #2c3e50;
-        }
-        .feedback-summary {
-            background-color: #e8f4f8;
-            padding: 15px;
-            border-left: 5px solid #3498db;
-            margin-bottom: 30px;
-        }
-        .question-breakdown {
-            margin-top: 20px;
-        }
-        .question-item {
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px dashed #bdc3c7;
-        }
-        .question-text {
-            font-weight: bold;
-            font-size: 14pt;
-        }
-        .transcript {
-            font-style: italic;
-            color: #7f8c8d;
-            margin: 10px 0;
-            background-color: #f1f2f6;
-            padding: 10px;
-            border-left: 3px solid #95a5a6;
-        }
-        .evaluation {
-            margin-top: 10px;
-        }
-        .score-badge {
-            display: inline-block;
-            background-color: #2980b9;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-    </style>
+<meta charset="utf-8">
+<title>Assessment Report — {{ job_title.title }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 1.8cm 1.8cm 1.8cm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #1f2937;
+    line-height: 1.55;
+  }
+
+  /* ── HEADER ─────────────────────────────────────── */
+  .header {
+    background-color: #1e3a8a;
+    color: #ffffff;
+    padding: 16pt 20pt 14pt 20pt;
+    margin-bottom: 14pt;
+  }
+  .header-brand {
+    font-size: 8.5pt;
+    font-weight: bold;
+    letter-spacing: 1.5pt;
+    text-transform: uppercase;
+    color: #93c5fd;
+    margin-bottom: 5pt;
+  }
+  .header-title {
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 3pt;
+  }
+  .header-sub {
+    font-size: 9.5pt;
+    color: #bfdbfe;
+    margin-bottom: 10pt;
+  }
+  .header-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .header-meta-table td {
+    font-size: 9pt;
+    color: #bfdbfe;
+    padding: 0 16pt 0 0;
+    vertical-align: top;
+  }
+  .header-meta-table strong {
+    color: #ffffff;
+  }
+
+  /* ── SECTION TITLES ─────────────────────────────── */
+  .section-title {
+    font-size: 11.5pt;
+    font-weight: bold;
+    color: #1e3a8a;
+    border-bottom: 1.5pt solid #1e3a8a;
+    padding-bottom: 3pt;
+    margin-top: 14pt;
+    margin-bottom: 9pt;
+  }
+
+  /* ── SCORE GRID ─────────────────────────────────── */
+  .score-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12pt;
+  }
+  .score-grid td {
+    width: 25%;
+    text-align: center;
+    padding: 10pt 6pt 8pt 6pt;
+    border: 1pt solid #e5e7eb;
+    vertical-align: middle;
+    background-color: #f9fafb;
+  }
+  .score-grid td:first-child {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+  }
+  .score-label {
+    font-size: 7.5pt;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    font-weight: bold;
+    margin-bottom: 5pt;
+  }
+  .score-value {
+    font-size: 22pt;
+    font-weight: bold;
+    color: #1d4ed8;
+  }
+  .score-value.na {
+    font-size: 10pt;
+    color: #9ca3af;
+  }
+  .score-denom {
+    font-size: 10pt;
+    font-weight: normal;
+    color: #6b7280;
+  }
+  .score-bar-track {
+    height: 5pt;
+    background-color: #dbeafe;
+    margin-top: 5pt;
+  }
+  .score-bar-fill {
+    height: 5pt;
+    background-color: #2563eb;
+  }
+
+  /* ── FEEDBACK BOX ───────────────────────────────── */
+  .feedback-box {
+    background-color: #eff6ff;
+    border-left: 4pt solid #2563eb;
+    padding: 10pt 13pt;
+    margin-bottom: 12pt;
+    font-size: 10pt;
+    line-height: 1.65;
+  }
+
+  /* ── ROADMAP ────────────────────────────────────── */
+  .roadmap-meta {
+    background-color: #eef2ff;
+    border: 1pt solid #c7d2fe;
+    padding: 8pt 12pt;
+    margin-bottom: 8pt;
+    font-size: 9.5pt;
+  }
+  .level-badge {
+    background-color: #4f46e5;
+    color: #ffffff;
+    font-size: 7.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.8pt;
+    padding: 2pt 7pt;
+  }
+  .action-item {
+    border: 1pt solid #e0e7ff;
+    border-left: 4pt solid #4f46e5;
+    padding: 7pt 10pt;
+    margin-bottom: 6pt;
+    background-color: #fafafa;
+    page-break-inside: avoid;
+  }
+  .action-area {
+    font-size: 7.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    color: #4f46e5;
+    margin-bottom: 2pt;
+  }
+  .action-text {
+    font-size: 9.5pt;
+    font-weight: bold;
+    color: #111827;
+    margin-bottom: 2pt;
+  }
+  .action-why {
+    font-size: 8.5pt;
+    color: #4b5563;
+  }
+
+  /* ── PER-QUESTION BLOCKS ────────────────────────── */
+  .q-block {
+    border: 1pt solid #e5e7eb;
+    padding: 8pt 10pt;
+    margin-bottom: 7pt;
+    page-break-inside: avoid;
+  }
+  .q-number {
+    font-size: 7.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    color: #9ca3af;
+    margin-bottom: 2pt;
+  }
+  .q-text {
+    font-size: 10pt;
+    font-weight: bold;
+    color: #111827;
+    margin-bottom: 5pt;
+  }
+  .q-score-badge {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    font-size: 8.5pt;
+    font-weight: bold;
+    padding: 1pt 7pt;
+    margin-bottom: 5pt;
+    display: inline-block;
+  }
+  .q-score-badge.skipped {
+    background-color: #f3f4f6;
+    color: #6b7280;
+  }
+  .q-explanation {
+    font-size: 9pt;
+    color: #374151;
+    line-height: 1.55;
+    margin-bottom: 4pt;
+  }
+  .q-transcript {
+    font-size: 8.5pt;
+    color: #6b7280;
+    font-style: italic;
+    background-color: #f9fafb;
+    border-left: 2pt solid #d1d5db;
+    padding: 4pt 8pt;
+    margin-top: 4pt;
+  }
+
+  /* ── PAGE NUMBER FOOTER (repeats on every page) ─── */
+  #page-footer {
+    position: fixed;
+    bottom: -1.2cm;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #9ca3af;
+  }
+
+  /* ── FOOTER NOTE ────────────────────────────────── */
+  .footer-note {
+    margin-top: 18pt;
+    padding-top: 8pt;
+    border-top: 1pt solid #e5e7eb;
+    font-size: 7.5pt;
+    color: #9ca3af;
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>
 </head>
 <body>
-    <h1>AI Assessment Report</h1>
-    
-    <div class="header-info">
-        <p><strong>Candidate:</strong> {{ assessment.user.get_full_name|default:assessment.user.username }}</p>
-        <p><strong>Email:</strong> {{ assessment.user.email }}</p>
-        <p><strong>Job Role:</strong> {{ job_title.title }}</p>
-        <p><strong>Date:</strong> {{ assessment.created_at|date:"F j, Y" }}</p>
-        <p><strong>Duration:</strong> {{ duration_minutes }} minutes</p>
-    </div>
 
-    <div class="score-box">
-        <h3>Overall Score</h3>
-        <div class="score-value">
-            {% if assessment.overall_score %}
-                {{ assessment.overall_score|floatformat:1 }}/10
-            {% else %}
-                N/A
-            {% endif %}
+<!-- Page number footer — position:fixed repeats on every page in xhtml2pdf -->
+<div id="page-footer">
+  Page <pdf:pagenumber /> of <pdf:pagecount />
+</div>
+
+<!-- ══ HEADER ════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-brand">Persona &mdash; AI Interview Assessment Report</div>
+  <div class="header-title">{{ job_title.title }}</div>
+  {% if job_title.description %}
+  <div class="header-sub">{{ job_title.description }}</div>
+  {% endif %}
+  <table class="header-meta-table">
+    <tr>
+      <td><strong>Candidate:</strong> {{ assessment.user.get_full_name|default:assessment.user.username }}</td>
+      <td><strong>Email:</strong> {{ assessment.user.email }}</td>
+      <td><strong>Date:</strong> {% if assessment.completed_at %}{{ assessment.completed_at|date:"j M Y" }}{% else %}{{ assessment.created_at|date:"j M Y" }}{% endif %}</td>
+      <td><strong>Duration:</strong> {{ duration_minutes }} min</td>
+      <td><strong>Questions:</strong> {{ responses.count }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ══ SCORES ═════════════════════════════════════════════════ -->
+<div class="section-title">Performance Scores</div>
+<table class="score-grid">
+  <tr>
+    <td>
+      <div class="score-label">Overall</div>
+      {% if assessment.overall_score %}
+        <div class="score-value">{{ assessment.overall_score|floatformat:1 }}<span class="score-denom">/10</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width: {{ assessment.overall_score|floatformat:0 }}0%;"></div>
         </div>
-    </div>
+      {% else %}
+        <div class="score-value na">N/A</div>
+      {% endif %}
+    </td>
+    <td>
+      <div class="score-label">Speaking &amp; Delivery</div>
+      {% if assessment.speaking_score %}
+        <div class="score-value">{{ assessment.speaking_score|floatformat:1 }}<span class="score-denom">/10</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width: {{ assessment.speaking_score|floatformat:0 }}0%;"></div>
+        </div>
+      {% else %}
+        <div class="score-value na">N/A</div>
+      {% endif %}
+    </td>
+    <td>
+      <div class="score-label">Body Language</div>
+      {% if assessment.body_language_score %}
+        <div class="score-value">{{ assessment.body_language_score|floatformat:1 }}<span class="score-denom">/10</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width: {{ assessment.body_language_score|floatformat:0 }}0%;"></div>
+        </div>
+      {% else %}
+        <div class="score-value na">N/A</div>
+      {% endif %}
+    </td>
+    <td>
+      <div class="score-label">Professional Attire</div>
+      {% if assessment.attire_score %}
+        <div class="score-value">{{ assessment.attire_score|floatformat:1 }}<span class="score-denom">/10</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width: {{ assessment.attire_score|floatformat:0 }}0%;"></div>
+        </div>
+      {% else %}
+        <div class="score-value na">N/A</div>
+      {% endif %}
+    </td>
+  </tr>
+</table>
 
-    <table class="sub-scores">
-        <tr>
-            <th>Speaking</th>
-            <th>Body Language</th>
-            <th>Professional Attire</th>
-        </tr>
-        <tr>
-            <td>
-                {% if assessment.speaking_score %}
-                    {{ assessment.speaking_score|floatformat:1 }}/10
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-            <td>
-                {% if assessment.body_language_score %}
-                    {{ assessment.body_language_score|floatformat:1 }}/10
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-            <td>
-                {% if assessment.attire_score %}
-                    {{ assessment.attire_score|floatformat:1 }}/10
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-        </tr>
-    </table>
+<!-- ══ AI FEEDBACK SUMMARY ════════════════════════════════════ -->
+<div class="section-title">AI Feedback Summary</div>
+<div class="feedback-box">
+  {% if ai_feedback_summary %}
+    {{ ai_feedback_summary }}
+  {% else %}
+    No overall feedback was generated for this assessment.
+  {% endif %}
+</div>
 
-    <h2>AI Feedback Summary</h2>
-    <div class="feedback-summary">
-        {% if ai_feedback_summary %}
-            {{ ai_feedback_summary|linebreaks }}
-        {% else %}
-            <p>No overall feedback available.</p>
-        {% endif %}
-    </div>
+<!-- ══ IMPROVEMENT ROADMAP ════════════════════════════════════ -->
+{% if assessment.improvement_roadmap %}
+<div class="section-title">Personalised Improvement Roadmap</div>
+<div class="roadmap-meta">
+  <span class="level-badge">{{ assessment.improvement_roadmap.level }}</span>
+  &nbsp;&nbsp;
+  Current score: <strong>{{ assessment.improvement_roadmap.current_score }}/10</strong>
+  &nbsp;&rarr;&nbsp;
+  Target: <strong>{{ assessment.improvement_roadmap.target_score }}/10</strong>
+</div>
+{% for item in assessment.improvement_roadmap.action_items %}
+<div class="action-item">
+  <div class="action-area">{{ item.area }}</div>
+  <div class="action-text">{{ item.action }}</div>
+  <div class="action-why">{{ item.why }}</div>
+</div>
+{% endfor %}
+{% endif %}
 
-    <h2>Per-Question Breakdown</h2>
-    <div class="question-breakdown">
-        {% for eval in per_question_evaluations %}
-            <div class="question-item">
-                <div class="question-text">Q{{ forloop.counter }}: {{ eval.question_text }}</div>
-                
-                {% if eval.transcript %}
-                    <div class="transcript">
-                        "{{ eval.transcript }}"
-                    </div>
-                {% endif %}
-                
-                <div class="evaluation">
-                    <p>
-                        <span class="score-badge">Content Score: {{ eval.content_correctness_score|floatformat:1 }}/10</span>
-                    </p>
-                    <p>{{ eval.explanation }}</p>
-                </div>
-            </div>
-        {% empty %}
-            <p>No detailed question breakdowns available.</p>
-        {% endfor %}
-    </div>
+<!-- ══ PER-QUESTION CONTENT REVIEW ═══════════════════════════ -->
+<div class="section-title">Per-Question Content Review</div>
+{% for response in responses %}
+  {% with evaluation=response.analysis_data.content_evaluation %}
+  <div class="q-block">
+    <div class="q-number">Question {{ response.question_order }}</div>
+    <div class="q-text">{{ response.question.question_text }}</div>
+
+    {% if evaluation %}
+      {% if evaluation.content_correctness_score %}
+        <div class="q-score-badge">Content Score: {{ evaluation.content_correctness_score }}/10</div>
+      {% endif %}
+      {% if evaluation.explanation %}
+        <div class="q-explanation">{{ evaluation.explanation }}</div>
+      {% endif %}
+    {% elif response.analysis_data.skipped %}
+      <div class="q-score-badge skipped">Skipped</div>
+      {% if response.analysis_data.skip_reason %}
+        <div class="q-explanation">{{ response.analysis_data.skip_reason }}</div>
+      {% endif %}
+    {% else %}
+      <div class="q-score-badge skipped">No evaluation recorded</div>
+    {% endif %}
+
+    {% with speech=response.analysis_data.speech_analysis %}
+      {% if speech.transcription %}
+        <div class="q-transcript">&ldquo;{{ speech.transcription|truncatechars:250 }}&rdquo;</div>
+      {% elif response.response_text %}
+        <div class="q-transcript">&ldquo;{{ response.response_text|truncatechars:250 }}&rdquo;</div>
+      {% endif %}
+    {% endwith %}
+  </div>
+  {% endwith %}
+{% empty %}
+  <p style="color:#6b7280; font-size:9.5pt;">No question responses recorded for this assessment.</p>
+{% endfor %}
+
+<!-- ══ FOOTER ═════════════════════════════════════════════════ -->
+<div class="footer-note">
+  Generated by Persona AI Interview Assessment &mdash;
+  {% if assessment.completed_at %}{{ assessment.completed_at|date:"j F Y, g:i A" }}{% else %}{{ assessment.created_at|date:"j F Y, g:i A" }}{% endif %}
+  <br>
+  Scores are produced by AI analysis. Use alongside human judgment.
+</div>
+
 </body>
 </html>

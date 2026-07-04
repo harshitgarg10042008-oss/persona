@@ -3,9 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db import models
-from django.db.models import Max, Count, Q
+from django.db.models import Avg, Max, Min, Sum, Count, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.conf import settings
@@ -773,7 +774,13 @@ def start_individual_assessment(request):
         
         try:
             job_title = PlatformJobTitle.objects.get(id=job_title_id, is_active=True)
-            
+
+            # Terminate any previous incomplete sessions for this user
+            IndividualAssessment.objects.filter(
+                user=request.user,
+                status__in=['pending', 'in_progress']
+            ).update(status='terminated')
+
             # Create new assessment
             assessment = IndividualAssessment.objects.create(
                 user=request.user,
@@ -897,6 +904,24 @@ def start_individual_assessment_session(request, session_id):
     return redirect('analysis:individual_assessment_question', session_id=session_id)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def abandon_assessment(request, session_id):
+    """Mark an in-progress assessment as terminated (called via sendBeacon on page unload)"""
+    try:
+        updated = IndividualAssessment.objects.filter(
+            session_id=session_id,
+            user=request.user,
+            status='in_progress'
+        ).update(status='terminated')
+        if updated:
+            return JsonResponse({'success': True, 'terminated': True})
+        return JsonResponse({'success': True, 'terminated': False})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 @login_required
 def combined_assessment(request, session_id):
     """Combined setup and assessment page with all questions"""
@@ -1003,6 +1028,33 @@ def submit_assessment_response(request, session_id):
         # Parse request data
         data = json.loads(request.body)
         
+        # Handle skip
+        if data.get('skipped'):
+            IndividualAssessmentResponse.objects.create(
+                assessment=assessment,
+                question=current_question,
+                question_order=assessment.current_question_index + 1,
+                question_started_at=timezone.now(),
+                response_started_at=timezone.now(),
+                response_ended_at=timezone.now(),
+                response_duration=0,
+                time_to_start=0,
+                analysis_data={
+                    'skipped': True,
+                    'skip_reason': data.get('skip_reason', 'user_skipped'),
+                    'fullscreen_violations': data.get('fullscreen_violations', 0),
+                }
+            )
+            assessment.current_question_index += 1
+            assessment.save()
+            is_complete = assessment.current_question_index >= assessment.total_questions
+            return JsonResponse({
+                'success': True,
+                'is_complete': is_complete,
+                'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
+                'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+            })
+
         # Create response record
         response = IndividualAssessmentResponse.objects.create(
             assessment=assessment,
@@ -1377,21 +1429,86 @@ def download_assessment_report(request, session_id):
 
 @login_required
 def assessment_history(request):
-    """View assessment history for individual users"""
+    """View assessment history with progress comparison dashboard."""
     if hasattr(request.user, 'business_profile'):
         return redirect('analysis:business_dashboard')
-    
-    assessments = IndividualAssessment.objects.filter(
+
+    all_assessments = IndividualAssessment.objects.filter(
         user=request.user
-    ).order_by('-created_at')
-    
-    # Pagination
-    paginator = Paginator(assessments, 10)
+    ).order_by('-created_at').select_related('platform_job_title')
+
+    completed = all_assessments.filter(status='completed', overall_score__isnull=False)
+
+    # ── Aggregate stats ────────────────────────────────────────────────────
+    stats = completed.aggregate(
+        avg_score=Avg('overall_score'),
+        best_score=Max('overall_score'),
+        worst_score=Min('overall_score'),
+        total=Count('id'),
+    )
+    avg_score  = round(stats['avg_score'],  1) if stats['avg_score']  else None
+    best_score = round(stats['best_score'], 1) if stats['best_score'] else None
+    total_completed = stats['total']
+
+    # Total practice time (minutes)
+    total_minutes = 0
+    for a in completed:
+        if a.completed_at and a.started_at:
+            total_minutes += (a.completed_at - a.started_at).total_seconds() / 60
+    total_minutes = round(total_minutes)
+
+    # ── Trend: compare most-recent vs previous overall score ──────────────
+    recent_two = list(completed.order_by('-completed_at')[:2])
+    trend = None
+    trend_delta = None
+    if len(recent_two) == 2:
+        trend_delta = round(recent_two[0].overall_score - recent_two[1].overall_score, 1)
+        trend = 'up' if trend_delta > 0 else ('down' if trend_delta < 0 else 'neutral')
+
+    # ── Chart data: score progression over time, grouped by role ──────────
+    chart_points = []
+    for a in reversed(list(completed.order_by('completed_at'))):
+        chart_points.append({
+            'date': a.completed_at.strftime('%d %b %Y') if a.completed_at else '',
+            'role': a.platform_job_title.title,
+            'overall':       round(a.overall_score, 1)       if a.overall_score       else None,
+            'speaking':      round(a.speaking_score, 1)      if a.speaking_score      else None,
+            'body_language': round(a.body_language_score, 1) if a.body_language_score else None,
+            'attire':        round(a.attire_score, 1)        if a.attire_score        else None,
+        })
+
+    # ── Per-role breakdown ─────────────────────────────────────────────────
+    role_stats = {}
+    for a in completed:
+        role = a.platform_job_title.title
+        if role not in role_stats:
+            role_stats[role] = {'scores': [], 'count': 0, 'best': None}
+        role_stats[role]['scores'].append(a.overall_score)
+        role_stats[role]['count'] += 1
+        if role_stats[role]['best'] is None or a.overall_score > role_stats[role]['best']:
+            role_stats[role]['best'] = a.overall_score
+    for role in role_stats:
+        scores = role_stats[role]['scores']
+        role_stats[role]['avg'] = round(sum(scores) / len(scores), 1)
+        role_stats[role]['best'] = round(role_stats[role]['best'], 1)
+
+    # ── Pagination ────────────────────────────────────────────────────────
+    paginator = Paginator(all_assessments, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
+        'total_assessments': all_assessments.count(),
+        'total_completed': total_completed,
+        'avg_score': avg_score,
+        'best_score': best_score,
+        'total_minutes': total_minutes,
+        'trend': trend,
+        'trend_delta': trend_delta,
+        'chart_data_json': json.dumps(chart_points),
+        'role_stats': role_stats,
+        'has_chart_data': len(chart_points) >= 2,
     }
     return render(request, 'analysis/assessment_history.html', context)
 

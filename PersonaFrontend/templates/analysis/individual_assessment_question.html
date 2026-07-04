@@ -6,14 +6,7 @@
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/cs                <div class="text-center mb-6">
-                    <button id="record-button" class="record-button start disabled" disabled>
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <div class="mt-3 text-sm opacity-75" id="record-status">
-                        Prepare to Record
-                    </div>
-                </div>y=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     body {
@@ -348,7 +341,7 @@
                 
                 <div class="text-center mb-6">
                     <button id="record-button" class="record-button start disabled" disabled>
-                        �️
+                        <span id="record-icon">🎙️</span>
                     </button>
                     <div class="mt-3 text-sm opacity-75" id="record-status">
                         Prepare to Record
@@ -358,6 +351,22 @@
                 <button id="next-button" class="next-button" style="display: none;">
                     Next Question →
                 </button>
+
+                <div style="text-align: center; margin-top: 16px;">
+                    <button id="skip-button" onclick="skipQuestion()" style="
+                        background: none;
+                        border: 1px solid rgba(0,0,0,0.2);
+                        border-radius: 10px;
+                        padding: 8px 20px;
+                        font-size: 13px;
+                        color: #6b7280;
+                        cursor: pointer;
+                        font-family: 'Inter', sans-serif;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'">
+                        Skip this question
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -491,28 +500,35 @@ async function initializeCamera() {
             console.log('Video is playing');
         } catch (playError) {
             console.warn('Video play failed, trying manual play:', playError);
-            // Sometimes autoplay is blocked, try manual play
             setTimeout(() => videoFeed.play(), 100);
         }
-        
-        // Wait for video to be ready
-        videoFeed.onloadedmetadata = function() {
-            console.log('Video metadata loaded - camera ready!');
+
+        // Helper: mark camera as ready (hides overlay, enables record button)
+        function markCameraReady() {
             const loadingElement = document.getElementById('video-loading');
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
-            }
-            
-            // Enable the record button now that camera is ready
+            if (loadingElement) loadingElement.style.display = 'none';
             const recordButton = document.getElementById('record-button');
             if (recordButton) {
                 recordButton.disabled = false;
                 recordButton.classList.remove('disabled');
             }
-            
-            // Start preparation timer
-            startPreparationTimer();
+        }
+
+        // Wait for video metadata — fire markCameraReady when ready
+        videoFeed.onloadedmetadata = function() {
+            console.log('Video metadata loaded - camera ready!');
+            markCameraReady();
         };
+
+        // Fallback: if onloadedmetadata never fires in sandboxed iframe,
+        // force-show the camera feed after 3 seconds (stream is already live)
+        setTimeout(() => {
+            if (document.getElementById('video-loading') &&
+                document.getElementById('video-loading').style.display !== 'none') {
+                console.log('Fallback: forcing camera overlay off after timeout');
+                markCameraReady();
+            }
+        }, 3000);
         
         // Handle video errors
         videoFeed.onerror = function(e) {
@@ -574,7 +590,6 @@ function startPreparationTimer() {
             const recordButton = document.getElementById('record-button');
             recordButton.disabled = false;
             recordButton.classList.remove('disabled');
-            recordButton.querySelector('#record-text').textContent = 'Start Recording';
             
             startResponseTimer();
         }
@@ -657,7 +672,6 @@ async function startRecording() {
         const recordButton = document.getElementById('record-button');
         recordButton.classList.remove('start');
         recordButton.classList.add('stop');
-        recordButton.querySelector('#record-text').textContent = 'Stop Recording';
         recordButton.querySelector('#record-icon').textContent = '⏹️';
         
         document.getElementById('recording-indicator').style.display = 'block';
@@ -705,7 +719,7 @@ function processAudioRecording() {
         recordButton.disabled = false;
         recordButton.classList.remove('stop');
         recordButton.classList.add('start');
-        recordButton.querySelector('#record-text').textContent = 'Start Recording';
+        recordButton.querySelector('#record-icon').textContent = '🎙️';
         audioChunks = [];
         return;
     }
@@ -742,10 +756,8 @@ async function submitResponse(audioData) {
         const result = await response.json();
         
         if (result.success) {
-            // Response submitted successfully
-            
+            _assessmentEnded = true;  // normal flow — do not abandon
             if (result.is_complete) {
-                // Assessment complete
                 setTimeout(() => {
                     window.location.href = result.complete_url;
                 }, 2000);
@@ -762,17 +774,73 @@ async function submitResponse(audioData) {
 
 // Next question
 function nextQuestion() {
-    // Clean up
+    _assessmentEnded = true;  // normal flow — do not abandon
     if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
     }
-    
-    // Navigate to next question
     window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
 }
-    
-    // Navigate to next question
-    window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
+
+// Skip question
+async function skipQuestion() {
+    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
+
+    let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
+    if (isMandatory) {
+        confirmMsg = '⚠️ This is a mandatory question. Skipping it will be recorded and may affect your score. Are you sure?';
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    const skipButton = document.getElementById('skip-button');
+    skipButton.disabled = true;
+    skipButton.textContent = 'Skipping…';
+
+    let skipReason = 'user_skipped';
+    if (!videoStream) {
+        skipReason = 'camera_mic_unavailable';
+    } else {
+        const audioTracks = videoStream.getAudioTracks();
+        if (!audioTracks.length) skipReason = 'microphone_unavailable';
+    }
+
+    try {
+        const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                skipped: true,
+                skip_reason: skipReason,
+                response_duration: 0,
+                time_to_start: 0,
+                fullscreen_violations: fullscreenViolations
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            _assessmentEnded = true;  // normal flow — do not abandon
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            if (result.is_complete) {
+                window.location.href = result.complete_url;
+            } else {
+                window.location.href = result.next_question_url;
+            }
+        } else {
+            showWarning('Could not skip: ' + (result.error || 'Unknown error'));
+            skipButton.disabled = false;
+            skipButton.textContent = 'Skip this question';
+        }
+    } catch (err) {
+        console.error('Skip failed:', err);
+        showWarning('Failed to skip question. Please check your connection.');
+        skipButton.disabled = false;
+        skipButton.textContent = 'Skip this question';
+    }
 }
 
 // Show warning
@@ -815,10 +883,23 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Cleanup on page unload
+// Cleanup on page unload — stop camera and abandon the assessment
+let _assessmentEnded = false;  // set to true by nextQuestion/skipQuestion so normal flow skips abandon
+
 window.addEventListener('beforeunload', function() {
     if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
+    }
+
+    if (!_assessmentEnded) {
+        const csrfToken = getCookie('csrftoken');
+        const abandonUrl = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
+        // sendBeacon is fire-and-forget; works reliably even while the page is unloading
+        const blob = new Blob(
+            [JSON.stringify({csrfmiddlewaretoken: csrfToken})],
+            {type: 'application/json'}
+        );
+        navigator.sendBeacon(abandonUrl + '?_method=POST', blob);
     }
 });
 </script>
