@@ -82,14 +82,13 @@
           </h2>
           <p class="text-blue-600 mt-1">{{ job_title.description }}</p>
           <div class="mt-3 flex items-center space-x-6 text-sm text-blue-700">
-            <span><strong>Questions:</strong> {{ total_questions }}</span>
+            <span><strong>Questions:</strong> {{ question_count_display }}</span>
             <span
               ><strong>Estimated Time:</strong> {{ estimated_duration }}
               minutes</span
             >
             <span
-              ><strong>Category:</strong> {{ job_title.get_category_display
-              }}</span
+              ><strong>Category:</strong> {{ job_title.get_category_display }}</span
             >
           </div>
         </div>

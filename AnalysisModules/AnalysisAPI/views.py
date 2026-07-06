@@ -6,11 +6,12 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db import models
-from django.db.models import Avg, Max, Min, Sum, Count, Q
+from django.db.models import Avg, Max, Min, Sum, Count, Q, F
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.conf import settings
 import json
+import csv
 import uuid
 import base64
 from datetime import datetime, timedelta
@@ -111,6 +112,20 @@ def business_dashboard(request):
     business_user = request.user.business_profile
     job_roles = JobRole.objects.filter(business_user=business_user).order_by('-created_at')
     
+    # Build candidate rankings per job role
+    job_roles_with_rankings = []
+    for role in job_roles:
+        completed_assessments = Assessment.objects.filter(
+            assessment_link__job_role=role,
+            status='completed'
+        ).select_related('result').order_by(F('result__overall_score').desc(nulls_last=True))
+        
+        job_roles_with_rankings.append({
+            'role': role,
+            'completed_assessments': completed_assessments,
+            'has_multiple_submissions': completed_assessments.count() > 1
+        })
+    
     # Get recent assessments
     recent_assessments = Assessment.objects.filter(
         assessment_link__job_role__business_user=business_user
@@ -118,6 +133,7 @@ def business_dashboard(request):
     
     context = {
         'job_roles': job_roles,
+        'job_roles_with_rankings': job_roles_with_rankings,
         'recent_assessments': recent_assessments,
         'total_roles': job_roles.count(),
         'total_assessments': Assessment.objects.filter(
@@ -1356,7 +1372,80 @@ def complete_individual_assessment(request, session_id):
     if improvement_roadmap:
         assessment.improvement_roadmap = improvement_roadmap
         assessment.save(update_fields=['improvement_roadmap'])
-    
+
+    # ── Per-question confidence / energy chart data ─────────────────────
+    # Extract the audio features already calculated by speech_analyzer.py
+    # from each response's analysis_data['speech_analysis'] dict.
+    chart_labels = []        # ["Q1", "Q2", ...]
+    energy_data = []         # avg_energy per question (normalised 0-100)
+    speaking_rate_data = []  # speaking_rate (onsets/sec) per question
+    pitch_variance_data = [] # pitch_variance (normalised) per question
+
+    for resp in responses:
+        q_label = f"Q{resp.question_order}"
+        ad = resp.analysis_data if isinstance(resp.analysis_data, dict) else {}
+        sa = ad.get('speech_analysis', {})
+
+        # All three values default to None when speech analysis wasn't run
+        # (skipped / no audio) so we still show the label with a null point.
+        # speaking_rate is at top-level of speech_analysis; avg_energy and
+        # pitch_variance are nested inside details.audio_features.
+        audio_features = sa.get('details', {}).get('audio_features', {})
+        avg_energy    = audio_features.get('avg_energy')    # float, typically 0-0.3 (raw RMS)
+        speaking_rate = sa.get('speaking_rate')             # onsets / second, e.g. 2-8
+        pitch_var     = audio_features.get('pitch_variance') # Hz², can be large
+
+        # Normalise energy to 0-100 scale (raw RMS values are 0–~0.5)
+        if avg_energy is not None:
+            avg_energy = round(min(avg_energy * 300, 100), 2)
+
+        # Normalise pitch_variance: log-compress then map to 0-100
+        if pitch_var is not None and pitch_var > 0:
+            import math
+            pitch_var = round(min(math.log1p(pitch_var) / 15 * 100, 100), 2)
+        elif pitch_var == 0:
+            pitch_var = 0
+
+        chart_labels.append(q_label)
+        energy_data.append(avg_energy)
+        speaking_rate_data.append(round(speaking_rate, 2) if speaking_rate is not None else None)
+        pitch_variance_data.append(pitch_var)
+
+    # Rule-based plain-language interpretation
+    energy_insight = ""
+    valid_energy = [(i, v) for i, v in enumerate(energy_data) if v is not None]
+    if len(valid_energy) >= 2:
+        min_idx, min_val = min(valid_energy, key=lambda x: x[1])
+        max_idx, max_val = max(valid_energy, key=lambda x: x[1])
+        q_min = chart_labels[min_idx]
+        q_max = chart_labels[max_idx]
+        drop = max_val - min_val
+        if drop > 15:
+            energy_insight = (
+                f"Your vocal energy was highest on {q_max} and dropped noticeably on {q_min}. "
+                "This often happens with more complex or unexpected questions — it's a great area to practise "
+                "staying energised throughout."
+            )
+        elif drop > 5:
+            energy_insight = (
+                f"Your energy was fairly consistent across questions, with a slight dip on {q_min}. "
+                "Overall this shows good stamina — keep it up!"
+            )
+        else:
+            energy_insight = (
+                "Your vocal energy was consistent across all questions — a strong sign of sustained confidence."
+            )
+    elif len(valid_energy) == 1:
+        energy_insight = "Energy data was captured for one question. Complete multi-question assessments to see trends."
+
+    import json as _json
+    confidence_chart_json = _json.dumps({
+        'labels': chart_labels,
+        'energy': energy_data,
+        'speaking_rate': speaking_rate_data,
+        'pitch_variance': pitch_variance_data,
+    })
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -1365,6 +1454,9 @@ def complete_individual_assessment(request, session_id):
         'ai_feedback_summary': ai_feedback_summary,
         'duration_seconds': int((assessment.completed_at - assessment.started_at).total_seconds()) if assessment.completed_at and assessment.started_at else 0,
         'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
+        'confidence_chart_json': confidence_chart_json,
+        'energy_insight': energy_insight,
+        'has_chart_data': bool(valid_energy),
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
 
@@ -1950,3 +2042,47 @@ def check_processing_status(request, session_id):
     except Exception as e:
         print(f"Processing status check failed: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def export_role_candidates_csv(request, role_id):
+    """Export all candidates for a specific job role as CSV"""
+    if not hasattr(request.user, 'business_profile'):
+        messages.error(request, "Access denied.")
+        return redirect('persona_frontend:home')
+        
+    job_role = get_object_or_404(JobRole, id=role_id, business_user=request.user.business_profile)
+    
+    # Query completed assessments for this role
+    completed_assessments = Assessment.objects.filter(
+        assessment_link__job_role=job_role,
+        status='completed'
+    ).select_related('result').order_by(F('result__overall_score').desc(nulls_last=True))
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="candidates_{job_role.title}_{datetime.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Candidate Name', 
+        'Email', 
+        'Overall Score', 
+        'Speaking Score', 
+        'Body Language Score', 
+        'Attire Score', 
+        'Completion Date'
+    ])
+    
+    for assessment in completed_assessments:
+        result = getattr(assessment, 'result', None)
+        writer.writerow([
+            assessment.candidate_name or 'Anonymous',
+            assessment.candidate_email or 'N/A',
+            round(result.overall_score, 1) if result and result.overall_score else 'N/A',
+            round(result.confidence_score, 1) if result and result.confidence_score else 'N/A',
+            round(result.posture_score, 1) if result and result.posture_score else 'N/A',
+            result.get_attire_appropriateness_display() if result and result.attire_appropriateness else 'N/A',
+            assessment.completed_at.strftime("%Y-%m-%d %H:%M") if assessment.completed_at else 'N/A'
+        ])
+        
+    return response

@@ -86,6 +86,65 @@
         {% endif %}
     </div>
 
+    <!-- Candidate Rankings -->
+    {% for role_data in job_roles_with_rankings %}
+        {% if role_data.has_multiple_submissions %}
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Candidate Rankings: {{ role_data.role.title }}</h2>
+                <a href="{% url 'analysis:export_role_candidates_csv' role_data.role.id %}" 
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export All Candidates
+                </a>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full sortable-table">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(this, 0)">Candidate ↕</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(this, 1)">Overall Score ↕</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(this, 2)">Date ↕</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for assessment in role_data.completed_assessments %}
+                            <tr class="hover:bg-gray-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ assessment.candidate_name|default:"Anonymous" }}</div>
+                                    {% if assessment.candidate_email %}
+                                        <div class="text-sm text-gray-500">{{ assessment.candidate_email }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if assessment.result and assessment.result.overall_score %}
+                                        <div class="flex items-center">
+                                            <span class="text-sm font-bold {% if assessment.result.overall_score >= 80 %}text-green-600{% elif assessment.result.overall_score >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                                {{ assessment.result.overall_score|floatformat:1 }}%
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-sm text-gray-400">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-timestamp="{{ assessment.completed_at|date:'U' }}">
+                                    {{ assessment.completed_at|date:"M d, Y H:i" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="{% url 'analysis:business_assessment_complete' assessment.id %}" class="text-blue-600 hover:text-blue-900 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition duration-200">View Results</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
     <!-- Recent Assessments -->
     {% if recent_assessments %}
         <div class="mb-8">
@@ -135,4 +194,54 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function sortTable(headerCell, colIndex) {
+        const table = headerCell.closest('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const isAscending = headerCell.classList.contains('asc');
+        
+        // Remove asc/desc classes from all headers
+        table.querySelectorAll('th').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            th.textContent = th.textContent.replace(' ↑', '').replace(' ↓', '').replace(' ↕', '') + ' ↕';
+        });
+
+        // Toggle current header
+        if (isAscending) {
+            headerCell.classList.add('desc');
+            headerCell.textContent = headerCell.textContent.replace(' ↕', ' ↓');
+        } else {
+            headerCell.classList.add('asc');
+            headerCell.textContent = headerCell.textContent.replace(' ↕', ' ↑');
+        }
+
+        rows.sort((a, b) => {
+            const cellA = a.cells[colIndex];
+            const cellB = b.cells[colIndex];
+            let valA, valB;
+
+            // Handle timestamp sorting for Date column
+            if (colIndex === 2) {
+                valA = parseInt(cellA.getAttribute('data-timestamp') || 0);
+                valB = parseInt(cellB.getAttribute('data-timestamp') || 0);
+            } else if (colIndex === 1) { // Overall score sorting
+                valA = parseFloat(cellA.textContent.replace('%', '')) || 0;
+                valB = parseFloat(cellB.textContent.replace('%', '')) || 0;
+            } else { // Text sorting for Name
+                valA = cellA.textContent.trim().toLowerCase();
+                valB = cellB.textContent.trim().toLowerCase();
+            }
+
+            if (valA < valB) return isAscending ? -1 : 1;
+            if (valA > valB) return isAscending ? 1 : -1;
+            return 0;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+</script>
 {% endblock %}

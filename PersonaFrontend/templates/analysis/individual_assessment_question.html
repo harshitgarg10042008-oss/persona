@@ -396,7 +396,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let videoStream = null;
 let isRecording = false;
-let preparationTime = 30;
+let preparationTime = 20;
 let responseTime = 0;
 let questionStartTime = Date.now();
 let responseStartTime = null;
@@ -507,11 +507,7 @@ async function initializeCamera() {
         function markCameraReady() {
             const loadingElement = document.getElementById('video-loading');
             if (loadingElement) loadingElement.style.display = 'none';
-            const recordButton = document.getElementById('record-button');
-            if (recordButton) {
-                recordButton.disabled = false;
-                recordButton.classList.remove('disabled');
-            }
+            // Record button enabling is gated by the preparation timer reaching 0.
         }
 
         // Wait for video metadata — fire markCameraReady when ready
@@ -590,6 +586,11 @@ function startPreparationTimer() {
             const recordButton = document.getElementById('record-button');
             recordButton.disabled = false;
             recordButton.classList.remove('disabled');
+            
+            const recordStatus = document.getElementById('record-status');
+            if (recordStatus) {
+                recordStatus.textContent = 'Ready to Record';
+            }
             
             startResponseTimer();
         }

@@ -11,6 +11,8 @@ urlpatterns = [
     path('job-roles/create/', views.create_job_role, name='create_job_role'),
     path('job-roles/<int:job_role_id>/', views.job_role_detail, name='job_role_detail'),
     path('job-roles/<int:job_role_id>/results/', views.assessment_results, name='assessment_results'),
+    path('job-roles/<int:role_id>/export/', views.export_role_candidates_csv, name='export_role_candidates_csv'),
+
     
     # Question Management
     path('job-roles/<int:job_role_id>/add-question/', views.add_question, name='add_question'),
