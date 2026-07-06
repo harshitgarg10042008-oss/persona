@@ -963,7 +963,9 @@ def combined_assessment(request, session_id):
             except PlatformQuestion.DoesNotExist:
                 continue
     else:
-        questions = list(assessment.platform_job_title.questions.filter(is_active=True).order_by('id'))
+        questions = list(
+            assessment.platform_job_title.questions.filter(is_active=True).order_by('?')
+        )
     
     # Prepare questions data for JavaScript
     questions_data = []
