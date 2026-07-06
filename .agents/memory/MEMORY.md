@@ -1,0 +1,1 @@
+- [Python package installs on this project](python-heavy-ml-install.md) — use uv directly, not installLanguagePackages tool, for heavy ML deps like torch/mediapipe.

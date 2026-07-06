@@ -251,30 +251,31 @@ class IndividualAssessment(models.Model):
             return PlatformQuestion.objects.get(id=question_id)
         return None
     
-    def select_questions(self):
-        """Select questions for this assessment (mandatory + random non-mandatory)"""
+    def select_questions(self, num_non_mandatory=5):
+        """Select questions for this assessment (mandatory + random non-mandatory).
+
+        Uses Django's `order_by('?')` random ordering so a fresh, differently
+        ordered set of questions is drawn from the PlatformQuestion bank every
+        time an assessment is started, even for the same job role.
+        """
         if self.selected_questions:
             return  # Already selected
-            
+
         mandatory_questions = list(
             self.platform_job_title.questions.filter(is_mandatory=True, is_active=True)
+            .order_by('?')
             .values_list('id', flat=True)
         )
-        
+
         non_mandatory_questions = list(
             self.platform_job_title.questions.filter(is_mandatory=False, is_active=True)
+            .order_by('?')[:num_non_mandatory]
             .values_list('id', flat=True)
         )
-        
-        # Select up to 5 random non-mandatory questions
-        random_questions = random.sample(
-            non_mandatory_questions, 
-            min(5, len(non_mandatory_questions))
-        )
-        
-        all_selected = mandatory_questions + random_questions
-        random.shuffle(all_selected)  # Randomize order
-        
+
+        all_selected = mandatory_questions + non_mandatory_questions
+        random.shuffle(all_selected)  # Randomize the final question order too
+
         self.selected_questions = all_selected
         self.total_questions = len(all_selected)
         self.save()
