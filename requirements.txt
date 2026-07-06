@@ -2,6 +2,10 @@
 Django==6.0.6
 django-q2==1.10.0
 python-decouple==3.8
+psycopg2-binary==2.9.10
+Django==6.0.6
+django-q2==1.10.0
+python-decouple==3.8
 
 # Computer vision & image processing
 opencv-python==4.13.0.92
