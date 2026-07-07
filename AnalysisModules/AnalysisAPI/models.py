@@ -22,6 +22,8 @@ class PlatformJobTitle(models.Model):
         ('healthcare', 'Healthcare'),
         ('education', 'Education'),
         ('engineering', 'Engineering'),
+        ('analytics', 'Analytics'),
+        ('management', 'Management'),
         ('other', 'Other'),
     ], default='other')
     is_active = models.BooleanField(default=True)

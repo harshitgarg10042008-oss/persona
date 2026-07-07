@@ -823,6 +823,11 @@ def individual_assessment_setup(request, session_id):
         user=request.user,
         status='pending'
     )
+    
+    # Select questions for this assessment if not already done
+    if not assessment.selected_questions:
+        assessment.select_questions()
+    
     resume_key = _resume_session_key(session_id)
     resume_uploaded = bool(request.session.get(resume_key))
     
@@ -830,7 +835,7 @@ def individual_assessment_setup(request, session_id):
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
         'total_questions': assessment.total_questions,
-        'question_count_display': assessment.total_questions or 'TBD',
+        'question_count_display': assessment.total_questions,
         'estimated_duration': assessment.estimated_duration // 60,  # Convert to minutes
         'resume_uploaded': resume_uploaded,
         'analysis_status': {
