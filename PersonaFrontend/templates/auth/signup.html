@@ -18,7 +18,7 @@
       <!-- Heading -->
       <div class="mb-8">
         <h1 class="font-bold text-3xl text-gray-900 dark:text-gray-50 mb-2">Get Started with Persona</h1>
-        <p class="text-gray-600 dark:text-gray-300">Create your account and start improving your interview skills</p>
+        <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">Create your account and start improving your interview skills</p>
       </div>
 
       <!-- Tab Navigation -->
@@ -51,7 +51,7 @@
             <input type="hidden" name="user_type" value="individual" />
 
             <div>
-              <label for="id_individual_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_individual_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Full Name
               </label>
               {{ individual_form.name }}
@@ -63,7 +63,7 @@
             </div>
 
             <div>
-              <label for="id_individual_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_individual_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Email Address
               </label>
               {{ individual_form.email }}
@@ -75,7 +75,7 @@
             </div>
 
             <div>
-              <label for="id_individual_password1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_individual_password1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Password
               </label>
               {{ individual_form.password1 }}
@@ -87,7 +87,7 @@
             </div>
 
             <div>
-              <label for="id_individual_password2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_individual_password2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Confirm Password
               </label>
               {{ individual_form.password2 }}
@@ -103,9 +103,9 @@
                 type="checkbox"
                 id="remember_me_individual"
                 name="remember_me"
-                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 rounded"
               />
-              <label for="remember_me_individual" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              <label for="remember_me_individual" class="ml-2 block text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400">
                 Remember me
               </label>
             </div>
@@ -129,7 +129,7 @@
             <input type="hidden" name="user_type" value="business" />
 
             <div>
-              <label for="id_business_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_business_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Full Name
               </label>
               {{ business_form.name }}
@@ -141,7 +141,7 @@
             </div>
 
             <div>
-              <label for="id_business_company_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_business_company_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Company Name (Optional)
               </label>
               {{ business_form.company_name }}
@@ -153,7 +153,7 @@
             </div>
 
             <div>
-              <label for="id_business_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_business_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Email Address
               </label>
               {{ business_form.email }}
@@ -165,7 +165,7 @@
             </div>
 
             <div>
-              <label for="id_business_password1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_business_password1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Password
               </label>
               {{ business_form.password1 }}
@@ -177,7 +177,7 @@
             </div>
 
             <div>
-              <label for="id_business_password2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label for="id_business_password2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
                 Confirm Password
               </label>
               {{ business_form.password2 }}
@@ -193,9 +193,9 @@
                 type="checkbox"
                 id="remember_me_business"
                 name="remember_me"
-                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 rounded"
               />
-              <label for="remember_me_business" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              <label for="remember_me_business" class="ml-2 block text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400">
                 Remember me
               </label>
             </div>
@@ -211,7 +211,7 @@
 
         <!-- Footer -->
         <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p class="text-gray-600 dark:text-gray-300">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Already have an account?
             <a
               href="{% url 'login' %}"
@@ -222,7 +222,7 @@
         </div>
 
         <div class="mt-4 text-center">
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             By signing up, you agree to our
             <a href="#" class="text-primary hover:text-primary-dark">Terms of Service</a>
             and
@@ -247,7 +247,7 @@
     <!-- Content -->
     <div class="relative z-10 flex flex-col justify-center h-full p-12">
       <h2 class="font-bold text-4xl text-gray-900 dark:text-gray-50 mb-6">Master Your Interview Skills</h2>
-      <p class="text-gray-600 dark:text-gray-300 text-lg mb-12">AI-powered analysis to help you ace every interview with confidence.</p>
+      <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-lg mb-12">AI-powered analysis to help you ace every interview with confidence.</p>
 
       <!-- Features -->
       <div class="space-y-6">
@@ -257,7 +257,7 @@
           </div>
           <div>
             <h3 class="font-semibold text-gray-900 dark:text-gray-50 text-lg mb-1">Speech Analysis</h3>
-            <p class="text-gray-600 dark:text-gray-300 text-sm">Real-time feedback on clarity, pacing, and confidence</p>
+            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">Real-time feedback on clarity, pacing, and confidence</p>
           </div>
         </div>
 
@@ -267,7 +267,7 @@
           </div>
           <div>
             <h3 class="font-semibold text-gray-900 dark:text-gray-50 text-lg mb-1">Body Language Detection</h3>
-            <p class="text-gray-600 dark:text-gray-300 text-sm">AI-powered posture and gesture analysis</p>
+            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">AI-powered posture and gesture analysis</p>
           </div>
         </div>
 
@@ -277,7 +277,7 @@
           </div>
           <div>
             <h3 class="font-semibold text-gray-900 dark:text-gray-50 text-lg mb-1">Attire Feedback</h3>
-            <p class="text-gray-600 dark:text-gray-300 text-sm">Professional outfit assessment and recommendations</p>
+            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">Professional outfit assessment and recommendations</p>
           </div>
         </div>
 
@@ -287,7 +287,7 @@
           </div>
           <div>
             <h3 class="font-semibold text-gray-900 dark:text-gray-50 text-lg mb-1">Instant Reports</h3>
-            <p class="text-gray-600 dark:text-gray-300 text-sm">Detailed PDF reports with actionable insights</p>
+            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">Detailed PDF reports with actionable insights</p>
           </div>
         </div>
       </div>

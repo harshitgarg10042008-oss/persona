@@ -37,7 +37,7 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
   <div class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-gray-800 mb-4">Assessment Complete!</h1>
+    <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">Assessment Complete!</h1>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 inline-block">
       <h2 class="text-2xl font-semibold text-blue-800">{{ job_title.title }}</h2>
       <p class="text-blue-600 mt-2">{{ job_title.description }}</p>
@@ -59,68 +59,68 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
     <div class="metric-card">
       <div class="text-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Overall Performance</h3>
         {% if assessment.overall_score %}
           <div class="text-4xl font-bold text-blue-600 mb-2">{{ assessment.overall_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ assessment.overall_score|floatformat:0 }}"></div>
           </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">No analysis data recorded</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No analysis data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600">Complete assessment</p>
+      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Complete assessment</p>
     </div>
 
     <div class="metric-card">
       <div class="text-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">Body Language</h3>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Body Language</h3>
         {% if assessment.body_language_score %}
           <div class="text-4xl font-bold text-green-600 mb-2">{{ assessment.body_language_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-green-600 h-3 rounded-full score-bar" data-score="{{ assessment.body_language_score|floatformat:0 }}"></div>
           </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600">Posture and gestures</p>
+      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Posture and gestures</p>
     </div>
 
     <div class="metric-card">
       <div class="text-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">Professional Attire</h3>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Professional Attire</h3>
         {% if assessment.attire_score %}
           <div class="text-4xl font-bold text-purple-600 mb-2">{{ assessment.attire_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-purple-600 h-3 rounded-full score-bar" data-score="{{ assessment.attire_score|floatformat:0 }}"></div>
           </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 mb-2">Analysis unavailable</div>
+          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">No snapshot data recorded</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600">Appearance and grooming</p>
+      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Appearance and grooming</p>
     </div>
   </div>
 
   {% if assessment.speaking_score %}
   <div class="metric-card mb-8 max-w-sm mx-auto">
     <div class="text-center">
-      <h3 class="text-xl font-semibold text-gray-800 mb-2">Speaking</h3>
+      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Speaking</h3>
       <div class="text-4xl font-bold text-indigo-600">{{ assessment.speaking_score|floatformat:1 }}/10</div>
-      <p class="text-sm text-gray-600 mt-2">Fluency, clarity, and content quality</p>
+      <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">Fluency, clarity, and content quality</p>
     </div>
   </div>
   {% endif %}
@@ -132,9 +132,9 @@
     });
   </script>
 
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-4">AI Feedback Summary</h2>
-    <p class="text-gray-700 leading-relaxed">{{ ai_feedback_summary|linebreaksbr }}</p>
+    <p class="text-gray-700 dark:text-gray-300 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr }}</p>
   </div>
 
   {% if assessment.improvement_roadmap %}
@@ -146,14 +146,14 @@
       </div>
     </div>
     
-    <div class="text-sm text-indigo-800 mb-6 bg-white bg-opacity-60 p-3 rounded">
+    <div class="text-sm text-indigo-800 mb-6 bg-white dark:bg-gray-900 bg-opacity-60 p-3 rounded">
       Your current score is <strong>{{ assessment.improvement_roadmap.current_score }}</strong>. 
       Let's get you to <strong>{{ assessment.improvement_roadmap.target_score }}</strong>.
     </div>
 
     <div class="space-y-4">
       {% for item in assessment.improvement_roadmap.action_items %}
-      <div class="bg-white rounded p-4 shadow-sm border border-indigo-50 flex gap-4">
+      <div class="bg-white dark:bg-gray-900 rounded p-4 shadow-sm border border-indigo-50 flex gap-4">
         <div class="flex-shrink-0 mt-1">
           <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -161,8 +161,8 @@
         </div>
         <div>
           <span class="text-xs font-semibold uppercase tracking-wider text-indigo-500 mb-1 block">{{ item.area }}</span>
-          <h4 class="text-gray-900 font-medium mb-1">{{ item.action }}</h4>
-          <p class="text-gray-600 text-sm">{{ item.why }}</p>
+          <h4 class="text-gray-900 dark:text-gray-50 font-medium mb-1">{{ item.action }}</h4>
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">{{ item.why }}</p>
         </div>
       </div>
       {% endfor %}
@@ -170,24 +170,24 @@
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-6">Per-question Content Review</h2>
     <div class="space-y-4">
       {% for response in responses %}
         {% with evaluation=response.analysis_data.content_evaluation %}
-        <div class="border border-gray-200 rounded-lg p-4">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div class="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h3 class="font-semibold text-gray-800">
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100">
                 Q{{ response.question_order }}. {{ response.question.question_text }}
               </h3>
               {% with speech=response.analysis_data.speech_analysis %}
                 {% if speech.transcription %}
-                  <p class="text-sm text-gray-600 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
                 {% elif response.response_text %}
-                  <p class="text-sm text-gray-600 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
                 {% else %}
-                  <p class="text-sm text-gray-500 mt-2">No transcript available for this response.</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">No transcript available for this response.</p>
                 {% endif %}
               {% endwith %}
             </div>
@@ -197,26 +197,26 @@
                   {{ evaluation.content_correctness_score|floatformat:1 }}/10
                 </div>
               {% else %}
-                <div class="text-sm text-gray-400">Pending</div>
+                <div class="text-sm text-gray-400 dark:text-gray-500">Pending</div>
               {% endif %}
             </div>
           </div>
           {% if evaluation.explanation %}
-            <p class="text-sm text-gray-700">{{ evaluation.explanation }}</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400">{{ evaluation.explanation }}</p>
           {% endif %}
         </div>
         {% endwith %}
       {% empty %}
-        <p class="text-gray-500">No responses available.</p>
+        <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No responses available.</p>
       {% endfor %}
     </div>
   </div>
 
   {% if has_chart_data %}
   <!-- ── Confidence & Energy Breakdown Chart ─────────────────────────── -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-1">Confidence &amp; Energy by Question</h2>
-    <p class="text-sm text-gray-500 mb-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">
       These metrics are derived from your audio — higher energy means a louder, more
       projected voice; speaking rate measures your pace (onsets/sec); pitch variation
       reflects natural expressiveness.
@@ -289,26 +289,26 @@
     </a>
   </div>
 
-  <div class="mt-12 bg-gray-50 rounded-lg p-6">
+  <div class="mt-12 bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
     <h2 class="text-xl font-semibold mb-4 text-center">Assessment Statistics</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
       <div>
         <div class="text-2xl font-bold text-blue-600">{{ responses.count }}</div>
-        <div class="text-sm text-gray-600">Questions Answered</div>
+        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Questions Answered</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-green-600">
           {% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{ duration_minutes }}m{% endif %}
         </div>
-        <div class="text-sm text-gray-600">Total Duration</div>
+        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Total Duration</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-purple-600">{{ snapshots.count }}</div>
-        <div class="text-sm text-gray-600">Analysis Snapshots</div>
+        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Analysis Snapshots</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-orange-600">0</div>
-        <div class="text-sm text-gray-600">Focus Breaks</div>
+        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Focus Breaks</div>
       </div>
     </div>
   </div>

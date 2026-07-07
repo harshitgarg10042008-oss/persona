@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">
-    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8 text-center">
         <!-- Success Icon -->
         <div class="mb-6">
             <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -14,15 +14,15 @@
             </div>
         </div>
 
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Assessment Complete!</h1>
-        <p class="text-gray-600 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Assessment Complete!</h1>
+        <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-6">
             Thank you for completing the assessment for <strong>{{ job_role.title }}</strong>.
         </p>
 
         <!-- Assessment Details -->
-        <div class="bg-gray-50 rounded-lg p-6 mb-6 text-left">
-            <h3 class="font-semibold text-gray-700 mb-3">Assessment Summary</h3>
-            <div class="space-y-2 text-sm text-gray-600">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 mb-6 text-left">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-3">Assessment Summary</h3>
+            <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
                 <div class="flex justify-between">
                     <span>Candidate:</span>
                     <span class="font-medium">{{ assessment.candidate_name }}</span>
@@ -48,8 +48,8 @@
 
         <!-- What's Next -->
         <div class="border-l-4 border-blue-500 pl-4 mb-6 text-left">
-            <h3 class="font-semibold text-gray-700 mb-2">What happens next?</h3>
-            <ul class="text-gray-600 space-y-1 text-sm">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">What happens next?</h3>
+            <ul class="text-gray-600 dark:text-gray-300 dark:text-gray-400 space-y-1 text-sm">
                 <li>• Your responses are being analyzed using AI technology</li>
                 <li>• The hiring team will review your assessment results</li>
                 <li>• You may be contacted for the next steps in the process</li>
@@ -64,14 +64,14 @@
                 Return to Home
             </a>
             
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 Questions about your assessment? Contact the hiring team directly.
             </p>
         </div>
 
         <!-- Reference Number -->
-        <div class="mt-8 pt-6 border-t border-gray-200">
-            <p class="text-xs text-gray-400">
+        <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs text-gray-400 dark:text-gray-500">
                 Assessment Reference: {{ assessment.id }}
             </p>
         </div>

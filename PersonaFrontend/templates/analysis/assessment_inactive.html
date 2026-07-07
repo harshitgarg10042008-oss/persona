@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">
-    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8 text-center">
         <!-- Warning Icon -->
         <div class="mb-6">
             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
@@ -14,8 +14,8 @@
             </div>
         </div>
 
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Assessment Unavailable</h1>
-        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Assessment Unavailable</h1>
+        <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-6">{{ message }}</p>
 
         <div class="bg-yellow-50 rounded-lg p-6 mb-6 text-left">
             <h3 class="font-semibold text-yellow-800 mb-2">Possible reasons:</h3>
@@ -27,7 +27,7 @@
         </div>
 
         <div class="space-y-4">
-            <p class="text-gray-600">
+            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
                 If you believe this is an error, please contact the hiring team directly.
             </p>
             

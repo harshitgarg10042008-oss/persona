@@ -35,15 +35,14 @@ This project integrates a comprehensive Machine Learning and AI pipeline:
 - **Attire & Professionalism**: Uses **CLIP**, **BLIP**, and **ViT** models to assess the candidate's clothing and environment from video frames.
 - **Body Language**: Uses **MediaPipe** to track posture, gestures, and facial landmarks for engagement and confidence metrics.
 - **Speech & Fluency**: Uses **OpenAI Whisper** and `librosa` for robust audio transcription and vocal delivery analysis.
-- **Content Correctness**: Utilizes **Google Gemini (3.1 Pro)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
+- **Content Correctness**: Utilizes **Groq (Llama 3.3)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
 - **Asynchronous Task Queue**: Leverages **Django-Q2** (via ORM broker) to process heavy ML operations in the background without blocking the main server threads.
 - **PDF Reports & Tracking**: Generates downloadable PDF reports with detailed performance breakdowns and tracks progress via interactive charts (Chart.js) over time.
+- **Dark Mode Support**: Site-wide dark/light mode toggle with persistence and OS preference detection.
 
 ---
 
 ## 🚀 How to Run Locally
-
-Currently, there are no heavy production deployment configurations (like Docker or Kubernetes). The project runs using the local Django server but requires an asynchronous worker for ML tasks.
 
 **Step 1: Install System Dependencies**
 - You must have **FFmpeg** installed on your system and available in your PATH for audio processing.
@@ -59,8 +58,9 @@ source venv/bin/activate
 ```
 
 **Step 3: Setup Environment Variables**
-- Copy `.env.example` to `.env` (or create a `.env` file).
-- Ensure `SECRET_KEY`, `DEBUG`, and `GEMINI_API_KEY` are configured properly.
+- Create a `.env` file in the project root.
+- Ensure `GROQ_API_KEY` is configured (get it from https://console.groq.com/).
+- The `SECRET_KEY` will be auto-generated on first run.
 
 **Step 4: Install Dependencies**
 ```bash
@@ -69,19 +69,24 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Step 5: Run the Task Worker (Django-Q2)**
+**Step 5: Run Database Migrations**
+```bash
+python manage.py migrate
+```
+
+**Step 6: Run the Task Worker (Django-Q2)**
 In a new terminal (with the venv activated), run the task cluster for background audio processing:
 ```bash
 python manage.py qcluster
 ```
 
-**Step 6: Run the Development Server**
+**Step 7: Run the Development Server**
 In your main terminal, run:
 ```bash
 python manage.py runserver
 ```
 
-**Step 7: Access the Website & Admin Panel**
+**Step 8: Access the Website & Admin Panel**
 - **Website:** Go to `http://127.0.0.1:8000`
 - **Admin Panel:** Go to `http://127.0.0.1:8000/admin/`
   - *(To create an admin, run `python manage.py createsuperuser` in your terminal)*

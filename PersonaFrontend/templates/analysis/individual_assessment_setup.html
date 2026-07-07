@@ -73,7 +73,7 @@
 <div class="container mx-auto px-4 py-8">
   <!-- Header -->
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800">Assessment Setup</h1>
+    <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">Assessment Setup</h1>
     <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
       <div class="flex items-start">
         <div class="flex-1">
@@ -97,7 +97,7 @@
   </div>
 
   <!-- AI Analysis Features -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">AI Analysis Features</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="p-4 border rounded-lg">
@@ -109,7 +109,7 @@
             {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
           AI-powered analysis of your professional appearance and dress code
           compliance.
         </p>
@@ -124,7 +124,7 @@
             {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
           Real-time analysis of posture, eye contact, and professional gestures.
         </p>
       </div>
@@ -138,7 +138,7 @@
             {% if analysis_status.speech_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
           Advanced analysis of fluency, pronunciation, and content quality.
         </p>
       </div>
@@ -146,7 +146,7 @@
   </div>
 
   <!-- System Requirements Check -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">System Requirements Check</h2>
 
     <div class="space-y-3">
@@ -154,7 +154,7 @@
         <div class="status-icon status-pending" id="webcam-status">?</div>
         <div class="flex-1">
           <h3 class="font-medium">Webcam Access</h3>
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Required for body language and attire analysis
           </p>
         </div>
@@ -164,7 +164,7 @@
         <div class="status-icon status-pending" id="microphone-status">?</div>
         <div class="flex-1">
           <h3 class="font-medium">Microphone Access</h3>
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Required for speech recording and analysis
           </p>
         </div>
@@ -174,7 +174,7 @@
         <div class="status-icon status-pending" id="fullscreen-status">?</div>
         <div class="flex-1">
           <h3 class="font-medium">Fullscreen Capability</h3>
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Assessment will run in fullscreen mode to prevent distractions
           </p>
         </div>
@@ -190,7 +190,7 @@
         <div class="status-icon status-pending" id="browser-status">?</div>
         <div class="flex-1">
           <h3 class="font-medium">Browser Compatibility</h3>
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Modern browser with WebRTC support
           </p>
         </div>
@@ -208,7 +208,7 @@
   </div>
 
   <!-- Assessment Instructions -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">Assessment Instructions</h2>
 
     <div class="space-y-4">
@@ -220,7 +220,7 @@
         </div>
         <div>
           <h3 class="font-medium">Professional Setup</h3>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Dress professionally and ensure good lighting. Position yourself
             clearly in front of the camera.
           </p>
@@ -235,7 +235,7 @@
         </div>
         <div>
           <h3 class="font-medium">Quiet Environment</h3>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Choose a quiet location without distractions. Close other
             applications and silence notifications.
           </p>
@@ -250,7 +250,7 @@
         </div>
         <div>
           <h3 class="font-medium">Fullscreen Mode</h3>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             The assessment will run in fullscreen mode. Exiting fullscreen will
             be tracked and may affect your score.
           </p>
@@ -265,7 +265,7 @@
         </div>
         <div>
           <h3 class="font-medium">Natural Responses</h3>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Speak naturally and maintain good posture. You'll be analyzed
             continuously for professional presence.
           </p>
@@ -280,7 +280,7 @@
         </div>
         <div>
           <h3 class="font-medium">Complete the Assessment</h3>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
             Answer all questions thoughtfully. You'll receive detailed feedback
             on your performance.
           </p>
@@ -290,9 +290,9 @@
   </div>
 
   <!-- Resume Upload -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">Optional Resume Upload</h2>
-    <p class="text-sm text-gray-600 mb-4">
+    <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-4">
       Upload your resume to generate tailored practice questions based on your
       experience. This is optional and the assessment will still work without
       it.
@@ -305,7 +305,7 @@
     >
       {% csrf_token %}
       <div class="mb-4 text-left">
-        <label for="resume" class="block text-sm font-medium text-gray-700 mb-2"
+        <label for="resume" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2"
           >Resume (PDF or plain text)</label
         >
         <input
@@ -313,10 +313,10 @@
           name="resume"
           id="resume"
           accept="application/pdf,text/plain"
-          class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-3"
+          class="w-full text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg p-3"
         />
       </div>
-      <p class="text-xs text-gray-500 mb-4">
+      <p class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
         Your resume text is used only to generate relevant questions and is not
         permanently stored. The file is processed temporarily and discarded
         after question generation.
@@ -330,7 +330,7 @@
         >
           Start Assessment
         </button>
-        <p class="text-sm text-gray-600 mt-2" id="start-instruction">
+        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2" id="start-instruction">
           Please complete the system check first
         </p>
       </div>

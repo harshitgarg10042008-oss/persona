@@ -105,8 +105,8 @@
   <!-- ── PAGE HEADER ─────────────────────────────────────────────── -->
   <div class="flex items-start justify-between mb-8 flex-wrap gap-4">
     <div>
-      <h1 class="text-3xl font-bold text-gray-800">My Progress</h1>
-      <p class="text-gray-500 mt-1">Score trends and history across all your practice sessions</p>
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">My Progress</h1>
+      <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">Score trends and history across all your practice sessions</p>
     </div>
     <a href="{% url 'analysis:individual_dashboard' %}"
        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
@@ -140,11 +140,11 @@
 
   <!-- ── PROGRESS CHART ──────────────────────────────────────────── -->
   {% if has_chart_data %}
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+  <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
       <div>
-        <h2 class="text-lg font-semibold text-gray-800">Score Progression</h2>
-        <p class="text-sm text-gray-500">How your scores have changed across completed sessions</p>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Score Progression</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">How your scores have changed across completed sessions</p>
       </div>
       {% if trend %}
       <span class="trend-badge trend-{{ trend }}">
@@ -155,7 +155,7 @@
     </div>
 
     <!-- Legend -->
-    <div class="flex flex-wrap gap-4 mb-4 text-xs font-medium text-gray-600">
+    <div class="flex flex-wrap gap-4 mb-4 text-xs font-medium text-gray-600 dark:text-gray-300 dark:text-gray-400">
       <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#2563eb"></span>Overall</span>
       <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#10b981"></span>Speaking</span>
       <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#f59e0b"></span>Body Language</span>
@@ -174,24 +174,24 @@
 
   <!-- ── PER-ROLE BREAKDOWN ──────────────────────────────────────── -->
   {% if role_stats %}
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Performance by Role</h2>
+  <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Performance by Role</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {% for role, data in role_stats.items %}
-      <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
-        <div class="font-semibold text-gray-800 text-sm mb-3 truncate" title="{{ role }}">{{ role }}</div>
+      <div class="border border-gray-100 rounded-xl p-4 bg-gray-50 dark:bg-gray-900">
+        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3 truncate" title="{{ role }}">{{ role }}</div>
         <div class="flex items-end justify-between">
           <div>
-            <div class="text-xs text-gray-500 mb-0.5">Avg score</div>
-            <div class="text-2xl font-bold text-blue-600">{{ data.avg }}<span class="text-sm font-normal text-gray-400">/10</span></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Avg score</div>
+            <div class="text-2xl font-bold text-blue-600">{{ data.avg }}<span class="text-sm font-normal text-gray-400 dark:text-gray-500">/10</span></div>
           </div>
           <div class="text-right">
-            <div class="text-xs text-gray-500 mb-0.5">Best</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Best</div>
             <div class="text-xl font-bold text-green-600">{{ data.best }}</div>
           </div>
           <div class="text-right">
-            <div class="text-xs text-gray-500 mb-0.5">Sessions</div>
-            <div class="text-xl font-bold text-gray-700">{{ data.count }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Sessions</div>
+            <div class="text-xl font-bold text-gray-700 dark:text-gray-300 dark:text-gray-400">{{ data.count }}</div>
           </div>
         </div>
         <!-- mini score bar -->
@@ -206,7 +206,7 @@
 
   <!-- ── FILTERS ─────────────────────────────────────────────────── -->
   <div class="flex flex-wrap items-center gap-2 mb-5">
-    <span class="text-sm font-medium text-gray-600 mr-1">Filter:</span>
+    <span class="text-sm font-medium text-gray-600 dark:text-gray-300 dark:text-gray-400 mr-1">Filter:</span>
     <div class="filter-chip active" data-filter="all">All</div>
     <div class="filter-chip" data-filter="completed">Completed</div>
     <div class="filter-chip" data-filter="in_progress">In Progress</div>
@@ -237,7 +237,7 @@
         <!-- Details -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <h3 class="text-base font-semibold text-gray-800 truncate">{{ assessment.platform_job_title.title }}</h3>
+            <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{ assessment.platform_job_title.title }}</h3>
             {% if assessment.status == 'completed' %}
               <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Completed</span>
             {% elif assessment.status == 'in_progress' %}
@@ -245,11 +245,11 @@
             {% elif assessment.status == 'terminated' %}
               <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Terminated</span>
             {% else %}
-              <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{{ assessment.status|title }}</span>
+              <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-400 px-2 py-0.5 rounded-full font-medium">{{ assessment.status|title }}</span>
             {% endif %}
           </div>
 
-          <div class="text-xs text-gray-500 mb-2">
+          <div class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2">
             {{ assessment.created_at|date:"j M Y, H:i" }}
             {% if assessment.completed_at and assessment.started_at %}
               &middot; {{ assessment.completed_at|timeuntil:assessment.started_at }} duration
@@ -257,7 +257,7 @@
           </div>
 
           {% if assessment.overall_score %}
-          <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
+          <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600 dark:text-gray-300 dark:text-gray-400">
             {% if assessment.speaking_score %}
             <span class="flex items-center">
               <span class="metric-dot" style="background:#2563eb"></span>
@@ -288,7 +288,7 @@
             View Results
           </a>
           <a href="{% url 'analysis:download_assessment_report' assessment.session_id %}"
-             class="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors text-center whitespace-nowrap">
+             class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 dark:text-gray-400 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors text-center whitespace-nowrap">
             Download PDF
           </a>
           {% elif assessment.status == 'in_progress' %}
@@ -309,12 +309,12 @@
   <div class="flex justify-center mt-8 gap-2">
     {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}"
-       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">← Previous</a>
+       class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">← Previous</a>
     {% endif %}
-    <span class="px-4 py-2 text-gray-600 text-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="px-4 py-2 text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}"
-       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">Next →</a>
+       class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">Next →</a>
     {% endif %}
   </div>
   {% endif %}
@@ -328,8 +328,8 @@
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
     </div>
-    <h3 class="text-xl font-semibold text-gray-800 mb-2">No assessments yet</h3>
-    <p class="text-gray-500 text-sm mb-6">Complete your first assessment to start tracking your progress</p>
+    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">No assessments yet</h3>
+    <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mb-6">Complete your first assessment to start tracking your progress</p>
     <a href="{% url 'analysis:individual_dashboard' %}"
        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
       Take Your First Assessment

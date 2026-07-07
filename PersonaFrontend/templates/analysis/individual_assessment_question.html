@@ -272,7 +272,7 @@
         <div>
             <h2 class="text-3xl font-bold mb-4">⚠️ Fullscreen Required</h2>
             <p class="text-lg mb-6">Please return to fullscreen mode to continue your assessment.</p>
-            <p class="text-sm text-gray-300 mb-8">Exiting fullscreen is tracked and may affect your final score.</p>
+            <p class="text-sm text-gray-300 dark:text-gray-400 mb-8">Exiting fullscreen is tracked and may affect your final score.</p>
             <button id="return-fullscreen" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 text-lg font-medium">
                 Return to Fullscreen
             </button>
@@ -288,7 +288,7 @@
     <div class="assessment-header">
         <div class="flex items-center">
             <h1 class="text-lg font-bold">{{ assessment.platform_job_title.title }} Assessment</h1>
-            <span class="ml-4 text-sm text-gray-300">Session: {{ session_id|slice:":8" }}...</span>
+            <span class="ml-4 text-sm text-gray-300 dark:text-gray-400">Session: {{ session_id|slice:":8" }}...</span>
         </div>
         
         <div class="progress-container">
@@ -303,7 +303,7 @@
         
         <div class="flex items-center space-x-4">
             <div class="text-sm">
-                <span class="text-gray-300">Analysis:</span>
+                <span class="text-gray-300 dark:text-gray-400">Analysis:</span>
                 <span id="analysis-status" class="text-green-400">Running</span>
             </div>
             <div id="session-timer" class="text-sm">00:00</div>
@@ -562,8 +562,8 @@ function showCameraError(error) {
         
         loadingElement.innerHTML = `
             <div class="text-center p-4">
-                <div class="text-red-600 font-bold mb-2">❌ ${errorMessage}</div>
-                <div class="text-sm text-gray-600 mb-3">${helpText}</div>
+                <div class="text-red-600 dark:text-red-400 font-bold mb-2">❌ ${errorMessage}</div>
+                <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-3">${helpText}</div>
                 <button onclick="initializeCamera()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     Try Again
                 </button>
@@ -702,7 +702,7 @@ async function stopRecording() {
         
         // Show confirmation message
         const recordStatus = document.getElementById('record-status');
-        recordStatus.innerHTML = '<span style="color: #10b981; font-weight: 600;">✓ Answer recorded successfully</span>';
+        recordStatus.innerHTML = '<span style="color: var(--color-success); font-weight: 600;">✓ Answer recorded successfully</span>';
         
         document.getElementById('next-button').style.display = 'block';
     }

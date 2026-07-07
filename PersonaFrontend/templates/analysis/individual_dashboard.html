@@ -30,22 +30,22 @@ Dashboard{% endblock %} {% block extra_css %}
 <div class="container mx-auto px-4 py-8">
   <!-- Header -->
   <div class="mb-8">
-    <h1 class="text-2xl font-bold text-gray-900">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
       Practice Interview Dashboard
     </h1>
-    <p class="text-gray-600 mt-2">
+    <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">
       Improve your interview skills with AI-powered analysis
     </p>
   </div>
 
   <!-- Analysis Module Status -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-    <h2 class="text-lg font-semibold mb-4 text-gray-900">AI Analysis Features</h2>
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-50">AI Analysis Features</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Professional Attire</h3>
-          <p class="text-sm text-gray-600">AI attire analysis</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">AI attire analysis</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.attire_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -57,7 +57,7 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Body Language</h3>
-          <p class="text-sm text-gray-600">Posture & eye contact</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Posture & eye contact</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.body_language_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -69,7 +69,7 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Speech Analysis</h3>
-          <p class="text-sm text-gray-600">Fluency & content</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Fluency & content</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.speech_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -82,7 +82,7 @@ Dashboard{% endblock %} {% block extra_css %}
 
   <!-- Available Job Titles -->
   <div class="mb-8">
-    <h2 class="text-lg font-semibold mb-6 text-gray-900">Start New Assessment</h2>
+    <h2 class="text-lg font-semibold mb-6 text-gray-900 dark:text-gray-50">Start New Assessment</h2>
 
     {% if job_titles %}
     <form
@@ -93,11 +93,11 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for job_title in job_titles %}
         <div
-          class="job-card border border-gray-200 rounded-lg p-6 cursor-pointer hover:border-blue-500 transition-colors"
+          class="job-card border border-gray-200 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:border-blue-500 transition-colors"
           onclick="selectJobTitle({{ job_title.id }})"
         >
           <div class="flex items-start justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
               {{ job_title.title }}
             </h3>
             <input
@@ -107,9 +107,9 @@ Dashboard{% endblock %} {% block extra_css %}
               class="mt-1"
             />
           </div>
-          <p class="text-gray-600 text-sm mb-4">{{ job_title.description }}</p>
+          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm mb-4">{{ job_title.description }}</p>
           <div class="flex items-center justify-between">
-            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+            <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-400 px-2 py-1 rounded">
               {{ job_title.get_category_display }}
             </span>
             <span class="text-xs text-blue-600 font-medium">
@@ -131,7 +131,7 @@ Dashboard{% endblock %} {% block extra_css %}
     </form>
     {% else %}
     <div class="text-center py-8">
-      <p class="text-gray-600">
+      <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
         No job titles available for assessment at this time.
       </p>
     </div>
@@ -140,9 +140,9 @@ Dashboard{% endblock %} {% block extra_css %}
 
   <!-- Recent Assessments -->
   {% if recent_assessments %}
-  <div class="bg-white rounded-lg shadow-md p-6">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Recent Assessments</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Recent Assessments</h2>
       <a
         href="{% url 'analysis:assessment_history' %}"
         class="text-blue-600 hover:text-blue-700 text-sm font-medium"
@@ -153,24 +153,24 @@ Dashboard{% endblock %} {% block extra_css %}
 
     <div class="space-y-4">
       {% for assessment in recent_assessments %}
-      <div class="border border-gray-200 rounded-lg p-4">
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="font-medium text-gray-800">
+            <h3 class="font-medium text-gray-800 dark:text-gray-100">
               {{ assessment.platform_job_title.title }}
             </h3>
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
               {{ assessment.created_at|date:"M d, Y" }}
             </p>
           </div>
           <div class="text-right">
             <span
-              class="inline-block px-3 py-1 text-xs rounded-full {% if assessment.status == 'completed' %}bg-green-100 text-green-800 {% elif assessment.status == 'in_progress' %}bg-yellow-100 text-yellow-800 {% else %}bg-gray-100 text-gray-800{% endif %}"
+              class="inline-block px-3 py-1 text-xs rounded-full {% if assessment.status == 'completed' %}bg-green-100 text-green-800 {% elif assessment.status == 'in_progress' %}bg-yellow-100 text-yellow-800 {% else %}bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100{% endif %}"
             >
               {{ assessment.get_status_display }}
             </span>
             {% if assessment.overall_score %}
-            <div class="text-sm text-gray-600 mt-1">
+            <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-1">
               Score: {{ assessment.overall_score|floatformat:1 }}/10
             </div>
             {% endif %}
