@@ -827,15 +827,20 @@ def individual_assessment_setup(request, session_id):
     # Select questions for this assessment if not already done
     if not assessment.selected_questions:
         assessment.select_questions()
+        # Reload to get the updated total_questions
+        assessment.refresh_from_db()
     
     resume_key = _resume_session_key(session_id)
     resume_uploaded = bool(request.session.get(resume_key))
     
+    # Ensure we show the actual number of selected questions, not the pool size
+    actual_question_count = len(assessment.selected_questions) if assessment.selected_questions else 0
+    
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
-        'total_questions': assessment.total_questions,
-        'question_count_display': assessment.total_questions,
+        'total_questions': actual_question_count,
+        'question_count_display': actual_question_count,
         'estimated_duration': assessment.estimated_duration // 60,  # Convert to minutes
         'resume_uploaded': resume_uploaded,
         'analysis_status': {

@@ -709,6 +709,8 @@ async function stopRecording() {
 }
 
 // Process audio recording
+let submitPromise = null; // Track submission promise
+
 function processAudioRecording() {
     if (audioChunks.length === 0) {
         showWarning('No audio recorded. Please try again.');
@@ -734,7 +736,7 @@ function processAudioRecording() {
     
     reader.onload = function() {
         const audioData = reader.result;
-        submitResponse(audioData);
+        submitPromise = submitResponse(audioData);
     };
     
     reader.readAsDataURL(audioBlob);
@@ -768,18 +770,30 @@ async function submitResponse(audioData) {
                     window.location.href = result.complete_url;
                 }, 2000);
             }
+            return result; // Return result for nextQuestion to use
         } else {
             showWarning('Failed to submit response: ' + result.error);
+            return null;
         }
         
     } catch (error) {
         console.error('Submit response failed:', error);
         showWarning('Failed to submit response. Please check your connection.');
+        return null;
     }
 }
 
 // Next question
-function nextQuestion() {
+async function nextQuestion() {
+    // Wait for submission to complete before moving to next question
+    if (submitPromise) {
+        const result = await submitPromise;
+        if (!result) {
+            showWarning('Response submission failed. Please try again.');
+            return;
+        }
+    }
+    
     _assessmentEnded = true;  // normal flow — do not abandon
     if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
