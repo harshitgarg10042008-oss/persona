@@ -699,6 +699,11 @@ async function stopRecording() {
         const recordButton = document.getElementById('record-button');
         recordButton.style.display = 'none';
         document.getElementById('recording-indicator').style.display = 'none';
+        
+        // Show confirmation message
+        const recordStatus = document.getElementById('record-status');
+        recordStatus.innerHTML = '<span style="color: #10b981; font-weight: 600;">✓ Answer recorded successfully</span>';
+        
         document.getElementById('next-button').style.display = 'block';
     }
 }
