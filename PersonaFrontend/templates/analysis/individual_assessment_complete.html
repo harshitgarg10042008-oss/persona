@@ -174,20 +174,24 @@
     <h2 class="text-2xl font-semibold mb-6">Per-question Content Review</h2>
     <div class="space-y-4">
       {% for response in responses %}
-        {% with evaluation=response.analysis_data.content_evaluation %}
+      {% with evaluation=response.analysis_data.content_evaluation %}
         <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div class="flex items-start justify-between gap-4 mb-2">
             <div>
               <h3 class="font-semibold text-gray-800 dark:text-gray-100">
                 Q{{ response.question_order }}. {{ response.question.question_text }}
               </h3>
-              {% with speech=response.analysis_data.speech_analysis %}
+              {% with speech=response.analysis_data.speech_analysis status=response.analysis_data.speech_analysis_status %}
                 {% if speech.transcription %}
-                  <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
                 {% elif response.response_text %}
-                  <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
+                {% elif status == 'failed' %}
+                  <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{ speech.error|default:"transcription unavailable" }}</p>
+                {% elif status == 'pending' %}
+                  <p class="text-sm text-yellow-500 mt-2">⏳ Still processing...</p>
                 {% else %}
-                  <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">No transcript available for this response.</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">No transcript available for this response.</p>
                 {% endif %}
               {% endwith %}
             </div>
@@ -196,16 +200,20 @@
                 <div class="text-lg font-bold text-blue-600">
                   {{ evaluation.content_correctness_score|floatformat:1 }}/10
                 </div>
+              {% elif response.analysis_data.speech_analysis_status == 'failed' %}
+                <div class="text-sm text-red-400">Failed</div>
+              {% elif response.analysis_data.speech_analysis_status == 'pending' %}
+                <div class="text-sm text-yellow-400">Pending</div>
               {% else %}
-                <div class="text-sm text-gray-400 dark:text-gray-500">Pending</div>
+                <div class="text-sm text-gray-400 dark:text-gray-500">N/A</div>
               {% endif %}
             </div>
           </div>
           {% if evaluation.explanation %}
-            <p class="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400">{{ evaluation.explanation }}</p>
+            <p class="text-sm text-gray-700 dark:text-gray-400">{{ evaluation.explanation }}</p>
           {% endif %}
         </div>
-        {% endwith %}
+      {% endwith %}
       {% empty %}
         <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No responses available.</p>
       {% endfor %}

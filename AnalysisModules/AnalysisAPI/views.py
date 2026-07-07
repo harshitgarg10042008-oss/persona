@@ -1226,6 +1226,26 @@ def complete_individual_assessment(request, session_id):
     
     responses = assessment.responses.all().order_by('question_order')
     
+    # BUG FIX: Escalate tasks that have been 'pending' for more than 10 minutes to 'failed'.
+    # Without this, a qcluster timeout/crash leaves the status stuck on 'pending' forever.
+    _PROCESSING_TIMEOUT_SECONDS = 600  # 10 minutes
+    now = timezone.now()
+    for r in responses:
+        if r.analysis_data.get('speech_analysis_status') == 'pending':
+            age = (now - r.created_at).total_seconds()
+            if age > _PROCESSING_TIMEOUT_SECONDS:
+                r.analysis_data['speech_analysis_status'] = 'failed'
+                r.analysis_data['speech_analysis'] = {
+                    'error': f'Processing timed out after {int(age)}s — task may have crashed in qcluster.',
+                    'transcription': '',
+                    'word_count': 0,
+                }
+                r.save(update_fields=['analysis_data'])
+                print(f"[Timeout] Escalated response {r.id} from 'pending' to 'failed' after {int(age)}s")
+    
+    # Re-fetch responses after potential timeout escalation
+    responses = assessment.responses.all().order_by('question_order')
+    
     # Check if any responses are still processing speech analysis
     if any(r.analysis_data.get('speech_analysis_status') == 'pending' for r in responses):
         context = {
@@ -1721,14 +1741,31 @@ def capture_snapshot_clean(request, session_id):
                 print(f"Attire analysis failed: {e}")
                 analysis_result = {"error": str(e)}
         
-        # Save snapshot with analysis
+        # BUG FIX: AssessmentSnapshot does not have fields 'question', 'snapshot_data', or
+        # 'analysis_result'.  Use the actual model fields: analysis_data (JSONField) and score.
+        snapshot_score = None
+        if isinstance(analysis_result, dict) and not analysis_result.get('error'):
+            for key in ('overall_score', 'score', 'confidence_score', 'posture_score', 'attire_score'):
+                val = analysis_result.get(key)
+                if val is not None:
+                    try:
+                        snapshot_score = float(val)
+                        if snapshot_score <= 1.0:
+                            snapshot_score *= 10
+                        break
+                    except (ValueError, TypeError):
+                        pass
+        
         snapshot = AssessmentSnapshot.objects.create(
             assessment=assessment,
-            question=question,
-            snapshot_data=image_data,
             analysis_type=analysis_type,
-            analysis_result=analysis_result,
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
+            score=snapshot_score,
+            analysis_data={
+                'analysis_result': analysis_result,
+                'question_id': question_id,
+            },
+            feedback=', '.join(analysis_result.get('feedback', [])) if isinstance(analysis_result, dict) else ''
         )
         
         return JsonResponse({
@@ -1875,7 +1912,9 @@ def capture_snapshot_combined(request, session_id):
                 analysis_result = {"error": str(e)}
         
         # Save snapshot with analysis
-        # Extract numeric score from analysis result for proper aggregation on results page
+        # BUG FIX: Extract numeric score from analysis result for proper aggregation on results page.
+        # _snapshot_score_from_data() looks at snapshot.score first, then analysis_data['analysis_result'].
+        # We must save the analysis_result at the top level of analysis_data so the helper can find it.
         snapshot_score = None
         if isinstance(analysis_result, dict) and not analysis_result.get('error'):
             # Try common score keys from both analyzers
@@ -1891,10 +1930,11 @@ def capture_snapshot_combined(request, session_id):
                     except (ValueError, TypeError):
                         pass
         
+        # Store analysis_result at the top level so _snapshot_score_from_data() can find it,
+        # and keep the question reference and a truncated image preview for debugging.
         snapshot_data = {
-            'image_base64': image_data[:100] + '...' if len(image_data) > 100 else image_data,
+            'analysis_result': analysis_result,  # top-level so helper can read it
             'question_id': question_id,
-            'analysis_result': analysis_result
         }
         
         snapshot = AssessmentSnapshot.objects.create(
@@ -1993,11 +2033,17 @@ def submit_response_combined(request, session_id):
             _enqueue_speech_analysis(response.id, audio_data, question.question_text)
         
         # Check if assessment is complete
+        # BUG FIX: Use assessment.total_questions (the selected subset for THIS session),
+        # NOT the total count of all questions in the job title bank, which can be much
+        # larger and would cause the assessment to complete prematurely.
         answered_questions = IndividualAssessmentResponse.objects.filter(
             assessment=assessment
         ).count()
         
-        total_questions = assessment.platform_job_title.questions.count()
+        total_questions = assessment.total_questions or len(assessment.selected_questions or [])
+        if total_questions == 0:
+            # Fallback: shouldn't happen but avoid dividing by zero / completing instantly
+            total_questions = assessment.platform_job_title.questions.filter(is_active=True).count()
         
         is_complete = answered_questions >= total_questions
         
@@ -2029,24 +2075,44 @@ def check_processing_status(request, session_id):
         )
         
         # Check for pending speech analysis
+        # BUG FIX: Also escalate timed-out tasks here so the polling page doesn't spin forever.
         all_responses = IndividualAssessmentResponse.objects.filter(assessment=assessment)
+        _PROCESSING_TIMEOUT_SECONDS = 600  # 10 minutes
+        now = timezone.now()
         
         pending_responses = 0
+        failed_responses = 0
         for response in all_responses:
             status = response.analysis_data.get('speech_analysis_status', 'unknown')
             if status == 'pending':
-                pending_responses += 1
+                age = (now - response.created_at).total_seconds()
+                if age > _PROCESSING_TIMEOUT_SECONDS:
+                    # Escalate to failed so the frontend can unblock
+                    response.analysis_data['speech_analysis_status'] = 'failed'
+                    response.analysis_data['speech_analysis'] = {
+                        'error': f'Processing timed out after {int(age)}s — task may have crashed in qcluster.',
+                        'transcription': '',
+                        'word_count': 0,
+                    }
+                    response.save(update_fields=['analysis_data'])
+                    print(f"[Timeout] Escalated response {response.id} to 'failed' after {int(age)}s")
+                    failed_responses += 1
+                else:
+                    pending_responses += 1
+            elif status == 'failed':
+                failed_responses += 1
         
         total_responses = all_responses.count()
         processing_complete = pending_responses == 0
         
         # Log for debugging
-        print(f"Processing status: {pending_responses} pending out of {total_responses} total")
+        print(f"Processing status: {pending_responses} pending, {failed_responses} failed, out of {total_responses} total")
         
         return JsonResponse({
             'success': True,
             'processing_complete': processing_complete,
             'pending_count': pending_responses,
+            'failed_count': failed_responses,
             'total_responses': total_responses,
             'progress_percentage': ((total_responses - pending_responses) / max(total_responses, 1)) * 100
         })
