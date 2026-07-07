@@ -17,7 +17,7 @@
     
     body {
         font-family: 'Inter', sans-serif;
-        background: #eee8dd;
+        background: var(--color-bg-secondary);
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-user-select: none;
@@ -34,7 +34,7 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        background: #eee8dd;
+        background: var(--color-bg-secondary);
         padding-top: 80px; /* Space for persona topbar */
     }
     
@@ -80,13 +80,13 @@
     .setup-title {
         font-size: 28px;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--color-text-primary);
         margin-bottom: 12px;
     }
     
     .setup-subtitle {
         font-size: 16px;
-        color: #6b7280;
+        color: var(--color-text-tertiary);
         margin-bottom: 32px;
     }
     
@@ -117,7 +117,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--color-text-inverse);
         font-weight: 600;
         border-radius: 16px;
     }
@@ -141,12 +141,12 @@
     
     .requirement-item.checked {
         background: rgba(16, 185, 129, 0.1);
-        border-color: #10b981;
+        border-color: var(--color-success);
     }
     
     .requirement-item.failed {
         background: rgba(239, 68, 68, 0.1);
-        border-color: #ef4444;
+        border-color: var(--color-error);
     }
     
     .status-icon {
@@ -159,16 +159,16 @@
         justify-content: center;
         font-size: 14px;
         font-weight: bold;
-        color: white;
+        color: var(--color-text-inverse);
     }
     
-    .status-pending { background: #6b7280; }
-    .status-success { background: #10b981; }
-    .status-error { background: #ef4444; }
+    .status-pending { background: var(--color-text-tertiary); }
+    .status-success { background: var(--color-success); }
+    .status-error { background: var(--color-error); }
     
     .start-button {
         background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: white;
+        color: var(--color-text-inverse);
         border: none;
         padding: 16px 48px;
         border-radius: 12px;
@@ -212,8 +212,8 @@
     }
     
     .question-type {
-        background: #6366f1;
-        color: white;
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
         padding: 8px 16px;
         border-radius: 20px;
         font-size: 12px;
@@ -223,8 +223,8 @@
     }
     
     .mandatory-badge {
-        background: #ef4444;
-        color: white;
+        background: var(--color-error);
+        color: var(--color-text-inverse);
         padding: 8px 16px;
         border-radius: 20px;
         font-size: 12px;
@@ -237,7 +237,7 @@
         font-size: 24px;
         font-weight: 600;
         line-height: 1.4;
-        color: #1f2937;
+        color: var(--color-text-primary);
         margin-bottom: 40px;
     }
     
@@ -260,7 +260,7 @@
         border: none;
         border-radius: 50%;
         background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
+        color: var(--color-text-inverse);
         font-size: 32px;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -301,7 +301,7 @@
     .status-text {
         font-size: 16px;
         font-weight: 500;
-        color: #6b7280;
+        color: var(--color-text-tertiary);
         margin-bottom: 24px;
     }
     
@@ -323,7 +323,7 @@
         align-items: center;
         gap: 20px;
         font-size: 14px;
-        color: #374151;
+        color: var(--color-text-secondary);
     }
     
     .progress-bar {
@@ -366,7 +366,7 @@
         align-items: center;
         justify-content: center;
         z-index: 10000;
-        color: white;
+        color: var(--color-text-inverse);
         text-align: center;
     }
     
@@ -390,8 +390,8 @@
     }
     
     .return-button {
-        background: #ef4444;
-        color: white;
+        background: var(--color-error);
+        color: var(--color-text-inverse);
         border: none;
         padding: 16px 32px;
         border-radius: 12px;
@@ -402,7 +402,7 @@
     }
     
     .return-button:hover {
-        background: #dc2626;
+        background: var(--color-error-dark);
         transform: translateY(-2px);
     }
 </style>
@@ -435,10 +435,10 @@
     <!-- Header -->
     <div class="header">
         <div>
-            <h1 style="font-size: 20px; font-weight: 600; color: #1f2937;">
+            <h1 style="font-size: 20px; font-weight: 600; color: var(--color-text-primary);">
                 {{ assessment.platform_job_title.title }} Assessment
             </h1>
-            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">
+            <p style="font-size: 14px; color: var(--color-text-tertiary); margin-top: 4px;">
                 Session: {{ session_id|slice:":8" }}...
             </p>
         </div>
@@ -501,22 +501,22 @@
             </div>
             
             <div style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #1f2937;">Assessment Rules</h3>
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--color-text-primary);">Assessment Rules</h3>
                 <div style="text-align: left; max-width: 600px; margin: 0 auto;">
                     <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 8px; color: #374151;">
+                        <li style="margin-bottom: 8px; color: var(--color-text-secondary);">
                             <i class="fas fa-check text-green-600 mr-2"></i>
                             You have 15 seconds to start speaking for each question
                         </li>
-                        <li style="margin-bottom: 8px; color: #374151;">
+                        <li style="margin-bottom: 8px; color: var(--color-text-secondary);">
                             <i class="fas fa-check text-green-600 mr-2"></i>
                             Once recording starts, take unlimited time to answer
                         </li>
-                        <li style="margin-bottom: 8px; color: #374151;">
+                        <li style="margin-bottom: 8px; color: var(--color-text-secondary);">
                             <i class="fas fa-check text-green-600 mr-2"></i>
                             Stay in fullscreen mode throughout the assessment
                         </li>
-                        <li style="margin-bottom: 8px; color: #374151;">
+                        <li style="margin-bottom: 8px; color: var(--color-text-secondary);">
                             <i class="fas fa-check text-green-600 mr-2"></i>
                             Your webcam will monitor you for integrity
                         </li>
@@ -638,7 +638,7 @@ async function initializeCamera() {
         console.error('Camera initialization failed:', error);
         updateRequirementStatus('camera', false);
         document.getElementById('video-loading').innerHTML = `
-            <div style="text-align: center; color: white;">
+            <div style="text-align: center; color: var(--color-text-inverse);">
                 <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
                 Camera Access Denied<br>
                 <small>Please allow camera access and refresh</small>
@@ -1102,7 +1102,7 @@ function completeAssessment() {
                 <div class="progress-bar" style="width: 300px; margin: 0 auto;">
                     <div class="progress-fill" id="processing-progress" style="width: 0%;"></div>
                 </div>
-                <div style="margin-top: 10px; font-size: 14px; color: #6b7280;" id="processing-details">
+                <div style="margin-top: 10px; font-size: 14px; color: var(--color-text-tertiary);" id="processing-details">
                     Analyzing speech patterns and responses...
                 </div>
             </div>

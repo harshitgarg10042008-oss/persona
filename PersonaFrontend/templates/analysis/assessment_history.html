@@ -6,26 +6,29 @@
 {% block extra_css %}
 <style>
   .stats-card {
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--color-blue-700) 0%, var(--color-blue-500) 100%);
+    color: var(--color-text-inverse);
     border-radius: 14px;
     padding: 20px 24px;
   }
-  .stats-card.green  { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
-  .stats-card.purple { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
-  .stats-card.amber  { background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%); }
+  .stats-card.green  { background: linear-gradient(135deg, var(--color-success-dark) 0%, var(--color-success) 100%); }
+  .stats-card.purple { background: linear-gradient(135deg, var(--color-purple-dark) 0%, var(--color-purple-light) 100%); }
+  .stats-card.amber  { background: linear-gradient(135deg, var(--color-amber-600) 0%, var(--color-amber-400) 100%); }
 
   .assessment-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .assessment-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  [data-theme="dark"] .assessment-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
 
   .score-badge {
@@ -36,29 +39,29 @@
     height: 52px;
     border-radius: 50%;
     font-weight: 700;
-    color: white;
+    color: var(--color-text-inverse);
     font-size: 15px;
     flex-shrink: 0;
   }
-  .score-excellent { background: linear-gradient(135deg, #10b981, #059669); }
-  .score-good      { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-  .score-average   { background: linear-gradient(135deg, #f59e0b, #d97706); }
-  .score-poor      { background: linear-gradient(135deg, #ef4444, #dc2626); }
-  .score-pending   { background: linear-gradient(135deg, #9ca3af, #6b7280); }
+  .score-excellent { background: linear-gradient(135deg, var(--color-success), var(--color-success-dark)); }
+  .score-good      { background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700)); }
+  .score-average   { background: linear-gradient(135deg, var(--color-amber-500), var(--color-amber-600)); }
+  .score-poor      { background: linear-gradient(135deg, var(--color-error), var(--color-error-dark)); }
+  .score-pending   { background: linear-gradient(135deg, var(--color-gray-400), var(--color-gray-500)); }
 
   .filter-chip {
     display: inline-block;
     padding: 5px 14px;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
+    background: var(--color-gray-100);
+    border: 1px solid var(--color-gray-300);
     border-radius: 20px;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.18s ease;
     user-select: none;
   }
-  .filter-chip:hover { background: #e5e7eb; }
-  .filter-chip.active { background: #2563eb; color: white; border-color: #2563eb; }
+  .filter-chip:hover { background: var(--color-gray-200); }
+  .filter-chip.active { background: var(--color-blue-600); color: var(--color-text-inverse); border-color: var(--color-blue-600); }
 
   .metric-dot {
     display: inline-block;
@@ -72,11 +75,15 @@
   .role-pill {
     display: inline-block;
     padding: 2px 10px;
-    background: #eff6ff;
-    color: #1d4ed8;
+    background: var(--color-blue-50);
+    color: var(--color-blue-700);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
+  }
+  [data-theme="dark"] .role-pill {
+    background: var(--color-blue-100);
+    color: var(--color-blue-400);
   }
 
   .chart-container {
@@ -93,9 +100,22 @@
     font-size: 12px;
     font-weight: 600;
   }
-  .trend-up      { background: #d1fae5; color: #065f46; }
-  .trend-down    { background: #fee2e2; color: #991b1b; }
-  .trend-neutral { background: #f3f4f6; color: #374151; }
+  .trend-up      { background: var(--color-success-bg); color: var(--color-success-dark); }
+  .trend-down    { background: var(--color-error-bg); color: var(--color-error-dark); }
+  .trend-neutral { background: var(--color-gray-100); color: var(--color-gray-700); }
+  [data-theme="dark"] .trend-neutral {
+    background: var(--color-gray-800);
+    color: var(--color-gray-300);
+  }
+
+  .metric-dot.overall { background: var(--color-blue-600); }
+  .metric-dot.speaking { background: var(--color-success); }
+  .metric-dot.body-language { background: var(--color-amber-500); }
+  .metric-dot.attire { background: var(--color-purple); }
+  [data-theme="dark"] .metric-dot.overall { background: var(--color-blue-500); }
+  [data-theme="dark"] .metric-dot.speaking { background: var(--color-success-light); }
+  [data-theme="dark"] .metric-dot.body-language { background: var(--color-amber-400); }
+  [data-theme="dark"] .metric-dot.attire { background: var(--color-purple-light); }
 </style>
 {% endblock %}
 
@@ -156,10 +176,10 @@
 
     <!-- Legend -->
     <div class="flex flex-wrap gap-4 mb-4 text-xs font-medium text-gray-600 dark:text-gray-300 dark:text-gray-400">
-      <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#2563eb"></span>Overall</span>
-      <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#10b981"></span>Speaking</span>
-      <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#f59e0b"></span>Body Language</span>
-      <span class="flex items-center gap-1.5"><span class="metric-dot" style="background:#8b5cf6"></span>Attire</span>
+      <span class="flex items-center gap-1.5"><span class="metric-dot overall"></span>Overall</span>
+      <span class="flex items-center gap-1.5"><span class="metric-dot speaking"></span>Speaking</span>
+      <span class="flex items-center gap-1.5"><span class="metric-dot body-language"></span>Body Language</span>
+      <span class="flex items-center gap-1.5"><span class="metric-dot attire"></span>Attire</span>
     </div>
 
     <div class="chart-container">
@@ -260,19 +280,19 @@
           <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600 dark:text-gray-300 dark:text-gray-400">
             {% if assessment.speaking_score %}
             <span class="flex items-center">
-              <span class="metric-dot" style="background:#2563eb"></span>
+              <span class="metric-dot speaking"></span>
               Speaking: <strong class="ml-1">{{ assessment.speaking_score|floatformat:1 }}</strong>
             </span>
             {% endif %}
             {% if assessment.body_language_score %}
             <span class="flex items-center">
-              <span class="metric-dot" style="background:#f59e0b"></span>
+              <span class="metric-dot body-language"></span>
               Body Language: <strong class="ml-1">{{ assessment.body_language_score|floatformat:1 }}</strong>
             </span>
             {% endif %}
             {% if assessment.attire_score %}
             <span class="flex items-center">
-              <span class="metric-dot" style="background:#8b5cf6"></span>
+              <span class="metric-dot attire"></span>
               Attire: <strong class="ml-1">{{ assessment.attire_score|floatformat:1 }}</strong>
             </span>
             {% endif %}

@@ -17,7 +17,7 @@
     
     body {
         font-family: 'Inter', sans-serif;
-        background: #eee8dd;
+        background: var(--color-bg-secondary);
         overflow: hidden;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -33,7 +33,7 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
-        background: #eee8dd;
+        background: var(--color-bg-secondary);
     }
     
     .header {
@@ -52,7 +52,7 @@
         align-items: center;
         gap: 20px;
         font-size: 14px;
-        color: #374151;
+        color: var(--color-text-secondary);
     }
     
     .progress-bar {
@@ -97,8 +97,8 @@
     }
     
     .question-type {
-        background: #6366f1;
-        color: white;
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
         padding: 8px 16px;
         border-radius: 20px;
         font-size: 12px;
@@ -108,8 +108,8 @@
     }
     
     .mandatory-badge {
-        background: #ef4444;
-        color: white;
+        background: var(--color-error);
+        color: var(--color-text-inverse);
         padding: 8px 16px;
         border-radius: 20px;
         font-size: 12px;
@@ -122,14 +122,14 @@
         font-size: 24px;
         font-weight: 600;
         line-height: 1.4;
-        color: #1f2937;
+        color: var(--color-text-primary);
         margin-bottom: 40px;
     }
     
     .timer-display {
         font-size: 20px;
         font-weight: 700;
-        color: #ef4444;
+        color: var(--color-error);
         margin-bottom: 32px;
         opacity: 0;
         transition: opacity 0.3s ease;
@@ -145,7 +145,7 @@
         border: none;
         border-radius: 50%;
         background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
+        color: var(--color-text-inverse);
         font-size: 32px;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -186,12 +186,12 @@
     .status-text {
         font-size: 16px;
         font-weight: 500;
-        color: #6b7280;
+        color: var(--color-text-tertiary);
         margin-bottom: 24px;
     }
     
     .warning-message {
-        color: #ef4444;
+        color: var(--color-error);
         font-weight: 600;
         font-size: 18px;
         margin-top: 20px;
@@ -215,7 +215,7 @@
         align-items: center;
         justify-content: center;
         z-index: 10000;
-        color: white;
+        color: var(--color-text-inverse);
         text-align: center;
     }
     
@@ -228,19 +228,19 @@
         font-size: 28px;
         font-weight: 700;
         margin-bottom: 20px;
-        color: #ef4444;
+        color: var(--color-error);
     }
     
     .warning-timer {
         font-size: 48px;
         font-weight: 900;
         margin: 30px 0;
-        color: #ef4444;
+        color: var(--color-error);
     }
     
     .return-button {
-        background: #ef4444;
-        color: white;
+        background: var(--color-error);
+        color: var(--color-text-inverse);
         border: none;
         padding: 16px 32px;
         border-radius: 12px;
@@ -251,7 +251,7 @@
     }
     
     .return-button:hover {
-        background: #dc2626;
+        background: var(--color-error-dark);
         transform: translateY(-2px);
     }
     
@@ -297,10 +297,10 @@
     <!-- Header -->
     <div class="header">
         <div>
-            <h1 style="font-size: 20px; font-weight: 600; color: #1f2937;">
+            <h1 style="font-size: 20px; font-weight: 600; color: var(--color-text-primary);">
                 {{ assessment.platform_job_title.title }} Assessment
             </h1>
-            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">
+            <p style="font-size: 14px; color: var(--color-text-tertiary); margin-top: 4px;">
                 Session: {{ session_id|slice:":8" }}...
             </p>
         </div>

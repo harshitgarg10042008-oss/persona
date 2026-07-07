@@ -41,6 +41,7 @@
   --color-text-primary: #111827;
   --color-text-secondary: #4b5563;
   --color-text-tertiary: #6b7280;
+  --color-text-inverse: #ffffff;
 
   /* Borders */
   --color-border: #e5e7eb;
@@ -66,6 +67,33 @@
   --color-info-light: #60a5fa;
   --color-info-dark: #2563eb;
   --color-info-bg: #dbeafe;
+
+  /* Additional Colors for Charts and UI Elements */
+  --color-purple: #8b5cf6;
+  --color-purple-light: #a78bfa;
+  --color-purple-dark: #7c3aed;
+  --color-purple-bg: #ede9fe;
+
+  --color-blue-700: #1d4ed8;
+  --color-blue-600: #2563eb;
+  --color-blue-500: #3b82f6;
+  --color-blue-400: #60a5fa;
+  --color-blue-100: #dbeafe;
+  --color-blue-50: #eff6ff;
+
+  --color-amber-600: #d97706;
+  --color-amber-500: #f59e0b;
+  --color-amber-400: #fbbf24;
+
+  --color-scrollbar-track: #f1f1f1;
+  --color-spinner-border: #f3f3f3;
+  --color-loading-start: #f0f0f0;
+  --color-loading-mid: #e0e0e0;
+
+  /* Glow animation colors */
+  --glow-color-1: rgba(99, 102, 241, 0.3);
+  --glow-color-2: rgba(99, 102, 241, 0.8);
+  --glow-color-3: rgba(99, 102, 241, 0.4);
 }
 
 /* ============================================
@@ -103,6 +131,7 @@
   --color-text-primary: #f9fafb;
   --color-text-secondary: #d1d5db;
   --color-text-tertiary: #9ca3af;
+  --color-text-inverse: #111827;
 
   /* Borders */
   --color-border: #374151;
@@ -128,6 +157,33 @@
   --color-info-light: #93c5fd;
   --color-info-dark: #3b82f6;
   --color-info-bg: #1e3a8a;
+
+  /* Additional Colors for Charts and UI Elements (dark mode) */
+  --color-purple: #a78bfa;
+  --color-purple-light: #c4b5fd;
+  --color-purple-dark: #8b5cf6;
+  --color-purple-bg: #4c1d95;
+
+  --color-blue-700: #1e40af;
+  --color-blue-600: #2563eb;
+  --color-blue-500: #3b82f6;
+  --color-blue-400: #60a5fa;
+  --color-blue-100: #1e3a8a;
+  --color-blue-50: #1e3a8a;
+
+  --color-amber-600: #d97706;
+  --color-amber-500: #f59e0b;
+  --color-amber-400: #fbbf24;
+
+  --color-scrollbar-track: #1f2937;
+  --color-spinner-border: #374151;
+  --color-loading-start: #374151;
+  --color-loading-mid: #4b5563;
+
+  /* Glow animation colors (dark mode) */
+  --glow-color-1: rgba(129, 140, 248, 0.4);
+  --glow-color-2: rgba(129, 140, 248, 0.9);
+  --glow-color-3: rgba(129, 140, 248, 0.5);
 }
 
 /* ============================================
@@ -596,3 +652,4 @@ p {
   left: var(--space-4);
   top: var(--space-4);
 }
+
