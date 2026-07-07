@@ -1,6 +1,21 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Persona - AI-Powered Interview Assistant{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Add hero-section class for cursor glow effect */
+  section:first-of-type {
+    position: relative;
+    overflow: hidden;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/cursor-effects.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->

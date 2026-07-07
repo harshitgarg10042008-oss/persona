@@ -1,37 +1,7 @@
 // Enhanced Interactive Features for Persona
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Add custom cursor effect
-    const cursor = document.createElement('div');
-    cursor.className = 'fixed w-4 h-4 bg-accent rounded-full pointer-events-none z-50 transition-all duration-300 opacity-0';
-    cursor.id = 'custom-cursor';
-    document.body.appendChild(cursor);
-    
-    document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX - 8 + 'px';
-        cursor.style.top = e.clientY - 8 + 'px';
-        cursor.style.opacity = '0.6';
-    });
-    
-    // Hide cursor when mouse leaves window
-    document.addEventListener('mouseleave', () => {
-        cursor.style.opacity = '0';
-    });
-    
-    // Enhance hover effects for interactive elements
-    const interactiveElements = document.querySelectorAll('a, button, .hover-target');
-    
-    interactiveElements.forEach(element => {
-        element.addEventListener('mouseenter', () => {
-            cursor.style.transform = 'scale(2)';
-            cursor.style.backgroundColor = '#2d2d2d';
-        });
-        
-        element.addEventListener('mouseleave', () => {
-            cursor.style.transform = 'scale(1)';
-            cursor.style.backgroundColor = '#b8a082';
-        });
-    });
+    // Note: Custom cursor effects moved to cursor-effects.js for marketing pages only
     
     // Smooth reveal animation for elements on scroll
     const observerOptions = {

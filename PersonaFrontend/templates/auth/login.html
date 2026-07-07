@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Login - Persona{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/cursor-effects.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 <section
   class="min-h-screen bg-gradient-to-br from-primary to-primary-dark flex items-center py-20"
