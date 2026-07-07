@@ -7,7 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 /* ============================================
-   CSS VARIABLES - Color System
+   CSS VARIABLES - Color System (Light Mode)
    ============================================ */
 :root {
   /* Primary Brand Colors */
@@ -32,6 +32,20 @@
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
 
+  /* Backgrounds */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+
+  /* Text Colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #6b7280;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+
   /* Semantic Colors */
   --color-success: #10b981;
   --color-success-light: #34d399;
@@ -52,31 +66,74 @@
   --color-info-light: #60a5fa;
   --color-info-dark: #2563eb;
   --color-info-bg: #dbeafe;
+}
 
-  /* Accent Color */
-  --color-accent: #8b5cf6;
-  --color-accent-light: #a78bfa;
-  --color-accent-dark: #7c3aed;
+/* ============================================
+   CSS VARIABLES - Dark Mode
+   ============================================ */
+[data-theme="dark"] {
+  /* Primary Brand Colors (slightly adjusted for dark mode) */
+  --color-primary: #818cf8;
+  --color-primary-light: #a5b4fc;
+  --color-primary-dark: #6366f1;
+  --color-primary-50: #312e81;
+  --color-primary-100: #3730a3;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
 
-  /* Background Colors */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f4f6;
+  /* Neutral Grays (inverted for dark mode) */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
 
-  /* Text Colors */
-  --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
+  /* Backgrounds */
+  --color-bg-primary: #111827;
+  --color-bg-secondary: #1f2937;
+  --color-bg-tertiary: #374151;
+
+  /* Text Colors (inverted for dark mode) */
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #d1d5db;
   --color-text-tertiary: #9ca3af;
-  --color-text-inverse: #ffffff;
 
-  /* Border Colors */
-  --color-border-light: #e5e7eb;
-  --color-border-medium: #d1d5db;
-  --color-border-dark: #9ca3af;
+  /* Borders */
+  --color-border: #374151;
+  --color-border-light: #4b5563;
 
-  /* ============================================
+  /* Semantic Colors (adjusted for dark mode) */
+  --color-success: #34d399;
+  --color-success-light: #6ee7b7;
+  --color-success-dark: #10b981;
+  --color-success-bg: #064e3b;
+
+  --color-error: #f87171;
+  --color-error-light: #fca5a5;
+  --color-error-dark: #ef4444;
+  --color-error-bg: #7f1d1d;
+
+  --color-warning: #fbbf24;
+  --color-warning-light: #fcd34d;
+  --color-warning-dark: #f59e0b;
+  --color-warning-bg: #78350f;
+
+  --color-info: #60a5fa;
+  --color-info-light: #93c5fd;
+  --color-info-dark: #3b82f6;
+  --color-info-bg: #1e3a8a;
+}
+
+/* ============================================
    CSS VARIABLES - Typography
    ============================================ */
+:root {
   --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;

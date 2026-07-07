@@ -12,13 +12,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'data-theme',
         theme: {
           extend: {
             colors: {
-              primary: "#eee8dd",
-              "primary-dark": "#e3dcc7",
-              accent: "#8b7355",
-              "accent-dark": "#7a6348",
+              primary: "#6366f1",
+              "primary-light": "#818cf8",
+              "primary-dark": "#4f46e5",
+              accent: "#8b5cf6",
+              "accent-light": "#a78bfa",
+              "accent-dark": "#7c3aed",
             },
             animation: {
               float: "float 6s ease-in-out infinite",
@@ -41,8 +44,8 @@
                 "100%": { opacity: "1" },
               },
               pulseGlow: {
-                "0%": { boxShadow: "0 0 5px rgba(139, 115, 85, 0.3)" },
-                "100%": { boxShadow: "0 0 20px rgba(139, 115, 85, 0.8)" },
+                "0%": { boxShadow: "0 0 5px rgba(99, 102, 241, 0.3)" },
+                "100%": { boxShadow: "0 0 20px rgba(99, 102, 241, 0.8)" },
               },
             },
           },
@@ -63,10 +66,10 @@
 
     {% block extra_css %}{% endblock %}
   </head>
-  <body class="bg-primary min-h-screen">
+  <body class="bg-gray-50 min-h-screen">
     <!-- Simple Top Header -->
     <header
-      class="fixed top-0 left-0 right-0 bg-primary/90 backdrop-blur-sm border-b border-gray-200 z-50"
+      class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50"
     >
       <nav
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16"
@@ -81,6 +84,11 @@
         </div>
 
         <div class="flex items-center space-x-4">
+          <!-- Theme Toggle -->
+          <button id="theme-toggle" class="p-2 rounded-lg text-gray-700 hover:text-primary transition-colors duration-300" aria-label="Toggle theme">
+            <i class="fas fa-sun" id="theme-icon"></i>
+          </button>
+          
           {% if user.is_authenticated %} {% if user.business_profile %}
           <a
             href="{% url 'analysis:business_dashboard' %}"
@@ -127,11 +135,15 @@
     <main class="pt-16">
       <!-- Messages -->
       {% if messages %}
-      <div class="fixed top-20 right-4 z-50 space-y-2">
+      <div class="fixed top-20 right-4 z-50 space-y-2" id="messages-container">
         {% for message in messages %}
         <div
-          class="alert alert-{{ message.tags }} bg-white border-l-4 {% if message.tags == 'error' %}border-red-500 text-red-700{% elif message.tags == 'success' %}border-green-500 text-green-700{% else %}border-blue-500 text-blue-700{% endif %} p-4 rounded-lg shadow-lg max-w-sm"
+          class="alert alert-{{ message.tags }} bg-white border-l-4 {% if message.tags == 'error' %}border-red-500 text-red-700{% elif message.tags == 'success' %}border-green-500 text-green-700{% else %}border-blue-500 text-blue-700{% endif %} p-4 rounded-lg shadow-lg max-w-sm relative"
+          data-auto-dismiss="true"
         >
+          <button class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
           <div class="flex">
             <div class="flex-shrink-0">
               {% if message.tags == 'error' %}
@@ -153,7 +165,7 @@
     </main>
 
     <!-- Minimal Footer -->
-    <footer class="bg-primary py-8 mt-20">
+    <footer class="bg-white py-8 mt-20 border-t border-gray-200">
       <div class="max-w-6xl mx-auto px-6 text-center">
         <p class="text-gray-700 text-lg font-medium">Persona — Your AI Interviewer</p>
         <div class="flex items-center justify-center space-x-2 mt-1">
@@ -178,6 +190,72 @@
         once: true,
         offset: 100,
       });
+
+      // Auto-dismiss messages after 5 seconds
+      document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.querySelectorAll('[data-auto-dismiss="true"]');
+        messages.forEach(message => {
+          setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => message.remove(), 300);
+          }, 5000);
+        });
+      });
+
+      // Theme Toggle with localStorage and OS preference detection
+      (function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        
+        // Get saved theme or OS preference
+        function getInitialTheme() {
+          const savedTheme = localStorage.getItem('theme');
+          if (savedTheme) {
+            return savedTheme;
+          }
+          // Check OS preference
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        }
+
+        // Apply theme to document
+        function applyTheme(theme) {
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+          themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+          localStorage.setItem('theme', theme);
+        }
+
+        // Initialize theme
+        const initialTheme = getInitialTheme();
+        applyTheme(initialTheme);
+
+        // Toggle theme on button click
+        if (themeToggle) {
+          themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+          });
+        }
+
+        // Listen for OS preference changes
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            if (!localStorage.getItem('theme')) {
+              applyTheme(e.matches ? 'dark' : 'light');
+            }
+          });
+        }
+      })();
 
       // Parallax effect for hero section
       window.addEventListener("scroll", () => {

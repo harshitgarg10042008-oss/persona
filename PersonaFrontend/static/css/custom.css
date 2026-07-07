@@ -83,10 +83,10 @@ html {
 
 @keyframes glow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(184, 160, 130, 0.3);
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
     }
     50% {
-        box-shadow: 0 0 40px rgba(184, 160, 130, 0.8), 0 0 60px rgba(184, 160, 130, 0.4);
+        box-shadow: 0 0 40px rgba(99, 102, 241, 0.8), 0 0 60px rgba(99, 102, 241, 0.4);
     }
 }
 
@@ -133,7 +133,7 @@ html {
 }
 
 .hover-glow:hover {
-    box-shadow: 0 0 30px rgba(184, 160, 130, 0.5);
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
 }
 
 .hover-rotate {
@@ -172,8 +172,8 @@ html {
 /* Form focus states */
 .form-input:focus {
     outline: none;
-    border-color: #b8a082;
-    box-shadow: 0 0 0 3px rgba(184, 160, 130, 0.1);
+    border-color: var(--color-primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* Custom scrollbar */
@@ -186,18 +186,18 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #b8a082;
+    background: var(--color-primary, #6366f1);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #a08966;
+    background: var(--color-primary-dark, #4f46e5);
 }
 
 /* Loading spinner */
 .spinner {
     border: 3px solid #f3f3f3;
-    border-top: 3px solid #b8a082;
+    border-top: 3px solid var(--color-primary, #6366f1);
     border-radius: 50%;
     width: 24px;
     height: 24px;
@@ -242,7 +242,7 @@ html {
 
 /* Gradient text */
 .gradient-text {
-    background: linear-gradient(135deg, #b8a082, #2d2d2d);
+    background: linear-gradient(135deg, var(--color-primary, #6366f1), var(--color-gray-900, #111827));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -282,7 +282,7 @@ html {
 .floating-bg {
     position: absolute;
     border-radius: 50%;
-    background: rgba(184, 160, 130, 0.1);
+    background: rgba(99, 102, 241, 0.1);
     animation: float 6s ease-in-out infinite;
 }
 
@@ -355,7 +355,7 @@ html {
 
 /* Custom focus styles for accessibility */
 .focus-visible:focus-visible {
-    outline: 3px solid #b8a082;
+    outline: 3px solid var(--color-primary, #6366f1);
     outline-offset: 2px;
 }
 
