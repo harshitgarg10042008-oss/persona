@@ -16,7 +16,7 @@ def _apply_session_preference(request, remember_me):
         request.session.set_expiry(0)
 
 
-@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True)
+@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True, method='POST')
 def signup_view(request):
     if request.method == 'POST':
         user_type = request.POST.get('user_type')
@@ -58,7 +58,7 @@ def signup_view(request):
     }
     return render(request, 'auth/signup.html', context)
 
-@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True)
+@ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True, method='POST')
 def login_view(request):
     if request.method == 'POST':
         form = CustomLoginForm(request, data=request.POST)

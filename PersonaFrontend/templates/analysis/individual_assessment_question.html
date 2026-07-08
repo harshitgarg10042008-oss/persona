@@ -184,8 +184,11 @@
         padding: 12px 16px;
         background: rgba(255, 255, 255, 0.6);
         border-radius: 12px;
-        color: #374151;
+        color: var(--color-text-primary);
         font-family: 'Inter', sans-serif;
+    }
+    [data-theme="dark"] .timer {
+        background: rgba(31, 41, 55, 0.6);
     }
     .warning-banner {
         background: linear-gradient(135deg, var(--color-error), var(--color-error-dark));
@@ -256,6 +259,16 @@
         font-family: 'Inter', sans-serif;
         font-weight: 500;
         color: var(--color-text-tertiary);
+    }
+    [data-theme="dark"] #record-status {
+        color: var(--color-text-secondary);
+    }
+    [data-theme="dark"] #skip-button {
+        color: var(--color-text-secondary);
+        border-color: var(--color-border);
+    }
+    [data-theme="dark"] #skip-button:hover {
+        background: rgba(55, 65, 81, 0.5) !important;
     }
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Inter', sans-serif;
@@ -355,7 +368,7 @@
                 <div style="text-align: center; margin-top: 16px;">
                     <button id="skip-button" onclick="skipQuestion()" style="
                         background: none;
-                        border: 1px solid rgba(0,0,0,0.2);
+                        border: 1px solid var(--color-border);
                         border-radius: 10px;
                         padding: 8px 20px;
                         font-size: 13px;
@@ -363,7 +376,7 @@
                         cursor: pointer;
                         font-family: 'Inter', sans-serif;
                         transition: all 0.2s ease;
-                    " onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'">
+                    " onmouseover="this.style.background='var(--color-gray-100)'" onmouseout="this.style.background='none'">
                         Skip this question
                     </button>
                 </div>
@@ -705,6 +718,9 @@ async function stopRecording() {
         recordStatus.innerHTML = '<span style="color: var(--color-success); font-weight: 600;">✓ Answer recorded successfully</span>';
         
         document.getElementById('next-button').style.display = 'block';
+        
+        // Process and submit the audio recording
+        processAudioRecording();
     }
 }
 

@@ -1561,10 +1561,13 @@ def assessment_history(request):
         user=request.user
     ).order_by('-created_at').select_related('platform_job_title')
 
-    completed = all_assessments.filter(status='completed', overall_score__isnull=False)
+    completed = all_assessments.filter(status='completed')
 
     # ── Aggregate stats ────────────────────────────────────────────────────
-    stats = completed.aggregate(
+    # Filter to only assessments with scores for aggregation
+    completed_with_scores = completed.filter(overall_score__isnull=False)
+    
+    stats = completed_with_scores.aggregate(
         avg_score=Avg('overall_score'),
         best_score=Max('overall_score'),
         worst_score=Min('overall_score'),
@@ -1572,7 +1575,7 @@ def assessment_history(request):
     )
     avg_score  = round(stats['avg_score'],  1) if stats['avg_score']  else None
     best_score = round(stats['best_score'], 1) if stats['best_score'] else None
-    total_completed = stats['total']
+    total_completed = completed.count()
 
     # Total practice time (minutes)
     total_minutes = 0
@@ -1582,7 +1585,7 @@ def assessment_history(request):
     total_minutes = round(total_minutes)
 
     # ── Trend: compare most-recent vs previous overall score ──────────────
-    recent_two = list(completed.order_by('-completed_at')[:2])
+    recent_two = list(completed_with_scores.order_by('-completed_at')[:2])
     trend = None
     trend_delta = None
     if len(recent_two) == 2:
@@ -1591,7 +1594,7 @@ def assessment_history(request):
 
     # ── Chart data: score progression over time, grouped by role ──────────
     chart_points = []
-    for a in reversed(list(completed.order_by('completed_at'))):
+    for a in reversed(list(completed_with_scores.order_by('completed_at'))):
         chart_points.append({
             'date': a.completed_at.strftime('%d %b %Y') if a.completed_at else '',
             'role': a.platform_job_title.title,
@@ -1603,7 +1606,7 @@ def assessment_history(request):
 
     # ── Per-role breakdown ─────────────────────────────────────────────────
     role_stats = {}
-    for a in completed:
+    for a in completed_with_scores:
         role = a.platform_job_title.title
         if role not in role_stats:
             role_stats[role] = {'scores': [], 'count': 0, 'best': None}

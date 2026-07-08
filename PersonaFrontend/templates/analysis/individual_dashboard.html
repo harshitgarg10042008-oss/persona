@@ -215,11 +215,11 @@ Dashboard{% endblock %} {% block extra_css %}
 
     // Remove selection styles from all cards
     document.querySelectorAll(".job-card").forEach((card) => {
-      card.classList.remove("border-blue-500", "bg-blue-50");
+      card.classList.remove("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
     });
 
     // Add selection style to clicked card
-    event.currentTarget.classList.add("border-blue-500", "bg-blue-50");
+    event.currentTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
   }
 </script>
 {% endblock %}

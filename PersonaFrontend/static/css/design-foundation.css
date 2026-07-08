@@ -653,3 +653,48 @@ p {
   top: var(--space-4);
 }
 
+/* ============================================
+   PASSWORD TOGGLE ICON
+   ============================================ */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-fast);
+  z-index: 10;
+}
+
+.password-toggle-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+/* Ensure password input has enough padding for the icon */
+.password-input-wrapper input[type="password"],
+.password-input-wrapper input[type="text"] {
+  padding-right: 48px !important;
+}
