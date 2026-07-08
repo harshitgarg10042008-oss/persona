@@ -215,6 +215,21 @@ class IndividualAssessment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     session_id = models.UUIDField(default=uuid.uuid4, unique=True)
     
+    @classmethod
+    def get_platform_average_for_job(cls, job_title_id, min_assessments=5):
+        """Get average score for a specific job title across all users"""
+        assessments = cls.objects.filter(
+            platform_job_title_id=job_title_id,
+            status='completed',
+            overall_score__isnull=False
+        )
+        
+        if assessments.count() < min_assessments:
+            return None
+        
+        avg_score = assessments.aggregate(avg_score=models.Avg('overall_score'))['avg_score']
+        return round(avg_score, 1) if avg_score else None
+    
     # Assessment configuration
     total_questions = models.PositiveIntegerField(default=0)
     current_question_index = models.PositiveIntegerField(default=0)

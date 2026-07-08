@@ -10,7 +10,7 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Practice Sessions</h3>
             <p class="text-3xl font-bold text-blue-600">{{ total_sessions }}</p>
@@ -27,6 +27,16 @@
                 {% if avg_score %}{{ avg_score|floatformat:1 }}/10{% else %}--{% endif %}
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Overall performance</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Current Streak</h3>
+            <p class="text-3xl font-bold text-orange-600">
+                {% if current_streak > 0 %}🔥 {{ current_streak }}{% else %}--{% endif %}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                {% if current_streak == 1 %}Day streak{% elif current_streak > 1 %}Day streak{% else %}No active streak{% endif %}
+                {% if longest_streak > 1 %}(Best: {{ longest_streak }}){% endif %}
+            </p>
         </div>
     </div>
 

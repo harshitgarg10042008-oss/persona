@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Achievement Badge - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Your Achievement Badge</h1>
+      <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">Share your accomplishment with the world!</p>
+    </div>
+
+    {% if has_achievement and badge_data %}
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 mb-8">
+      <!-- Badge Preview -->
+      <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-8 text-white text-center mb-6">
+        <div class="text-6xl mb-4">{{ badge_data.achievement_icon }}</div>
+        <h2 class="text-2xl font-bold mb-2">{{ badge_data.achievement_title }}</h2>
+        <p class="text-blue-100 mb-4">{{ badge_data.achievement_description }}</p>
+        <div class="border-t border-blue-400 pt-4 mt-4">
+          <p class="text-sm text-blue-200">Achieved by</p>
+          <p class="text-lg font-semibold">{{ badge_data.user_name }}</p>
+          <p class="text-xs text-blue-300 mt-2">{{ badge_data.date|date:"F d, Y" }}</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-center space-x-4">
+        <a href="{% url 'analysis:download_achievement_badge assessment.session_id %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold">
+          Download Badge (PDF)
+        </a>
+        <a href="{% url 'analysis:individual_assessment_complete' assessment.session_id %}" 
+           class="bg-gray-300 hover:bg-gray-400 text-gray-700 dark:text-gray-300 dark:text-gray-400 px-6 py-3 rounded-lg transition duration-200 font-semibold">
+          Back to Results
+        </a>
+      </div>
+    </div>
+
+    <!-- Share Instructions -->
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">How to Share</h3>
+      <ul class="space-y-2 text-gray-600 dark:text-gray-300 dark:text-gray-400">
+        <li>• Download your badge as a PDF</li>
+        <li>• Share it on LinkedIn, Twitter, or other social platforms</li>
+        <li>• Add it to your portfolio or resume</li>
+        <li>• Use it to showcase your interview preparation dedication</li>
+      </ul>
+    </div>
+    {% else %}
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 text-center">
+      <div class="text-6xl mb-4">🎯</div>
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">No Achievements Yet</h2>
+      <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-6">
+        Complete your first assessment to unlock your first achievement badge!
+      </p>
+      <a href="{% url 'analysis:individual_assessment_complete' assessment.session_id %}" 
+         class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold">
+        Back to Results
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

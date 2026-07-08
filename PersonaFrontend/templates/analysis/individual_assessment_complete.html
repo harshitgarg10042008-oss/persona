@@ -53,6 +53,12 @@
         <span><strong>Questions:</strong> {{ responses.count }}</span>
         <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
+      <div class="mt-4">
+        <a href="{% url 'analysis:achievement_badge' assessment.session_id %}" 
+           class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-semibold">
+          🏆 View Achievement Badge
+        </a>
+      </div>
     </div>
   </div>
 
@@ -74,6 +80,13 @@
         {% endif %}
       </div>
       <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Complete assessment</p>
+      {% if platform_average %}
+      <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Platform average for this role: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ platform_average }}/10</span>
+        </p>
+      </div>
+      {% endif %}
     </div>
 
     <div class="metric-card">

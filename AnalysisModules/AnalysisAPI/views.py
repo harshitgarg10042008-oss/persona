@@ -1268,6 +1268,10 @@ def complete_individual_assessment(request, session_id):
         if assessment.status != 'completed':
             assessment.status = 'completed'
             assessment.completed_at = timezone.now()
+            
+            # Update user streak on completion
+            if hasattr(request.user, 'individual_profile'):
+                request.user.individual_profile.update_streak()
         
         # Calculate overall scores
         snapshots = assessment.snapshots.all()
@@ -1478,6 +1482,9 @@ def complete_individual_assessment(request, session_id):
         'pitch_variance': pitch_variance_data,
     })
 
+    # Get platform average for peer comparison
+    platform_average = IndividualAssessment.get_platform_average_for_job(assessment.platform_job_title.id)
+    
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -1489,6 +1496,7 @@ def complete_individual_assessment(request, session_id):
         'confidence_chart_json': confidence_chart_json,
         'energy_insight': energy_insight,
         'has_chart_data': bool(valid_energy),
+        'platform_average': platform_average,
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
 
@@ -2167,3 +2175,69 @@ def export_role_candidates_csv(request, role_id):
         ])
         
     return response
+
+
+@login_required
+def achievement_badge(request, session_id):
+    """Display achievement badge for a completed assessment"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+    
+    if assessment.status != 'completed':
+        return redirect('analysis:individual_assessment_question', session_id=session_id)
+    
+    from .badge_utils import get_latest_badge_data
+    badge_data = get_latest_badge_data(request.user)
+    
+    context = {
+        'assessment': assessment,
+        'badge_data': badge_data,
+        'has_achievement': badge_data is not None,
+    }
+    
+    return render(request, 'analysis/achievement_badge.html', context)
+
+
+@login_required
+def download_achievement_badge(request, session_id):
+    """Generate and download achievement badge as image"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+    
+    if assessment.status != 'completed':
+        return redirect('analysis:individual_assessment_question', session_id=session_id)
+    
+    from .badge_utils import get_latest_badge_data
+    badge_data = get_latest_badge_data(request.user)
+    
+    if not badge_data:
+        messages.error(request, "No achievements unlocked yet.")
+        return redirect('analysis:individual_assessment_complete', session_id=session_id)
+    
+    # Generate badge as HTML then convert to image
+    from django.template.loader import render_to_string
+    from xhtml2pdf import pisa
+    import io
+    
+    html_string = render_to_string('analysis/badge_image.html', {
+        'badge_data': badge_data,
+        'assessment': assessment,
+    })
+    
+    # Create PDF
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode('utf-8')), result)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="persona_achievement_{session_id}.pdf"'
+        return response
+    
+    messages.error(request, "Error generating badge.")
+    return redirect('analysis:individual_assessment_complete', session_id=session_id)

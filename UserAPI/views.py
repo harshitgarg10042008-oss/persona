@@ -141,6 +141,8 @@ def individual_dashboard_view(request):
                 'completed_sessions': completed_assessments.count(),
                 'avg_score': avg_score,
                 'recent_assessments': assessments.order_by('-created_at')[:3],
+                'current_streak': individual_user.current_streak,
+                'longest_streak': individual_user.longest_streak,
             }
             return render(request, 'dashboard/individual_dashboard.html', context)
         except AttributeError as e:
