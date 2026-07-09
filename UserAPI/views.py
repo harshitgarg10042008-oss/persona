@@ -131,12 +131,25 @@ def individual_dashboard_view(request):
             avg_score = None
             
             if completed_assessments.exists():
-                scores = [a.overall_score for a in completed_assessments if a.overall_score]
+                scores = [a.overall_score for a in completed_assessments if a.overall_score is not None]
                 if scores:
                     avg_score = sum(scores) / len(scores)
             
             # Get institution memberships
             institution_memberships = individual_user.institution_memberships.filter(is_active=True)
+            
+            # Build chart data for the progress chart
+            import json as _json
+            scored_assessments = completed_assessments.filter(
+                overall_score__isnull=False
+            ).order_by('completed_at')
+            chart_dates = []
+            chart_scores = []
+            for a in scored_assessments:
+                if a.completed_at:
+                    chart_dates.append(a.completed_at.strftime('%b %d'))
+                    chart_scores.append(float(a.overall_score))
+            chart_data = {'labels': chart_dates, 'scores': chart_scores}
             
             context = {
                 'user': request.user,
@@ -148,6 +161,7 @@ def individual_dashboard_view(request):
                 'current_streak': individual_user.current_streak,
                 'longest_streak': individual_user.longest_streak,
                 'institution_memberships': institution_memberships,
+                'chart_json': _json.dumps(chart_data),
             }
             return render(request, 'dashboard/individual_dashboard.html', context)
         except AttributeError as e:

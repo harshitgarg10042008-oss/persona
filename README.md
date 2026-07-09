@@ -3,7 +3,7 @@
 Persona is a Django-based web application that conducts AI-driven candidate interviews and assessments. It evaluates a candidate's video and audio responses in real-time or asynchronously using advanced Machine Learning models to score their **attire, body language, and speech fluency/content**.
 
 The system serves two main user personas:
-1. **Individual Users:** Can practice interviews for platform-defined job titles.
+1. **Individual Users:** Can practice interviews for platform-defined job titles and track their progress over time.
 2. **Business Users (Recruiters):** Can create custom job roles, define specific questions, and generate unique assessment links to share with candidates.
 
 ---
@@ -22,7 +22,6 @@ persona/
 ├── PersonaBackend/         # Django project settings and root routing
 ├── PersonaFrontend/        # HTML templates, CSS, and JS (Recording UI and Dashboards)
 ├── UserAPI/                # Authentication, Individual and Business user models
-├── DataAPI/                # Secondary app placeholder
 └── requirements.txt        # All required dependencies
 ```
 
@@ -38,6 +37,7 @@ This project integrates a comprehensive Machine Learning and AI pipeline:
 - **Content Correctness**: Utilizes **Groq (Llama 3.3)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
 - **Asynchronous Task Queue**: Leverages **Django-Q2** (via ORM broker) to process heavy ML operations in the background without blocking the main server threads.
 - **PDF Reports & Tracking**: Generates downloadable PDF reports with detailed performance breakdowns and tracks progress via interactive charts (Chart.js) over time.
+- **Gamification & Badges**: Users earn dynamic achievement badges for reaching milestones or completing specific role assessments.
 - **Dark Mode Support**: Site-wide dark/light mode toggle with persistence and OS preference detection.
 
 ---
@@ -97,6 +97,6 @@ python manage.py runserver
 
 1. **No Production Deployment Configuration:**
    - The application lacks production-ready deployment setups (e.g., Dockerfile, Gunicorn, Nginx, or cloud hosting scripts).
-   - The database still uses the default local `db.sqlite3` file, which is not suitable for high-concurrency production and should be migrated to PostgreSQL.
+   - The database uses the default local `db.sqlite3` file, which is not suitable for high-concurrency production and should be migrated to PostgreSQL.
 2. **Heavy ML Dependencies:**
-   - The project installs large ML libraries natively (PyTorch is ~2.5 GB). In a true production environment, the ML analysis should be decoupled into a separate microservice, or heavily utilize caching, because deploying these models inside a single monolithic Django app will cause huge memory usage.
+   - The project installs large ML libraries natively (PyTorch is ~2.5 GB). In a true production environment, the ML analysis should be decoupled into a separate microservice, or heavily utilize caching, because deploying these models inside a single monolithic Django app will cause high memory usage.

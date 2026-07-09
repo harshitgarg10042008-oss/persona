@@ -143,12 +143,12 @@
     </div>
     <div class="stats-card green">
       <div class="text-green-100 text-xs uppercase tracking-widest font-semibold mb-1">Average Score</div>
-      <div class="text-4xl font-bold">{% if avg_score %}{{ avg_score }}{% else %}—{% endif %}</div>
+      <div class="text-4xl font-bold">{% if avg_score is not None %}{{ avg_score }}{% else %}—{% endif %}</div>
       <div class="text-green-100 text-xs mt-1">out of 10</div>
     </div>
     <div class="stats-card purple">
       <div class="text-purple-100 text-xs uppercase tracking-widest font-semibold mb-1">Personal Best</div>
-      <div class="text-4xl font-bold">{% if best_score %}{{ best_score }}{% else %}—{% endif %}</div>
+      <div class="text-4xl font-bold">{% if best_score is not None %}{{ best_score }}{% else %}—{% endif %}</div>
       <div class="text-purple-100 text-xs mt-1">out of 10</div>
     </div>
     <div class="stats-card amber">

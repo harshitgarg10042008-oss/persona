@@ -79,7 +79,6 @@ INSTALLED_APPS = [
     'PersonaFrontend',
     'UserAPI',
     'AnalysisAPI',
-    'DataAPI',
     'django_q',
 ]
 

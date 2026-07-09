@@ -26,11 +26,11 @@
 
       <!-- Action Buttons -->
       <div class="flex justify-center space-x-4">
-        <a href="{% url 'analysis:download_achievement_badge assessment.session_id %}" 
+        <a href="{% url 'analysis:download_achievement_badge' assessment.session_id %}" 
            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold">
           Download Badge (PDF)
         </a>
-        <a href="{% url 'analysis:individual_assessment_complete' assessment.session_id %}" 
+        <a href="{% url 'analysis:complete_individual_assessment' assessment.session_id %}" 
            class="bg-gray-300 hover:bg-gray-400 text-gray-700 dark:text-gray-300 dark:text-gray-400 px-6 py-3 rounded-lg transition duration-200 font-semibold">
           Back to Results
         </a>

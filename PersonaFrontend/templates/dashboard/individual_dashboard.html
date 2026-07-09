@@ -24,7 +24,7 @@
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Average Score</h3>
             <p class="text-3xl font-bold text-purple-600">
-                {% if avg_score %}{{ avg_score|floatformat:1 }}/10{% else %}--{% endif %}
+                {% if avg_score is not None %}{{ avg_score|floatformat:1 }}/10{% else %}--{% endif %}
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Overall performance</p>
         </div>
@@ -257,19 +257,22 @@
             const ctx = document.getElementById('progressChart');
             const fallbackMsg = document.getElementById('chartFallbackMessage');
             
-            if (chartData.scores && chartData.scores.length > 1) {
+            if (chartData.scores && chartData.scores.length >= 1) {
                 // We have enough data to show a progress chart
+                const chartType = chartData.scores.length === 1 ? 'bar' : 'line';
                 new Chart(ctx, {
-                    type: 'line',
+                    type: chartType,
                     data: {
                         labels: chartData.labels,
                         datasets: [{
                             label: 'Overall Score',
                             data: chartData.scores,
                             borderColor: '#3b82f6', // blue-500
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            backgroundColor: chartType === 'bar'
+                                ? 'rgba(59, 130, 246, 0.6)'
+                                : 'rgba(59, 130, 246, 0.1)',
                             borderWidth: 2,
-                            fill: true,
+                            fill: chartType !== 'bar',
                             tension: 0.3,
                             pointBackgroundColor: '#2563eb', // blue-600
                         }]

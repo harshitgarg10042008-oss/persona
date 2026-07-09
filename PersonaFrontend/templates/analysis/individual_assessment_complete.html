@@ -66,7 +66,7 @@
     <div class="metric-card">
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Overall Performance</h3>
-        {% if assessment.overall_score %}
+        {% if assessment.overall_score is not None %}
           <div class="text-4xl font-bold text-blue-600 mb-2">{{ assessment.overall_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ assessment.overall_score|floatformat:0 }}"></div>
@@ -92,7 +92,7 @@
     <div class="metric-card">
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Body Language</h3>
-        {% if assessment.body_language_score %}
+        {% if assessment.body_language_score is not None %}
           <div class="text-4xl font-bold text-green-600 mb-2">{{ assessment.body_language_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-green-600 h-3 rounded-full score-bar" data-score="{{ assessment.body_language_score|floatformat:0 }}"></div>
@@ -111,7 +111,7 @@
     <div class="metric-card">
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Professional Attire</h3>
-        {% if assessment.attire_score %}
+        {% if assessment.attire_score is not None %}
           <div class="text-4xl font-bold text-purple-600 mb-2">{{ assessment.attire_score|floatformat:0 }}/10</div>
           <div class="w-full bg-gray-200 rounded-full h-3">
             <div class="bg-purple-600 h-3 rounded-full score-bar" data-score="{{ assessment.attire_score|floatformat:0 }}"></div>
@@ -128,7 +128,7 @@
     </div>
   </div>
 
-  {% if assessment.speaking_score %}
+  {% if assessment.speaking_score is not None %}
   <div class="metric-card mb-8 max-w-sm mx-auto">
     <div class="text-center">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Speaking</h3>
@@ -138,7 +138,7 @@
   </div>
   {% endif %}
 
-  {% if assessment.voice_confidence_score %}
+  {% if assessment.voice_confidence_score is not None %}
   <div class="metric-card mb-8 max-w-sm mx-auto">
     <div class="text-center">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Vocal Confidence</h3>

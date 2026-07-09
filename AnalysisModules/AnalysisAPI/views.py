@@ -1253,7 +1253,6 @@ def capture_assessment_snapshot(request, session_id):
 
 
 @login_required
-@ratelimit(key='user', rate=settings.RATE_LIMIT_COMPLETION, block=True)
 def complete_individual_assessment(request, session_id):
     """Complete the individual assessment and show results"""
     assessment = get_object_or_404(
@@ -1631,8 +1630,8 @@ def assessment_history(request):
         worst_score=Min('overall_score'),
         total=Count('id'),
     )
-    avg_score  = round(stats['avg_score'],  1) if stats['avg_score']  else None
-    best_score = round(stats['best_score'], 1) if stats['best_score'] else None
+    avg_score  = round(stats['avg_score'],  1) if stats['avg_score'] is not None else None
+    best_score = round(stats['best_score'], 1) if stats['best_score'] is not None else None
     total_completed = completed.count()
 
     # Total practice time (minutes)
@@ -2239,8 +2238,14 @@ def achievement_badge(request, session_id):
     if assessment.status != 'completed':
         return redirect('analysis:individual_assessment_question', session_id=session_id)
     
-    from .badge_utils import get_latest_badge_data
-    badge_data = get_latest_badge_data(request.user)
+    # Generate a badge specific to this assessment
+    badge_data = {
+        'user_name': request.user.get_full_name() or request.user.username,
+        'achievement_title': f"{assessment.platform_job_title.title} Pro",
+        'achievement_description': f"Successfully completed the {assessment.platform_job_title.title} assessment.",
+        'achievement_icon': '🎓',
+        'date': assessment.completed_at
+    }
     
     context = {
         'assessment': assessment,
@@ -2263,8 +2268,14 @@ def download_achievement_badge(request, session_id):
     if assessment.status != 'completed':
         return redirect('analysis:individual_assessment_question', session_id=session_id)
     
-    from .badge_utils import get_latest_badge_data
-    badge_data = get_latest_badge_data(request.user)
+    # Generate a badge specific to this assessment
+    badge_data = {
+        'user_name': request.user.get_full_name() or request.user.username,
+        'achievement_title': f"{assessment.platform_job_title.title} Pro",
+        'achievement_description': f"Successfully completed the {assessment.platform_job_title.title} assessment.",
+        'achievement_icon': '🎓',
+        'date': assessment.completed_at
+    }
     
     if not badge_data:
         messages.error(request, "No achievements unlocked yet.")
