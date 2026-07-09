@@ -1316,6 +1316,18 @@ def complete_individual_assessment(request, session_id):
             
             if valid_responses > 0:
                 assessment.speaking_score = (total_fluency + total_pronunciation + total_content + total_formality + total_confidence) / (5 * valid_responses)
+                
+                # Calculate voice confidence score from voice_confidence analysis
+                voice_confidence_scores = []
+                for response in responses:
+                    voice_conf_data = response.analysis_data.get('voice_confidence', {}) if isinstance(response.analysis_data, dict) else {}
+                    if voice_conf_data and not voice_conf_data.get('error'):
+                        vc_score = voice_conf_data.get('score', 0)
+                        if vc_score and vc_score > 0:
+                            voice_confidence_scores.append(vc_score)
+                
+                if voice_confidence_scores:
+                    assessment.voice_confidence_score = sum(voice_confidence_scores) / len(voice_confidence_scores)
         
         if snapshots.exists():
             # Use pre-calculated overall scores from analyzers (already converted to 0-10 scale)

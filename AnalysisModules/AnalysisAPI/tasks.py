@@ -4,10 +4,12 @@ from .models import IndividualAssessmentResponse
 from AnalysisModules.feedback_generator import evaluate_answer_content
 
 try:
-    from AnalysisModules import analyze_speech
+    from AnalysisModules import analyze_speech, analyze_voice_confidence
 except ImportError:
     def analyze_speech(*args, **kwargs):
         return {"error": "Speech analysis not available"}
+    def analyze_voice_confidence(*args, **kwargs):
+        return {"error": "Voice confidence analysis not available"}
 
 
 def _decode_audio_base64(audio_data: str) -> bytes:
@@ -76,7 +78,12 @@ def run_speech_analysis_task(response_id, audio_data, question_text):
             ideal_answer_points=ideal_answer_points,
         )
 
+        # Perform voice confidence analysis
+        voice_confidence_analysis = analyze_voice_confidence(audio_bytes, speech_transcript)
+        cleaned_voice_confidence = convert_numpy_types(voice_confidence_analysis)
+
         analysis_data['speech_analysis'] = cleaned_analysis
+        analysis_data['voice_confidence'] = cleaned_voice_confidence
         analysis_data['content_evaluation'] = content_evaluation
         analysis_data['speech_analysis_status'] = 'completed'
         response.analysis_data = analysis_data

@@ -553,6 +553,289 @@ class WebSpeechAnalyzer:
             logger.error(f"Confidence analysis failed: {e}")
             return {'score': 0.5, 'error': str(e)}
     
+    def analyze_voice_confidence(self, audio_path: str, transcription: str = "") -> Dict:
+        """
+        Analyze vocal confidence from audio features.
+        Returns confidence score (0-10 scale) and human-readable observations.
+        
+        Args:
+            audio_path: Path to audio file
+            transcription: Transcribed text (optional, for filler word analysis)
+            
+        Returns:
+            Dict with confidence score, observations, and detailed metrics
+        """
+        try:
+            # Load audio
+            y, sr = librosa.load(audio_path, sr=None)
+            duration = len(y) / sr
+            
+            if duration < 0.5:
+                return {
+                    'score': 0.0,
+                    'observations': ['Audio too short for confidence analysis'],
+                    'metrics': {'error': 'Audio duration < 0.5 seconds'}
+                }
+            
+            # Extract audio features
+            features = self._extract_voice_confidence_features(y, sr, duration)
+            
+            # Analyze speech rate from transcription if available
+            if transcription:
+                words = word_tokenize(transcription.lower())
+                word_count = len([word for word in words if word.isalpha()])
+                wpm = (word_count / duration) * 60 if duration > 0 else 0
+                features['words_per_minute'] = wpm
+                
+                # Filler word analysis
+                filler_count = sum(1 for word in words if word in self.professional_vocabulary['filler_words'])
+                features['filler_count'] = filler_count
+                features['filler_ratio'] = filler_count / word_count if word_count > 0 else 0
+            
+            # Calculate confidence scores for each metric
+            scores = self._calculate_voice_confidence_scores(features)
+            
+            # Generate human-readable observations
+            observations = self._generate_voice_confidence_observations(features, scores)
+            
+            # Calculate overall confidence score (0-10 scale)
+            overall_confidence = sum(scores.values()) / len(scores) * 10
+            
+            return {
+                'score': round(overall_confidence, 1),
+                'observations': observations,
+                'metrics': {
+                    'words_per_minute': round(features.get('words_per_minute', 0), 1),
+                    'pitch_variance': round(features.get('pitch_variance', 0), 2),
+                    'pitch_range': round(features.get('pitch_range', 0), 2),
+                    'energy_variance': round(features.get('energy_variance', 0), 4),
+                    'silence_ratio': round(features.get('silence_ratio', 0), 3),
+                    'pause_count': features.get('pause_count', 0),
+                    'avg_pause_duration': round(features.get('avg_pause_duration', 0), 3),
+                    'filler_count': features.get('filler_count', 0),
+                    'filler_ratio': round(features.get('filler_ratio', 0), 3),
+                    'duration': round(duration, 2)
+                },
+                'detailed_scores': {k: round(v, 2) for k, v in scores.items()}
+            }
+            
+        except Exception as e:
+            logger.error(f"Voice confidence analysis failed: {e}")
+            return {
+                'score': 0.0,
+                'observations': [f'Analysis failed: {str(e)}'],
+                'metrics': {'error': str(e)}
+            }
+    
+    def _extract_voice_confidence_features(self, y, sr, duration) -> Dict:
+        """Extract audio features for voice confidence analysis"""
+        features = {}
+        
+        # Pitch analysis
+        pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
+        pitch_values = []
+        for frame in range(pitches.shape[1]):
+            index = magnitudes[:, frame].argmax()
+            pitch = pitches[index, frame]
+            if pitch > 0:
+                pitch_values.append(pitch)
+        
+        if pitch_values:
+            features['avg_pitch'] = np.mean(pitch_values)
+            features['pitch_variance'] = np.var(pitch_values)
+            features['pitch_range'] = max(pitch_values) - min(pitch_values)
+            features['pitch_std'] = np.std(pitch_values)
+        else:
+            features['avg_pitch'] = 0
+            features['pitch_variance'] = 0
+            features['pitch_range'] = 0
+            features['pitch_std'] = 0
+        
+        # Energy and volume consistency
+        rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=512)[0]
+        features['avg_energy'] = np.mean(rms)
+        features['energy_variance'] = np.var(rms)
+        features['energy_std'] = np.std(rms)
+        
+        # Silence/pause analysis
+        silence_threshold = 0.01
+        silence_frames = rms < silence_threshold
+        features['silence_ratio'] = np.sum(silence_frames) / len(rms)
+        
+        # Detect pauses (continuous silence segments > 0.2s)
+        pause_durations = []
+        in_pause = False
+        pause_start = 0
+        hop_duration = 512 / sr
+        
+        for i, is_silent in enumerate(silence_frames):
+            if is_silent and not in_pause:
+                in_pause = True
+                pause_start = i * hop_duration
+            elif not is_silent and in_pause:
+                in_pause = False
+                pause_duration = (i * hop_duration) - pause_start
+                if pause_duration >= 0.2:  # Only count pauses >= 200ms
+                    pause_durations.append(pause_duration)
+        
+        features['pause_count'] = len(pause_durations)
+        features['avg_pause_duration'] = np.mean(pause_durations) if pause_durations else 0
+        features['max_pause_duration'] = max(pause_durations) if pause_durations else 0
+        
+        # Speaking rate (onset-based)
+        onset_frames = librosa.onset.onset_detect(y=y, sr=sr, backtrack=False)
+        if len(onset_frames) > 1:
+            onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+            inter_onset_intervals = np.diff(onset_times)
+            features['avg_inter_onset_interval'] = np.mean(inter_onset_intervals)
+            features['onset_rate'] = len(onset_frames) / duration
+        else:
+            features['avg_inter_onset_interval'] = 0
+            features['onset_rate'] = 0
+        
+        return features
+    
+    def _calculate_voice_confidence_scores(self, features: Dict) -> Dict:
+        """Calculate individual confidence scores from features"""
+        scores = {}
+        
+        # Speech rate score (optimal: 140-160 WPM)
+        wpm = features.get('words_per_minute', 0)
+        if 140 <= wpm <= 160:
+            scores['speech_rate'] = 1.0
+        elif 120 <= wpm < 140 or 160 < wpm <= 180:
+            scores['speech_rate'] = 0.8
+        elif wpm >= 100 and wpm < 120:
+            scores['speech_rate'] = 0.6
+        elif wpm > 180:
+            # Too fast = nervous
+            scores['speech_rate'] = max(0.2, 1 - (wpm - 180) / 50)
+        else:
+            scores['speech_rate'] = 0.4
+        
+        # Pitch variation score (some variation is good, too much = nervous)
+        pitch_variance = features.get('pitch_variance', 0)
+        pitch_std = features.get('pitch_std', 0)
+        if 500 <= pitch_variance <= 5000:
+            scores['pitch_variation'] = 1.0
+        elif pitch_variance < 500:
+            # Too monotone
+            scores['pitch_variation'] = 0.5
+        else:
+            # Too much variation
+            scores['pitch_variation'] = max(0.3, 1 - (pitch_variance - 5000) / 10000)
+        
+        # Energy consistency score (lower variance = more confident)
+        energy_variance = features.get('energy_variance', 0)
+        if energy_variance < 0.0001:
+            scores['energy_consistency'] = 1.0
+        elif energy_variance < 0.0005:
+            scores['energy_consistency'] = 0.8
+        elif energy_variance < 0.001:
+            scores['energy_consistency'] = 0.6
+        else:
+            scores['energy_consistency'] = max(0.3, 1 - energy_variance * 100)
+        
+        # Pause pattern score
+        silence_ratio = features.get('silence_ratio', 0.5)
+        pause_count = features.get('pause_count', 0)
+        avg_pause_duration = features.get('avg_pause_duration', 0)
+        
+        # Optimal: 15-25% silence, reasonable pause count
+        if 0.15 <= silence_ratio <= 0.25 and pause_count > 0:
+            scores['pause_pattern'] = 1.0
+        elif 0.1 <= silence_ratio <= 0.3:
+            scores['pause_pattern'] = 0.8
+        elif silence_ratio > 0.4:
+            # Too much silence = hesitation
+            scores['pause_pattern'] = max(0.3, 1 - (silence_ratio - 0.4))
+        else:
+            scores['pause_pattern'] = 0.6
+        
+        # Filler word score
+        filler_ratio = features.get('filler_ratio', 0)
+        if filler_ratio < 0.05:
+            scores['filler_words'] = 1.0
+        elif filler_ratio < 0.1:
+            scores['filler_words'] = 0.8
+        elif filler_ratio < 0.15:
+            scores['filler_words'] = 0.6
+        else:
+            scores['filler_words'] = max(0.2, 1 - filler_ratio * 3)
+        
+        return scores
+    
+    def _generate_voice_confidence_observations(self, features: Dict, scores: Dict) -> List[str]:
+        """Generate human-readable observations based on features and scores"""
+        observations = []
+        
+        # Speech rate observations
+        wpm = features.get('words_per_minute', 0)
+        if wpm > 180:
+            observations.append(f"Fast speech rate detected ({round(wpm)} WPM) — consider slowing down for better clarity")
+        elif wpm < 120:
+            observations.append(f"Slow speech rate detected ({round(wpm)} WPM) — try to speak with more energy and pace")
+        elif 140 <= wpm <= 160:
+            observations.append("Excellent speaking pace — steady and confident")
+        
+        # Filler word observations
+        filler_count = features.get('filler_count', 0)
+        filler_ratio = features.get('filler_ratio', 0)
+        if filler_count > 5:
+            observations.append(f"High filler word count ({filler_count}) — practice reducing 'um', 'uh', 'like'")
+        elif filler_count <= 2:
+            observations.append("Minimal filler words — shows good preparation and confidence")
+        
+        # Pause observations
+        silence_ratio = features.get('silence_ratio', 0)
+        pause_count = features.get('pause_count', 0)
+        if silence_ratio > 0.35:
+            observations.append("Excessive pausing detected — may indicate hesitation or nervousness")
+        elif pause_count == 0:
+            observations.append("No significant pauses — consider adding brief pauses for emphasis")
+        elif 0.15 <= silence_ratio <= 0.25:
+            observations.append("Well-balanced pausing — natural and confident delivery")
+        
+        # Pitch variation observations
+        pitch_variance = features.get('pitch_variance', 0)
+        if pitch_variance < 500:
+            observations.append("Monotone delivery detected — try to add more expression to your voice")
+        elif pitch_variance > 8000:
+            observations.append("High pitch variation detected — may indicate nervousness")
+        else:
+            observations.append("Good vocal variety — expressive and engaging delivery")
+        
+        # Energy consistency observations
+        energy_variance = features.get('energy_variance', 0)
+        if energy_variance > 0.001:
+            observations.append("Inconsistent volume detected — try to maintain steady vocal projection")
+        else:
+            observations.append("Steady vocal projection — confident and consistent delivery")
+        
+        # Limit to top 2-3 most relevant observations
+        if len(observations) > 3:
+            # Prioritize by score severity
+            priority_observations = []
+            for obs in observations:
+                if 'Fast speech rate' in obs and scores.get('speech_rate', 1) < 0.6:
+                    priority_observations.append(obs)
+                elif 'Slow speech rate' in obs and scores.get('speech_rate', 1) < 0.6:
+                    priority_observations.append(obs)
+                elif 'High filler word' in obs and scores.get('filler_words', 1) < 0.6:
+                    priority_observations.append(obs)
+                elif 'Excessive pausing' in obs and scores.get('pause_pattern', 1) < 0.6:
+                    priority_observations.append(obs)
+                elif 'Monotone' in obs and scores.get('pitch_variation', 1) < 0.6:
+                    priority_observations.append(obs)
+                elif 'Inconsistent volume' in obs and scores.get('energy_consistency', 1) < 0.6:
+                    priority_observations.append(obs)
+                else:
+                    priority_observations.append(obs)
+            
+            observations = priority_observations[:3]
+        
+        return observations
+    
     def _calculate_analysis_confidence(self, details: Dict) -> float:
         """Calculate confidence in the analysis results"""
         confidence_factors = []
@@ -676,6 +959,31 @@ def quick_transcribe(audio_data):
     try:
         result = speech_analyzer._transcribe_audio(temp_audio_path)
         return result.get('text', '')
+    finally:
+        if os.path.exists(temp_audio_path):
+            os.unlink(temp_audio_path)
+
+def analyze_voice_confidence(audio_data, transcription=""):
+    """
+    Analyze vocal confidence from audio data.
+    
+    Args:
+        audio_data: Raw audio bytes
+        transcription: Transcribed text (optional, for filler word analysis)
+        
+    Returns:
+        Dict with confidence score (0-10), observations, and detailed metrics
+    """
+    if not speech_analyzer.is_initialized:
+        speech_analyzer.initialize_models()
+    
+    with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as temp_file:
+        temp_file.write(audio_data)
+        temp_audio_path = temp_file.name
+    
+    try:
+        result = speech_analyzer.analyze_voice_confidence(temp_audio_path, transcription)
+        return result
     finally:
         if os.path.exists(temp_audio_path):
             os.unlink(temp_audio_path)
