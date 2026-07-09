@@ -37,6 +37,7 @@ from AnalysisModules.feedback_generator import (
     generate_feedback_summary,
     generate_improvement_roadmap,
     generate_tailored_questions,
+    generate_ai_interview_coach,
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
@@ -145,13 +146,16 @@ def business_dashboard(request):
         institution_membership__is_active=True,
         status='completed'
     )
-    
+
     avg_member_score = None
     if member_assessments.exists() and member_assessments.filter(overall_score__isnull=False).exists():
         scores = [a.overall_score for a in member_assessments if a.overall_score]
         if scores:
             avg_member_score = sum(scores) / len(scores)
-    
+
+    # Get recent member assessments with coaching insights
+    recent_member_assessments = member_assessments.order_by('-completed_at')[:10]
+
     context = {
         'job_roles': job_roles,
         'job_roles_with_rankings': job_roles_with_rankings,
@@ -165,6 +169,7 @@ def business_dashboard(request):
         'total_members': institution_members.count(),
         'total_member_assessments': member_assessments.count(),
         'avg_member_score': avg_member_score,
+        'recent_member_assessments': recent_member_assessments,
     }
     return render(request, 'analysis/business_dashboard.html', context)
 
@@ -1457,6 +1462,94 @@ def complete_individual_assessment(request, session_id):
     if improvement_roadmap:
         assessment.improvement_roadmap = improvement_roadmap
         assessment.save(update_fields=['improvement_roadmap'])
+
+    # Generate AI Interview Coach insights (only if not already generated)
+    if assessment.ai_coach_status == 'pending' or assessment.ai_coach_status == 'failed':
+        try:
+            # Build interview transcript from responses
+            transcript_parts = []
+            questions_list = []
+            for response in responses:
+                questions_list.append(response.question.question_text)
+                speech_analysis = response.analysis_data.get('speech_analysis', {}) if isinstance(response.analysis_data, dict) else {}
+                transcript = speech_analysis.get('transcript', '') if isinstance(speech_analysis, dict) else ''
+                if transcript:
+                    transcript_parts.append(f"Q{response.question_order}: {response.question.question_text}\nA: {transcript}")
+                elif response.response_text:
+                    transcript_parts.append(f"Q{response.question_order}: {response.question.question_text}\nA: {response.response_text}")
+
+            full_transcript = "\n\n".join(transcript_parts)
+
+            # Get voice confidence metrics
+            voice_confidence_metrics = {}
+            if assessment.voice_confidence_score:
+                voice_confidence_metrics['score'] = assessment.voice_confidence_score
+            # Add more voice metrics if available from speech analysis
+            if responses.exists():
+                first_speech = responses.first().analysis_data.get('speech_analysis', {}) if isinstance(responses.first().analysis_data, dict) else {}
+                if isinstance(first_speech, dict):
+                    if first_speech.get('speaking_rate'):
+                        voice_confidence_metrics['pace'] = first_speech['speaking_rate']
+                    if first_speech.get('fluency_score'):
+                        voice_confidence_metrics['clarity'] = first_speech['fluency_score']
+
+            # Get body language metrics from snapshots
+            body_language_metrics = {}
+            if assessment.body_language_score:
+                body_language_metrics['posture_score'] = assessment.body_language_score
+            # Extract detailed body language metrics if available
+            body_snapshots = snapshots.filter(analysis_type='body_language')
+            if body_snapshots.exists():
+                bl_data = body_snapshots.first().analysis_data if isinstance(body_snapshots.first().analysis_data, dict) else {}
+                if isinstance(bl_data, dict):
+                    if bl_data.get('eye_contact_score'):
+                        body_language_metrics['eye_contact_score'] = bl_data['eye_contact_score']
+                    if bl_data.get('gesture_score'):
+                        body_language_metrics['gesture_score'] = bl_data['gesture_score']
+
+            # Get resume text if available (from session)
+            resume_text = request.session.get(_resume_session_key(str(assessment.session_id)), '')
+
+            # Generate AI coaching
+            ai_coaching = generate_ai_interview_coach(
+                interview_transcript=full_transcript,
+                questions=questions_list,
+                scores={
+                    'overall_score': assessment.overall_score,
+                    'speaking_score': assessment.speaking_score,
+                    'body_language_score': assessment.body_language_score,
+                    'attire_score': assessment.attire_score,
+                },
+                voice_confidence_metrics=voice_confidence_metrics if voice_confidence_metrics else None,
+                body_language_metrics=body_language_metrics if body_language_metrics else None,
+                resume_text=resume_text if resume_text else None,
+                role=assessment.platform_job_title.title
+            )
+
+            if ai_coaching:
+                assessment.ai_coach_summary = ai_coaching.get('summary')
+                assessment.ai_coach_strengths = ai_coaching.get('strengths', [])
+                assessment.ai_coach_weaknesses = ai_coaching.get('weaknesses', [])
+                assessment.ai_coach_action_plan = ai_coaching.get('action_plan', {})
+                assessment.ai_coach_recommended_topics = ai_coaching.get('recommended_topics', [])
+                assessment.ai_coach_generated_at = timezone.now()
+                assessment.ai_coach_status = 'generated'
+                assessment.save(update_fields=[
+                    'ai_coach_summary', 'ai_coach_strengths', 'ai_coach_weaknesses',
+                    'ai_coach_action_plan', 'ai_coach_recommended_topics',
+                    'ai_coach_generated_at', 'ai_coach_status'
+                ])
+                print(f"[AI Coach] Successfully generated coaching for assessment {assessment.session_id}")
+            else:
+                assessment.ai_coach_status = 'failed'
+                assessment.save(update_fields=['ai_coach_status'])
+                print(f"[AI Coach] Failed to generate coaching for assessment {assessment.session_id}")
+
+        except Exception as e:
+            assessment.ai_coach_status = 'failed'
+            assessment.save(update_fields=['ai_coach_status'])
+            print(f"[AI Coach] Error generating coaching: {e}")
+            # Don't crash the assessment completion if coaching fails
 
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py

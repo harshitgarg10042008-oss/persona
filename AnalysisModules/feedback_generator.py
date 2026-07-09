@@ -455,3 +455,211 @@ Return ONLY valid JSON (no markdown fences, no prose outside the JSON) matching 
     except Exception as exc:
         print(f'[ERROR] generate_improvement_roadmap failed: {type(exc).__name__}: {exc}')
         return None
+
+
+# ---------------------------------------------------------------------------
+# AI Interview Coach — Comprehensive coaching system
+# ---------------------------------------------------------------------------
+
+def generate_ai_interview_coach(
+    interview_transcript: str,
+    questions: list,
+    scores: dict,
+    voice_confidence_metrics: dict = None,
+    body_language_metrics: dict = None,
+    resume_text: str = None,
+    role: str = None
+) -> Optional[dict]:
+    """
+    Generate comprehensive AI Interview Coach insights using Groq.
+
+    Args:
+        interview_transcript: Full transcript of the interview
+        questions: List of questions asked
+        scores: dict with overall_score, speaking_score, body_language_score, attire_score
+        voice_confidence_metrics: Optional dict with voice confidence details
+        body_language_metrics: Optional dict with body language analysis
+        resume_text: Optional resume text if uploaded
+        role: Job role/title for context
+
+    Returns:
+        A dict conforming to:
+            {
+                "summary": str,
+                "strengths": [str, ...],
+                "weaknesses": [str, ...],
+                "action_plan": {
+                    "today": [str, ...],
+                    "tomorrow": [str, ...],
+                    "this_week": [str, ...],
+                    "next_week": [str, ...]
+                },
+                "recommended_topics": [str, ...]
+            }
+        Returns None on failure.
+    """
+    if not interview_transcript or not questions:
+        return None
+
+    overall_score = scores.get('overall_score')
+    speaking_score = scores.get('speaking_score')
+    body_language_score = scores.get('body_language_score')
+    attire_score = scores.get('attire_score')
+
+    # Build questions text
+    questions_text = "\n".join([f"Q{i+1}: {q}" for i, q in enumerate(questions)])
+
+    # Build voice confidence details
+    voice_details = []
+    if voice_confidence_metrics and isinstance(voice_confidence_metrics, dict):
+        if voice_confidence_metrics.get('score'):
+            voice_details.append(f"Voice confidence score: {voice_confidence_metrics['score']}/10")
+        if voice_confidence_metrics.get('pace'):
+            voice_details.append(f"Speaking pace: {voice_confidence_metrics['pace']}")
+        if voice_confidence_metrics.get('clarity'):
+            voice_details.append(f"Speech clarity: {voice_confidence_metrics['clarity']}")
+
+    # Build body language details
+    body_details = []
+    if body_language_metrics and isinstance(body_language_metrics, dict):
+        if body_language_metrics.get('posture_score'):
+            body_details.append(f"Posture score: {body_language_metrics['posture_score']}/10")
+        if body_language_metrics.get('eye_contact_score'):
+            body_details.append(f"Eye contact score: {body_language_metrics['eye_contact_score']}/10")
+        if body_language_metrics.get('gesture_score'):
+            body_details.append(f"Gesture score: {body_language_metrics['gesture_score']}/10")
+
+    prompt = f"""You are an expert AI interview coach providing personalized feedback to help candidates improve.
+
+CANDIENT ROLE: {role or 'Not specified'}
+
+INTERVIEW QUESTIONS:
+{questions_text}
+
+INTERVIEW TRANSCRIPT:
+{interview_transcript}
+
+PERFORMANCE SCORES (out of 10):
+- Overall Score: {overall_score if overall_score else 'N/A'}
+- Speaking & Delivery: {speaking_score if speaking_score else 'N/A'}
+- Body Language: {body_language_score if body_language_score else 'N/A'}
+- Professional Attire: {attire_score if attire_score else 'N/A'}
+
+VOICE CONFIDENCE METRICS:
+{chr(10).join(voice_details) if voice_details else 'No voice confidence data available'}
+
+BODY LANGUAGE METRICS:
+{chr(10).join(body_details) if body_details else 'No body language data available'}
+
+RESUME CONTEXT:
+{resume_text[:2000] if resume_text else 'No resume provided'}
+
+TASK: Generate a comprehensive coaching report with the following sections:
+
+1. SUMMARY: A 2-3 sentence overall summary of performance, highlighting strongest areas and areas needing improvement.
+
+2. STRENGTHS: Generate 3-5 specific, personalized strengths based on the actual performance data. These should NOT be generic - they must reference specific observations from the transcript and scores.
+
+3. WEAKNESSES: Generate 3-5 specific, personalized weaknesses based on the actual performance data. These should be actionable and specific to what was observed.
+
+4. ACTION PLAN: Create a structured improvement roadmap with timeline-based actions:
+   - today: 1-2 immediate actions to take today
+   - tomorrow: 1-2 actions for tomorrow
+   - this_week: 2-3 actions for this week
+   - next_week: 2-3 actions for next week
+
+5. RECOMMENDED TOPICS: Suggest 3-5 specific interview practice topics based on performance gaps. For example:
+   - If speaking score is low → Recommend "Communication Skills" or "Public Speaking"
+   - If body language is weak → Recommend "Camera Practice" or "Confidence Building"
+   - If technical answers were weak → Recommend specific technical topics (SQL, System Design, etc.)
+   - If behavioral questions were weak → Recommend "HR Questions" or "Behavioral Interview"
+
+CRITICAL CONSTRAINTS:
+- All content must be personalized and specific to the actual performance
+- Do NOT use generic or template responses
+- Base recommendations on actual score gaps and transcript analysis
+- Keep all items concise and actionable
+- Return ONLY valid JSON (no markdown fences, no prose outside the JSON)
+
+Return ONLY valid JSON matching this exact schema:
+{{
+  "summary": "<2-3 sentence summary>",
+  "strengths": ["<strength 1>", "<strength 2>", ...],
+  "weaknesses": ["<weakness 1>", "<weakness 2>", ...],
+  "action_plan": {{
+    "today": ["<action 1>", "<action 2>"],
+    "tomorrow": ["<action 1>", "<action 2>"],
+    "this_week": ["<action 1>", "<action 2>", ...],
+    "next_week": ["<action 1>", "<action 2>", ...]
+  }},
+  "recommended_topics": ["<topic 1>", "<topic 2>", ...]
+}}"""
+
+    try:
+        api_key = _get_api_key()
+        model_name = _get_model_name().strip() or 'llama-3.3-70b-versatile'
+
+        if Groq is None:
+            print('[ERROR] generate_ai_interview_coach: groq package is NOT installed')
+            return None
+        if not api_key:
+            print('[ERROR] generate_ai_interview_coach: GROQ_API_KEY is empty')
+            return None
+
+        client = Groq(api_key=api_key)
+        chat_completion = client.chat.completions.create(
+            messages=[{'role': 'user', 'content': prompt}],
+            model=model_name,
+            timeout=45,  # Longer timeout for comprehensive analysis
+        )
+
+        text = chat_completion.choices[0].message.content or ''
+        if not text:
+            print('[WARN] generate_ai_interview_coach: Groq returned empty content')
+            return None
+
+        # Strip markdown fences if present
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        coaching_data = json.loads(cleaned)
+
+        # Validate required keys
+        required = {'summary', 'strengths', 'weaknesses', 'action_plan', 'recommended_topics'}
+        if not required.issubset(coaching_data.keys()):
+            print(f'[WARN] generate_ai_interview_coach: missing keys – got {list(coaching_data.keys())}')
+            return None
+
+        # Validate action_plan structure
+        action_plan = coaching_data.get('action_plan', {})
+        required_timeline = {'today', 'tomorrow', 'this_week', 'next_week'}
+        if not required_timeline.issubset(action_plan.keys()):
+            print(f'[WARN] generate_ai_interview_coach: action_plan missing timeline keys')
+            return None
+
+        # Ensure all fields are lists
+        for field in ['strengths', 'weaknesses', 'recommended_topics']:
+            if not isinstance(coaching_data.get(field), list):
+                coaching_data[field] = []
+
+        for timeline in required_timeline:
+            if not isinstance(action_plan.get(timeline), list):
+                action_plan[timeline] = []
+
+        # Unescape HTML entities
+        coaching_data['summary'] = html.unescape(coaching_data['summary'])
+        coaching_data['strengths'] = [html.unescape(s) for s in coaching_data['strengths']]
+        coaching_data['weaknesses'] = [html.unescape(w) for w in coaching_data['weaknesses']]
+        coaching_data['recommended_topics'] = [html.unescape(t) for t in coaching_data['recommended_topics']]
+        for timeline in required_timeline:
+            action_plan[timeline] = [html.unescape(a) for a in action_plan[timeline]]
+
+        return coaching_data
+
+    except json.JSONDecodeError as exc:
+        print(f'[ERROR] generate_ai_interview_coach: JSON parse failed: {exc}')
+        print(f'[ERROR] Raw text that failed to parse: {repr(text[:500]) if "text" in dir() else "(text var not set)"}')
+        return None
+    except Exception as exc:
+        print(f'[ERROR] generate_ai_interview_coach failed: {type(exc).__name__}: {exc}')
+        return None

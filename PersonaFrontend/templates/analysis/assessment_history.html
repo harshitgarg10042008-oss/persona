@@ -311,6 +311,11 @@
              class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 dark:text-gray-400 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors text-center whitespace-nowrap">
             Download PDF
           </a>
+          {% if assessment.ai_coach_status == 'generated' %}
+          <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-center whitespace-nowrap">
+            ✓ AI Coach Available
+          </span>
+          {% endif %}
           {% elif assessment.status == 'in_progress' %}
           <a href="{% url 'analysis:individual_assessment_question' assessment.session_id %}"
              class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors text-center whitespace-nowrap">

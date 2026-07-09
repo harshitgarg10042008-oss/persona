@@ -348,6 +348,82 @@
 {% endfor %}
 {% endif %}
 
+<!-- ══ AI INTERVIEW COACH ═══════════════════════════════════════ -->
+{% if assessment.ai_coach_status == 'generated' %}
+<div class="section-title">AI Interview Coach</div>
+
+<!-- Summary -->
+<div class="feedback-box">
+  <strong>Overall Summary:</strong><br>
+  {{ assessment.ai_coach_summary }}
+</div>
+
+<!-- Strengths -->
+<div style="margin-bottom: 12pt;">
+  <div style="font-size: 10pt; font-weight: bold; color: #1e3a8a; margin-bottom: 4pt;">Strengths</div>
+  {% for strength in assessment.ai_coach_strengths %}
+  <div style="font-size: 9pt; color: #374151; margin-bottom: 2pt;">✓ {{ strength }}</div>
+  {% endfor %}
+</div>
+
+<!-- Weaknesses -->
+<div style="margin-bottom: 12pt;">
+  <div style="font-size: 10pt; font-weight: bold; color: #dc2626; margin-bottom: 4pt;">Areas for Improvement</div>
+  {% for weakness in assessment.ai_coach_weaknesses %}
+  <div style="font-size: 9pt; color: #374151; margin-bottom: 2pt;">• {{ weakness }}</div>
+  {% endfor %}
+</div>
+
+<!-- Action Plan -->
+<div style="margin-bottom: 12pt;">
+  <div style="font-size: 10pt; font-weight: bold; color: #1e3a8a; margin-bottom: 4pt;">Action Plan</div>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 4pt;">
+    {% if assessment.ai_coach_action_plan.today %}
+    <tr>
+      <td style="width: 15%; padding: 4pt; background-color: #dbeafe; font-weight: bold; font-size: 8pt; color: #1e40af;">Today</td>
+      <td style="padding: 4pt; font-size: 9pt; color: #374151;">
+        {% for action in assessment.ai_coach_action_plan.today %}• {{ action }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% if assessment.ai_coach_action_plan.tomorrow %}
+    <tr>
+      <td style="width: 15%; padding: 4pt; background-color: #d1fae5; font-weight: bold; font-size: 8pt; color: #065f46;">Tomorrow</td>
+      <td style="padding: 4pt; font-size: 9pt; color: #374151;">
+        {% for action in assessment.ai_coach_action_plan.tomorrow %}• {{ action }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% if assessment.ai_coach_action_plan.this_week %}
+    <tr>
+      <td style="width: 15%; padding: 4pt; background-color: #ede9fe; font-weight: bold; font-size: 8pt; color: #5b21b6;">This Week</td>
+      <td style="padding: 4pt; font-size: 9pt; color: #374151;">
+        {% for action in assessment.ai_coach_action_plan.this_week %}• {{ action }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% if assessment.ai_coach_action_plan.next_week %}
+    <tr>
+      <td style="width: 15%; padding: 4pt; background-color: #fed7aa; font-weight: bold; font-size: 8pt; color: #9a3412;">Next Week</td>
+      <td style="padding: 4pt; font-size: 9pt; color: #374151;">
+        {% for action in assessment.ai_coach_action_plan.next_week %}• {{ action }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+<!-- Recommended Topics -->
+<div style="margin-bottom: 12pt;">
+  <div style="font-size: 10pt; font-weight: bold; color: #1e3a8a; margin-bottom: 4pt;">Recommended Practice Topics</div>
+  <div style="font-size: 9pt; color: #374151;">
+    {% for topic in assessment.ai_coach_recommended_topics %}
+    <span style="display: inline-block; background-color: #ede9fe; color: #5b21b6; padding: 2pt 6pt; margin: 2pt; border-radius: 3pt; font-size: 8pt;">{{ topic }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ══ PER-QUESTION CONTENT REVIEW ═══════════════════════════ -->
 <div class="section-title">Per-Question Content Review</div>
 {% for response in responses %}
