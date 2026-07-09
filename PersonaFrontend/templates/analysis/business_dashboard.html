@@ -33,6 +33,52 @@
         </div>
     </div>
 
+    <!-- Institution Code Card -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg shadow-md p-6 mb-8 border border-blue-200 dark:border-blue-800">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Your Institution Code</h3>
+                <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm mb-3">
+                    Share this code with individuals to let them join your institution. They can enter it on their dashboard to link their assessments with your organization.
+                </p>
+                <div class="flex items-center space-x-4">
+                    <code class="bg-white dark:bg-gray-800 px-4 py-2 rounded-lg text-2xl font-mono text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600">
+                        {{ institution_code }}
+                    </code>
+                    <button onclick="copyInstitutionCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                        <i class="fas fa-copy mr-2"></i>Copy Code
+                    </button>
+                </div>
+            </div>
+            <div class="hidden md:block">
+                <svg class="w-16 h-16 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institution Members Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Institution Members</h3>
+            <p class="text-3xl font-bold text-indigo-600">{{ total_members }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Individual users joined</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Member Assessments</h3>
+            <p class="text-3xl font-bold text-green-600">{{ total_member_assessments }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Completed assessments</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Avg Member Score</h3>
+            <p class="text-3xl font-bold text-purple-600">
+                {% if avg_member_score %}{{ avg_member_score|floatformat:1 }}/10{% else %}--{% endif %}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Overall performance</p>
+        </div>
+    </div>
+
     <!-- Job Roles Section -->
     <div class="mb-8">
         <div class="flex justify-between items-center mb-6">
@@ -193,11 +239,99 @@
             </div>
         </div>
     {% endif %}
+
+    <!-- Institution Members -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Institution Members</h2>
+            {% if institution_members %}
+            <a href="{% url 'analysis:export_institution_members_csv' %}" 
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 inline-flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Export CSV
+            </a>
+            {% endif %}
+        </div>
+        {% if institution_members %}
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Joined Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Consent</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200">
+                            {% for membership in institution_members %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-50">
+                                            {{ membership.individual.name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{{ membership.individual.user.email }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                                        {{ membership.joined_at|date:"M d, Y" }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if membership.consent_granted %}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                Granted
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Active
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
+                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-2">No Members Yet</h3>
+                <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
+                    Share your institution code to let individual users join your organization.
+                </p>
+            </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    function copyInstitutionCode() {
+        const code = '{{ institution_code }}';
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Institution code copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = code;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Institution code copied to clipboard!');
+        });
+    }
+
     function sortTable(headerCell, colIndex) {
         const table = headerCell.closest('table');
         const tbody = table.querySelector('tbody');

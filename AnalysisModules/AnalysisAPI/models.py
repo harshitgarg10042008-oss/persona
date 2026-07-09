@@ -215,6 +215,15 @@ class IndividualAssessment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     session_id = models.UUIDField(default=uuid.uuid4, unique=True)
     
+    # Institution linkage (optional)
+    institution_membership = models.ForeignKey(
+        'UserAPI.InstitutionMembership', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='assessments'
+    )
+    
     @classmethod
     def get_platform_average_for_job(cls, job_title_id, min_assessments=5):
         """Get average score for a specific job title across all users"""

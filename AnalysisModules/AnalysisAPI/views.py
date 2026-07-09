@@ -131,6 +131,27 @@ def business_dashboard(request):
         assessment_link__job_role__business_user=business_user
     ).order_by('-created_at')[:10]
     
+    # Get institution members (individual users who joined this business)
+    from UserAPI.models import InstitutionMembership
+    institution_members = InstitutionMembership.objects.filter(
+        business=business_user,
+        is_active=True
+    ).select_related('individual').order_by('-joined_at')
+    
+    # Get aggregate stats for institution members
+    from AnalysisAPI.models import IndividualAssessment
+    member_assessments = IndividualAssessment.objects.filter(
+        institution_membership__business=business_user,
+        institution_membership__is_active=True,
+        status='completed'
+    )
+    
+    avg_member_score = None
+    if member_assessments.exists() and member_assessments.filter(overall_score__isnull=False).exists():
+        scores = [a.overall_score for a in member_assessments if a.overall_score]
+        if scores:
+            avg_member_score = sum(scores) / len(scores)
+    
     context = {
         'job_roles': job_roles,
         'job_roles_with_rankings': job_roles_with_rankings,
@@ -139,6 +160,11 @@ def business_dashboard(request):
         'total_assessments': Assessment.objects.filter(
             assessment_link__job_role__business_user=business_user
         ).count(),
+        'institution_code': business_user.institution_code,
+        'institution_members': institution_members,
+        'total_members': institution_members.count(),
+        'total_member_assessments': member_assessments.count(),
+        'avg_member_score': avg_member_score,
     }
     return render(request, 'analysis/business_dashboard.html', context)
 
@@ -2253,3 +2279,81 @@ def download_achievement_badge(request, session_id):
     
     messages.error(request, "Error generating badge.")
     return redirect('analysis:individual_assessment_complete', session_id=session_id)
+
+
+@login_required
+def export_institution_members_csv(request):
+    """Export institution members and their assessment results as CSV"""
+    if not hasattr(request.user, 'business_profile'):
+        messages.error(request, "Access denied. Only business users can access this page.")
+        return redirect('persona_frontend:home')
+    
+    business_user = request.user.business_profile
+    
+    # Get institution members
+    from UserAPI.models import InstitutionMembership
+    institution_members = InstitutionMembership.objects.filter(
+        business=business_user,
+        is_active=True
+    ).select_related('individual__user')
+    
+    # Get member assessments
+    from AnalysisAPI.models import IndividualAssessment
+    member_assessments = IndividualAssessment.objects.filter(
+        institution_membership__business=business_user,
+        institution_membership__is_active=True,
+        status='completed'
+    ).select_related('platform_job_title', 'institution_membership__individual__user')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="institution_members_{business_user.company_name or business_user.name}_{timezone.now().date()}.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Write header
+    writer.writerow([
+        'Name',
+        'Email',
+        'Joined Date',
+        'Consent Granted',
+        'Total Assessments',
+        'Average Score',
+        'Best Score',
+        'Last Assessment Date'
+    ])
+    
+    # Write member data
+    for membership in institution_members:
+        individual = membership.individual
+        user = individual.user
+        
+        # Get assessment stats for this member
+        assessments = member_assessments.filter(
+            institution_membership=membership
+        )
+        
+        total_assessments = assessments.count()
+        avg_score = None
+        best_score = None
+        last_date = None
+        
+        if assessments.exists():
+            scores = [a.overall_score for a in assessments if a.overall_score]
+            if scores:
+                avg_score = sum(scores) / len(scores)
+                best_score = max(scores)
+            last_date = assessments.order_by('-completed_at').first().completed_at
+        
+        writer.writerow([
+            individual.name,
+            user.email,
+            membership.joined_at.strftime('%Y-%m-%d'),
+            'Yes' if membership.consent_granted else 'No',
+            total_assessments,
+            f"{avg_score:.1f}" if avg_score else 'N/A',
+            f"{best_score:.1f}" if best_score else 'N/A',
+            last_date.strftime('%Y-%m-%d') if last_date else 'N/A'
+        ])
+    
+    return response

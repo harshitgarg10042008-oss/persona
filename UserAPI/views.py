@@ -6,7 +6,7 @@ import json
 from django.conf import settings
 from django_ratelimit.decorators import ratelimit
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
-from .models import CustomUser, IndividualUser, BusinessUser
+from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership
 
 
 def _apply_session_preference(request, remember_me):
@@ -134,6 +134,9 @@ def individual_dashboard_view(request):
                 if scores:
                     avg_score = sum(scores) / len(scores)
             
+            # Get institution memberships
+            institution_memberships = individual_user.institution_memberships.filter(is_active=True)
+            
             context = {
                 'user': request.user,
                 'profile': individual_user,
@@ -143,6 +146,7 @@ def individual_dashboard_view(request):
                 'recent_assessments': assessments.order_by('-created_at')[:3],
                 'current_streak': individual_user.current_streak,
                 'longest_streak': individual_user.longest_streak,
+                'institution_memberships': institution_memberships,
             }
             return render(request, 'dashboard/individual_dashboard.html', context)
         except AttributeError as e:
@@ -152,3 +156,66 @@ def individual_dashboard_view(request):
         # User has no profile - might be admin user or created before profile system
         messages.error(request, "No user profile found. This account may need to be set up properly.")
         return redirect('home')
+
+@login_required
+def join_institution(request):
+    """Join an institution using an institution code"""
+    if request.method == 'POST':
+        institution_code = request.POST.get('institution_code', '').strip()
+        
+        if not institution_code:
+            messages.error(request, 'Please enter an institution code.')
+            return redirect('individual_dashboard')
+        
+        # Check if user has business profile
+        if hasattr(request.user, 'business_profile'):
+            messages.error(request, 'Business users cannot join institutions.')
+            return redirect('analysis:business_dashboard')
+        
+        # Check if user has individual profile
+        if not hasattr(request.user, 'individual_profile'):
+            messages.error(request, 'Individual profile required to join institutions.')
+            return redirect('individual_dashboard')
+        
+        # Parse institution code
+        try:
+            business_id = int(institution_code.replace('INST-', ''))
+            business = BusinessUser.objects.get(id=business_id)
+        except (ValueError, BusinessUser.DoesNotExist):
+            messages.error(request, 'Invalid institution code.')
+            return redirect('individual_dashboard')
+        
+        # Check if already a member
+        existing_membership = InstitutionMembership.objects.filter(
+            individual=request.user.individual_profile,
+            business=business
+        ).first()
+        
+        if existing_membership:
+            if existing_membership.is_active:
+                messages.info(request, f'You are already a member of {business.company_name or business.name}.')
+            else:
+                existing_membership.is_active = True
+                existing_membership.save()
+                messages.success(request, f'Your membership to {business.company_name or business.name} has been reactivated.')
+            return redirect('individual_dashboard')
+        
+        # Check consent
+        consent_granted = request.POST.get('consent_granted') == 'on'
+        if not consent_granted:
+            messages.error(request, 'You must consent to share your assessment results with the institution.')
+            return redirect('individual_dashboard')
+        
+        # Create membership
+        from django.utils import timezone
+        membership = InstitutionMembership.objects.create(
+            individual=request.user.individual_profile,
+            business=business,
+            consent_granted=True,
+            consent_granted_at=timezone.now()
+        )
+        
+        messages.success(request, f'Successfully joined {business.company_name or business.name}!')
+        return redirect('individual_dashboard')
+    
+    return redirect('individual_dashboard')

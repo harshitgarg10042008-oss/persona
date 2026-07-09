@@ -58,4 +58,7 @@ urlpatterns = [
     # Achievement Badges
     path('badge/<uuid:session_id>/', views.achievement_badge, name='achievement_badge'),
     path('badge/<uuid:session_id>/download/', views.download_achievement_badge, name='download_achievement_badge'),
+    
+    # Institution Management
+    path('export-institution-members/', views.export_institution_members_csv, name='export_institution_members_csv'),
 ]

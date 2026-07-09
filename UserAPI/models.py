@@ -57,3 +57,27 @@ class BusinessUser(models.Model):
     
     def __str__(self):
         return f"{self.name} - Business"
+    
+    @property
+    def institution_code(self):
+        """Generate a unique institution code for sharing"""
+        return f"INST-{self.id:06d}"
+
+class InstitutionMembership(models.Model):
+    """Track individual users' membership in institutions"""
+    individual = models.ForeignKey(IndividualUser, on_delete=models.CASCADE, related_name='institution_memberships')
+    business = models.ForeignKey(BusinessUser, on_delete=models.CASCADE, related_name='member_individuals')
+    
+    # Privacy consent tracking
+    consent_granted = models.BooleanField(default=False, help_text="User consented to share results with institution")
+    consent_granted_at = models.DateTimeField(null=True, blank=True)
+    
+    # Membership details
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['individual', 'business']
+    
+    def __str__(self):
+        return f"{self.individual.name} - {self.business.company_name or self.business.name}"
