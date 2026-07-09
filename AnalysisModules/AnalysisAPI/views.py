@@ -764,10 +764,22 @@ def individual_dashboard(request):
         user=request.user
     ).order_by('-created_at')[:5]
     
-    # Get available job titles with active question counts
+    # Get available job titles with per-session question count.
+    # session_question_count mirrors select_questions(): all mandatory active
+    # questions + 5 randomly-chosen non-mandatory ones = actual questions asked.
+    NUM_NON_MANDATORY = 5
     job_titles = PlatformJobTitle.objects.filter(is_active=True).annotate(
-        active_question_count=Count('questions', filter=Q(questions__is_active=True))
+        active_question_count=Count('questions', filter=Q(questions__is_active=True)),
+        mandatory_question_count=Count(
+            'questions',
+            filter=Q(questions__is_active=True, questions__is_mandatory=True)
+        ),
     ).order_by('title')
+    # Attach session_question_count as a plain attribute after annotation so
+    # the template can use it directly without a custom template tag.
+    for jt in job_titles:
+        non_mandatory_pool = jt.active_question_count - jt.mandatory_question_count
+        jt.session_question_count = jt.mandatory_question_count + min(non_mandatory_pool, NUM_NON_MANDATORY)
     
     # Analysis module availability
     analysis_status = {
