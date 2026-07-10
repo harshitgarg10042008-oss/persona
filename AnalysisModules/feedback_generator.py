@@ -663,3 +663,135 @@ Return ONLY valid JSON matching this exact schema:
     except Exception as exc:
         print(f'[ERROR] generate_ai_interview_coach failed: {type(exc).__name__}: {exc}')
         return None
+
+
+# ---------------------------------------------------------------------------
+# Adaptive Interview Engine — Difficulty adjustment
+# ---------------------------------------------------------------------------
+
+def analyze_answer_for_adaptive_difficulty(
+    question_text: str,
+    transcript: str,
+    current_difficulty: str,
+    content_score: float = None,
+    voice_confidence_score: float = None,
+    body_language_score: float = None
+) -> Optional[dict]:
+    """
+    Analyze a candidate's answer to determine the next difficulty level.
+
+    Args:
+        question_text: The question that was asked
+        transcript: The candidate's transcribed answer
+        current_difficulty: Current difficulty tier (beginner/intermediate/advanced)
+        content_score: Optional content correctness score (0-10)
+        voice_confidence_score: Optional voice confidence score (0-10)
+        body_language_score: Optional body language score (0-10)
+
+    Returns:
+        A dict with:
+            {
+                "performance_score": float (0-10),
+                "next_difficulty": str (beginner/intermediate/advanced),
+                "reason": str (explanation of the decision)
+            }
+        Returns None on failure.
+    """
+    if not question_text or not transcript:
+        return None
+
+    # Build performance metrics for the prompt
+    metrics = []
+    if content_score is not None:
+        metrics.append(f"Content correctness: {content_score:.1f}/10")
+    if voice_confidence_score is not None:
+        metrics.append(f"Voice confidence: {voice_confidence_score:.1f}/10")
+    if body_language_score is not None:
+        metrics.append(f"Body language: {body_language_score:.1f}/10")
+
+    metrics_text = "\n".join(metrics) if metrics else "No detailed metrics available"
+
+    prompt = f"""You are an adaptive interview engine that adjusts question difficulty based on candidate performance.
+
+CURRENT DIFFICULTY: {current_difficulty}
+
+QUESTION:
+{question_text}
+
+CANDIDATE ANSWER:
+{transcript}
+
+PERFORMANCE METRICS:
+{metrics_text}
+
+TASK: Evaluate the candidate's performance and recommend the next difficulty level.
+
+SCORING GUIDELINES:
+- Performance score 0-3: Poor understanding, needs easier questions
+- Performance score 4-6: Adequate understanding, maintain current difficulty
+- Performance score 7-10: Strong understanding, increase difficulty
+
+DIFFICULTY TRANSITIONS:
+- If current is beginner: can stay beginner or move to intermediate
+- If current is intermediate: can move to beginner, stay intermediate, or move to advanced
+- If current is advanced: can stay intermediate or stay advanced (don't go beyond advanced)
+
+Return ONLY valid JSON with these keys:
+- performance_score: a number between 0 and 10 based on overall answer quality
+- next_difficulty: one of "beginner", "intermediate", or "advanced"
+- reason: a brief 1-2 sentence explanation of why this difficulty was chosen
+"""
+
+    try:
+        text = _call_groq(prompt, timeout=20)
+        if not text:
+            logger.warning('Adaptive difficulty analysis: No Groq response')
+            return None
+
+        # Strip markdown fences if present
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        try:
+            result = json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Fallback: try to extract values with regex
+            perf_match = re.search(r'performance_score[^0-9]*(\d+(?:\.\d+)?)', cleaned, flags=re.IGNORECASE)
+            diff_match = re.search(r'next_difficulty["\s:]+(\w+)', cleaned, flags=re.IGNORECASE)
+            reason_match = re.search(r'reason["\s:]+([^,}\n]+)', cleaned, flags=re.IGNORECASE)
+
+            result = {
+                'performance_score': float(perf_match.group(1)) if perf_match else 5.0,
+                'next_difficulty': diff_match.group(1) if diff_match else current_difficulty,
+                'reason': reason_match.group(1).strip('"') if reason_match else 'Unable to determine reason'
+            }
+
+        # Validate and normalize
+        perf_score = result.get('performance_score', 5.0)
+        try:
+            perf_score = float(perf_score)
+        except (TypeError, ValueError):
+            perf_score = 5.0
+
+        next_diff = result.get('next_difficulty', current_difficulty)
+        valid_difficulties = {'beginner', 'intermediate', 'advanced'}
+        if next_diff not in valid_difficulties:
+            next_diff = current_difficulty
+
+        # Enforce difficulty transition rules
+        if current_difficulty == 'beginner' and next_diff == 'advanced':
+            next_diff = 'intermediate'  # Skip directly to advanced from beginner
+        elif current_difficulty == 'advanced' and next_diff == 'beginner':
+            next_diff = 'intermediate'  # Drop to intermediate, not beginner
+
+        reason = result.get('reason', 'Performance analysis complete')[:200]
+
+        return {
+            'performance_score': max(0.0, min(10.0, perf_score)),
+            'next_difficulty': next_diff,
+            'reason': reason
+        }
+
+    except Exception as exc:
+        logger.warning('Adaptive difficulty analysis failed: %s', exc)
+        return None

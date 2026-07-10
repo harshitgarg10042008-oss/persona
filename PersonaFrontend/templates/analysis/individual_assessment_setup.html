@@ -10,14 +10,17 @@
     margin-bottom: 8px;
     transition: all 0.3s ease;
   }
+
   .requirement-item.checked {
     background-color: var(--color-success-bg);
     border-color: var(--color-success);
   }
+
   .requirement-item.failed {
     background-color: var(--color-error-bg);
     border-color: var(--color-error);
   }
+
   .status-icon {
     width: 20px;
     height: 20px;
@@ -30,15 +33,19 @@
     font-weight: bold;
     color: var(--color-text-inverse);
   }
+
   .status-pending {
     background-color: var(--color-text-tertiary);
   }
+
   .status-success {
     background-color: var(--color-success);
   }
+
   .status-error {
     background-color: var(--color-error);
   }
+
   .feature-status {
     display: inline-block;
     padding: 4px 8px;
@@ -46,14 +53,17 @@
     font-size: 0.75rem;
     font-weight: 500;
   }
+
   .feature-available {
     background-color: var(--color-success);
     color: var(--color-text-inverse);
   }
+
   .feature-unavailable {
     background-color: var(--color-error);
     color: var(--color-text-inverse);
   }
+
   .fullscreen-demo {
     position: fixed;
     top: 0;
@@ -83,13 +93,9 @@
           <p class="text-blue-600 mt-1">{{ job_title.description }}</p>
           <div class="mt-3 flex items-center space-x-6 text-sm text-blue-700">
             <span><strong>Questions:</strong> {{ question_count_display }}</span>
-            <span
-              ><strong>Estimated Time:</strong> {{ estimated_duration }}
-              minutes</span
-            >
-            <span
-              ><strong>Category:</strong> {{ job_title.get_category_display }}</span
-            >
+            <span><strong>Estimated Time:</strong> {{ estimated_duration }}
+              minutes</span>
+            <span><strong>Category:</strong> {{ job_title.get_category_display }}</span>
           </div>
         </div>
       </div>
@@ -104,8 +110,7 @@
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-medium">Professional Attire Analysis</h3>
           <span
-            class="feature-status {% if analysis_status.attire_available %}feature-available{% else %}feature-unavailable{% endif %}"
-          >
+            class="feature-status {% if analysis_status.attire_available %}feature-available{% else %}feature-unavailable{% endif %}">
             {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
@@ -119,8 +124,7 @@
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-medium">Body Language Analysis</h3>
           <span
-            class="feature-status {% if analysis_status.body_language_available %}feature-available{% else %}feature-unavailable{% endif %}"
-          >
+            class="feature-status {% if analysis_status.body_language_available %}feature-available{% else %}feature-unavailable{% endif %}">
             {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
@@ -133,8 +137,7 @@
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-medium">Speech Analysis</h3>
           <span
-            class="feature-status {% if analysis_status.speech_available %}feature-available{% else %}feature-unavailable{% endif %}"
-          >
+            class="feature-status {% if analysis_status.speech_available %}feature-available{% else %}feature-unavailable{% endif %}">
             {% if analysis_status.speech_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
@@ -178,10 +181,7 @@
             Assessment will run in fullscreen mode to prevent distractions
           </p>
         </div>
-        <button
-          id="test-fullscreen"
-          class="ml-4 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-        >
+        <button id="test-fullscreen" class="ml-4 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
           Test
         </button>
       </div>
@@ -198,10 +198,8 @@
     </div>
 
     <div class="mt-6">
-      <button
-        id="run-system-check"
-        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
-      >
+      <button id="run-system-check"
+        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
         Run System Check
       </button>
     </div>
@@ -214,8 +212,7 @@
     <div class="space-y-4">
       <div class="flex items-start">
         <div
-          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1"
-        >
+          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">
           1
         </div>
         <div>
@@ -229,8 +226,7 @@
 
       <div class="flex items-start">
         <div
-          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1"
-        >
+          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">
           2
         </div>
         <div>
@@ -244,8 +240,7 @@
 
       <div class="flex items-start">
         <div
-          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1"
-        >
+          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">
           3
         </div>
         <div>
@@ -259,8 +254,7 @@
 
       <div class="flex items-start">
         <div
-          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1"
-        >
+          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">
           4
         </div>
         <div>
@@ -274,8 +268,7 @@
 
       <div class="flex items-start">
         <div
-          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1"
-        >
+          class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4 mt-1">
           5
         </div>
         <div>
@@ -289,6 +282,28 @@
     </div>
   </div>
 
+  <!-- Adaptive Mode Toggle -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-xl font-semibold mb-4">Adaptive Difficulty</h2>
+    <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-4">
+      Enable adaptive mode to have question difficulty adjust based on your performance in real-time. Answer well to get
+      harder questions, or struggle to get easier ones.
+    </p>
+    <div class="flex items-center space-x-4">
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="adaptive-mode-toggle" class="sr-only peer" checked>
+        <div
+          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+        </div>
+        <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Adaptive Mode</span>
+      </label>
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+      When enabled, the AI analyzes your answers after each question and adjusts the difficulty of the next question
+      accordingly. When disabled, questions are selected randomly from the pool.
+    </p>
+  </div>
+
   <!-- Resume Upload -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">Optional Resume Upload</h2>
@@ -297,24 +312,17 @@
       experience. This is optional and the assessment will still work without
       it.
     </p>
-    <form
-      id="resume-upload-form"
-      method="post"
+    <form id="resume-upload-form" method="post"
       action="{% url 'analysis:start_individual_assessment_session' session_id=assessment.session_id %}"
-      enctype="multipart/form-data"
-    >
+      enctype="multipart/form-data">
       {% csrf_token %}
+      <input type="hidden" name="adaptive_mode" id="adaptive-mode-input" value="true">
       <div class="mb-4 text-left">
-        <label for="resume" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2"
-          >Resume (PDF or plain text)</label
-        >
-        <input
-          type="file"
-          name="resume"
-          id="resume"
-          accept="application/pdf,text/plain"
-          class="w-full text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg p-3"
-        />
+        <label for="resume"
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Resume (PDF or
+          plain text)</label>
+        <input type="file" name="resume" id="resume" accept="application/pdf,text/plain"
+          class="w-full text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg p-3" />
       </div>
       <p class="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
         Your resume text is used only to generate relevant questions and is not
@@ -322,12 +330,8 @@
         after question generation.
       </p>
       <div class="text-center">
-        <button
-          type="submit"
-          id="start-assessment-btn"
-          disabled
-          class="start-assessment-button bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg opacity-50 cursor-not-allowed"
-        >
+        <button type="submit" id="start-assessment-btn" disabled
+          class="start-assessment-button bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg opacity-50 cursor-not-allowed">
           Start Assessment
         </button>
         <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2" id="start-instruction">
@@ -346,10 +350,7 @@
       This is how the assessment will appear in fullscreen mode.
     </p>
     <p class="mb-8">Press ESC or click the button below to exit.</p>
-    <button
-      id="exit-fullscreen"
-      class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600"
-    >
+    <button id="exit-fullscreen" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600">
       Exit Fullscreen
     </button>
   </div>
@@ -567,6 +568,12 @@
   // Initial browser check on page load
   window.addEventListener("load", function () {
     checkBrowser();
+  });
+
+  // Handle adaptive mode toggle
+  document.getElementById("adaptive-mode-toggle").addEventListener("change", function () {
+    const adaptiveInput = document.getElementById("adaptive-mode-input");
+    adaptiveInput.value = this.checked ? "true" : "false";
   });
 
   // Cleanup media stream when leaving page

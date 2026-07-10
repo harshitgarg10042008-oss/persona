@@ -38,6 +38,7 @@ from AnalysisModules.feedback_generator import (
     generate_improvement_roadmap,
     generate_tailored_questions,
     generate_ai_interview_coach,
+    analyze_answer_for_adaptive_difficulty,
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
@@ -907,6 +908,11 @@ def start_individual_assessment_session(request, session_id):
 
     resume_text = None
     if request.method == 'POST':
+        # Handle adaptive mode toggle
+        adaptive_mode = request.POST.get('adaptive_mode', 'true') == 'true'
+        assessment.adaptive_mode = adaptive_mode
+        assessment.save()
+
         resume_file = request.FILES.get('resume')
         if resume_file:
             is_valid, error = _validate_resume_upload(resume_file)
@@ -1178,6 +1184,65 @@ def submit_assessment_response(request, session_id):
                 print(f"Audio processing error: {e}")
         
         response.save()
+        
+        # Adaptive difficulty adjustment (if enabled and not the last question)
+        if assessment.adaptive_mode and assessment.current_question_index + 1 < assessment.total_questions:
+            try:
+                # Get performance metrics for adaptive analysis
+                content_score = None
+                voice_score = None
+                body_score = None
+                
+                if response.analysis_data and 'content_evaluation' in response.analysis_data:
+                    content_score = response.analysis_data['content_evaluation'].get('content_correctness_score')
+                
+                if response.confidence_score is not None:
+                    voice_score = response.confidence_score
+                
+                # Get body language score from recent snapshots
+                recent_snapshots = assessment.snapshots.filter(
+                    analysis_type='body_language'
+                ).order_by('-timestamp')[:3]
+                if recent_snapshots.exists():
+                    body_scores = [_snapshot_score_from_data(s) for s in recent_snapshots if _snapshot_score_from_data(s)]
+                    if body_scores:
+                        body_score = sum(body_scores) / len(body_scores)
+                
+                # Call adaptive analysis
+                adaptive_result = analyze_answer_for_adaptive_difficulty(
+                    question_text=current_question.question_text,
+                    transcript=response.response_text or '',
+                    current_difficulty=assessment.current_difficulty,
+                    content_score=content_score,
+                    voice_confidence_score=voice_score,
+                    body_language_score=body_score
+                )
+                
+                if adaptive_result:
+                    # Record adaptive decision
+                    adaptive_decision = {
+                        'question_order': assessment.current_question_index + 1,
+                        'previous_difficulty': assessment.current_difficulty,
+                        'performance_score': adaptive_result['performance_score'],
+                        'next_difficulty': adaptive_result['next_difficulty'],
+                        'reason': adaptive_result['reason']
+                    }
+                    assessment.adaptive_path.append(adaptive_decision)
+                    
+                    # Update current difficulty
+                    assessment.current_difficulty = adaptive_result['next_difficulty']
+                    
+                    # Log the adaptive decision
+                    print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')
+                else:
+                    # Fallback: log but don't change difficulty
+                    print(f'[ADAPTIVE] Analysis failed for Q{assessment.current_question_index + 1}, keeping current difficulty')
+                    logger.warning('Adaptive difficulty analysis failed, falling back to current difficulty')
+                    
+            except Exception as e:
+                # Fallback: log error but continue with current difficulty
+                print(f'[ADAPTIVE] Error in adaptive analysis: {e}')
+                logger.warning(f'Adaptive difficulty analysis error: {e}')
         
         # Move to next question
         assessment.current_question_index += 1

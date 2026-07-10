@@ -278,6 +278,15 @@ class IndividualAssessment(models.Model):
         ('failed', 'Failed'),
     ], help_text="Status of AI coaching generation")
 
+    # Adaptive Interview Engine fields
+    adaptive_mode = models.BooleanField(default=True, help_text="Whether adaptive difficulty adjustment is enabled")
+    adaptive_path = models.JSONField(default=list, blank=True, help_text="List of adaptive decisions: [{question_order, previous_difficulty, performance_score, next_difficulty, reason}]")
+    current_difficulty = models.CharField(max_length=20, choices=[
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ], default='intermediate', help_text="Current difficulty tier for adaptive selection")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -291,16 +300,88 @@ class IndividualAssessment(models.Model):
             return PlatformQuestion.objects.get(id=question_id)
         return None
     
+    def select_questions_adaptive(self, num_non_mandatory=5):
+        """Select questions for adaptive assessment based on current difficulty.
+
+        For adaptive mode, we select questions that match the current difficulty tier.
+        The first question uses the default (intermediate), then difficulty adjusts
+        based on performance after each answer.
+        """
+        if self.selected_questions:
+            return  # Already selected
+
+        # Always include mandatory questions regardless of difficulty
+        mandatory_questions = list(
+            self.platform_job_title.questions.filter(is_mandatory=True, is_active=True)
+            .order_by('?')
+            .values_list('id', flat=True)
+        )
+
+        # Select non-mandatory questions from current difficulty tier
+        available_questions = self.platform_job_title.questions.filter(
+            is_mandatory=False,
+            is_active=True,
+            difficulty_level=self.current_difficulty
+        )
+
+        # If not enough questions at current difficulty, supplement from other tiers
+        needed = num_non_mandatory
+        selected_by_difficulty = list(
+            available_questions.order_by('?')[:needed]
+            .values_list('id', flat=True)
+        )
+
+        if len(selected_by_difficulty) < needed:
+            # Supplement from other difficulty tiers (prefer intermediate)
+            remaining_needed = needed - len(selected_by_difficulty)
+            other_questions = self.platform_job_title.questions.filter(
+                is_mandatory=False,
+                is_active=True
+            ).exclude(id__in=selected_by_difficulty + mandatory_questions)
+            
+            # Prefer intermediate questions as fallback
+            fallback_questions = list(
+                other_questions.filter(difficulty_level='intermediate')
+                .order_by('?')[:remaining_needed]
+                .values_list('id', flat=True)
+            )
+            
+            if len(fallback_questions) < remaining_needed:
+                # Still need more, take from any difficulty
+                remaining_needed = remaining_needed - len(fallback_questions)
+                any_questions = list(
+                    other_questions.exclude(id__in=fallback_questions)
+                    .order_by('?')[:remaining_needed]
+                    .values_list('id', flat=True)
+                )
+                selected_by_difficulty.extend(fallback_questions + any_questions)
+            else:
+                selected_by_difficulty.extend(fallback_questions)
+
+        all_selected = mandatory_questions + selected_by_difficulty
+        random.shuffle(all_selected)  # Randomize the final question order
+
+        self.selected_questions = all_selected
+        self.total_questions = len(all_selected)
+        self.save()
+    
     def select_questions(self, num_non_mandatory=5):
         """Select questions for this assessment (mandatory + random non-mandatory).
 
         Uses Django's `order_by('?')` random ordering so a fresh, differently
         ordered set of questions is drawn from the PlatformQuestion bank every
         time an assessment is started, even for the same job role.
+
+        If adaptive_mode is True, uses select_questions_adaptive() instead.
         """
         if self.selected_questions:
             return  # Already selected
 
+        if self.adaptive_mode:
+            self.select_questions_adaptive(num_non_mandatory)
+            return
+
+        # Non-adaptive mode: original random selection
         mandatory_questions = list(
             self.platform_job_title.questions.filter(is_mandatory=True, is_active=True)
             .order_by('?')

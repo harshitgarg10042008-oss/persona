@@ -13,10 +13,12 @@
     border: 1px solid #e5e7eb;
     transition: transform 0.2s ease;
   }
+
   .metric-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
+
   .feedback-item {
     padding: 12px;
     border-left: 4px solid #10b981;
@@ -24,6 +26,7 @@
     border-radius: 4px;
     margin-bottom: 8px;
   }
+
   .recommendation-item {
     padding: 12px;
     border-left: 4px solid #f59e0b;
@@ -44,18 +47,14 @@
       <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700">
         <span>
           <strong>Duration:</strong>
-          {% if duration_seconds < 60 %}
-            {{ duration_seconds }} seconds
-          {% else %}
-            {{ duration_minutes }} minutes
-          {% endif %}
-        </span>
-        <span><strong>Questions:</strong> {{ responses.count }}</span>
-        <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
+          {% if duration_seconds < 60 %} {{ duration_seconds }} seconds {% else %} {{ duration_minutes }} minutes {%
+            endif %} </span>
+            <span><strong>Questions:</strong> {{ responses.count }}</span>
+            <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
       <div class="mt-4">
-        <a href="{% url 'analysis:achievement_badge' assessment.session_id %}" 
-           class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-semibold">
+        <a href="{% url 'analysis:achievement_badge' assessment.session_id %}"
+          class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-semibold">
           🏆 View Achievement Badge
         </a>
       </div>
@@ -67,23 +66,25 @@
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Overall Performance</h3>
         {% if assessment.overall_score is not None %}
-          <div class="text-4xl font-bold text-blue-600 mb-2">{{ assessment.overall_score|floatformat:0 }}/10</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ assessment.overall_score|floatformat:0 }}"></div>
+        <div class="text-4xl font-bold text-blue-600 mb-2">{{ assessment.overall_score|floatformat:0 }}/10</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-blue-600 h-3 rounded-full score-bar" data-score="{{ assessment.overall_score|floatformat:0 }}">
           </div>
+        </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-          </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No analysis data recorded</p>
+        <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No analysis data recorded</p>
         {% endif %}
       </div>
       <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Complete assessment</p>
       {% if platform_average %}
       <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Platform average for this role: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ platform_average }}/10</span>
+          Platform average for this role: <span class="font-semibold text-gray-700 dark:text-gray-300">{{
+            platform_average }}/10</span>
         </p>
       </div>
       {% endif %}
@@ -93,16 +94,17 @@
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Body Language</h3>
         {% if assessment.body_language_score is not None %}
-          <div class="text-4xl font-bold text-green-600 mb-2">{{ assessment.body_language_score|floatformat:0 }}/10</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-green-600 h-3 rounded-full score-bar" data-score="{{ assessment.body_language_score|floatformat:0 }}"></div>
-          </div>
+        <div class="text-4xl font-bold text-green-600 mb-2">{{ assessment.body_language_score|floatformat:0 }}/10</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-green-600 h-3 rounded-full score-bar"
+            data-score="{{ assessment.body_language_score|floatformat:0 }}"></div>
+        </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-          </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
+        <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
       <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Posture and gestures</p>
@@ -112,16 +114,17 @@
       <div class="text-center mb-4">
         <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Professional Attire</h3>
         {% if assessment.attire_score is not None %}
-          <div class="text-4xl font-bold text-purple-600 mb-2">{{ assessment.attire_score|floatformat:0 }}/10</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-purple-600 h-3 rounded-full score-bar" data-score="{{ assessment.attire_score|floatformat:0 }}"></div>
-          </div>
+        <div class="text-4xl font-bold text-purple-600 mb-2">{{ assessment.attire_score|floatformat:0 }}/10</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-purple-600 h-3 rounded-full score-bar"
+            data-score="{{ assessment.attire_score|floatformat:0 }}"></div>
+        </div>
         {% else %}
-          <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
-          </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
+        <div class="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-2">Analysis unavailable</div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
       <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Appearance and grooming</p>
@@ -133,7 +136,8 @@
     <div class="text-center">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Speaking</h3>
       <div class="text-4xl font-bold text-indigo-600">{{ assessment.speaking_score|floatformat:1 }}/10</div>
-      <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">Fluency, clarity, and content quality</p>
+      <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">Fluency, clarity, and content quality
+      </p>
     </div>
   </div>
   {% endif %}
@@ -157,11 +161,13 @@
 
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-4">AI Feedback Summary</h2>
-    <p class="text-gray-700 dark:text-gray-300 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr }}</p>
+    <p class="text-gray-700 dark:text-gray-300 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr
+      }}</p>
   </div>
 
   {% if assessment.improvement_roadmap %}
-  <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg shadow-sm p-6 mb-8">
+  <div
+    class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg shadow-sm p-6 mb-8">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold text-indigo-900">Personalised Improvement Roadmap</h2>
       <div class="px-3 py-1 bg-indigo-200 text-indigo-800 rounded-full font-medium text-sm">
@@ -194,16 +200,20 @@
   {% endif %}
 
   {% if assessment.ai_coach_status == 'generated' %}
-  <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg shadow-sm p-6 mb-8">
+  <div
+    class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg shadow-sm p-6 mb-8">
     <div class="flex items-center gap-3 mb-6">
       <div class="bg-emerald-500 text-white p-2 rounded-lg">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+          </path>
         </svg>
       </div>
       <div>
         <h2 class="text-2xl font-semibold text-emerald-900 dark:text-emerald-100">AI Interview Coach</h2>
-        <p class="text-sm text-emerald-700 dark:text-emerald-300">Personalized improvement plan based on your performance</p>
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">Personalized improvement plan based on your
+          performance</p>
       </div>
     </div>
 
@@ -237,7 +247,9 @@
       <div class="bg-white dark:bg-gray-900 rounded-lg p-5 shadow-sm">
         <h3 class="text-lg font-semibold text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+            </path>
           </svg>
           Areas for Improvement
         </h3>
@@ -258,7 +270,9 @@
     <div class="bg-white dark:bg-gray-900 rounded-lg p-5 mb-6 shadow-sm">
       <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+          </path>
         </svg>
         Action Plan
       </h3>
@@ -314,13 +328,16 @@
     <div class="bg-white dark:bg-gray-900 rounded-lg p-5 shadow-sm">
       <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+          </path>
         </svg>
         Recommended Practice Topics
       </h3>
       <div class="flex flex-wrap gap-2">
         {% for topic in assessment.ai_coach_recommended_topics %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+        <span
+          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
           {{ topic }}
         </span>
         {% empty %}
@@ -333,12 +350,74 @@
   <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-8">
     <div class="flex items-center gap-3">
       <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+        </path>
       </svg>
       <div>
         <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200">AI Coaching Unavailable</h3>
-        <p class="text-yellow-700 dark:text-yellow-300">AI Interview Coach could not be generated. Please try again later.</p>
+        <p class="text-yellow-700 dark:text-yellow-300">AI Interview Coach could not be generated. Please try again
+          later.</p>
       </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if assessment.adaptive_mode and assessment.adaptive_path %}
+  <div
+    class="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-100 dark:border-cyan-800 rounded-lg shadow-sm p-6 mb-8">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="bg-cyan-500 text-white p-2 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6">
+          </path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-2xl font-semibold text-cyan-900 dark:text-cyan-100">Adaptive Difficulty Path</h2>
+        <p class="text-sm text-cyan-700 dark:text-cyan-300">How question difficulty adjusted based on your performance
+        </p>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      {% for decision in assessment.adaptive_path %}
+      <div
+        class="bg-white dark:bg-gray-900 rounded-lg p-4 shadow-sm border border-cyan-50 dark:border-cyan-800 flex items-center gap-4">
+        <div class="flex-shrink-0">
+          <div
+            class="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900 flex items-center justify-center text-cyan-600 dark:text-cyan-300 font-bold">
+            {{ decision.question_order }}
+          </div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Difficulty:</span>
+            <span class="px-2 py-1 rounded text-xs font-semibold
+              {% if decision.previous_difficulty == 'beginner' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+              {% elif decision.previous_difficulty == 'intermediate' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+              {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+              {{ decision.previous_difficulty|title }}
+            </span>
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+            <span class="px-2 py-1 rounded text-xs font-semibold
+              {% if decision.next_difficulty == 'beginner' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+              {% elif decision.next_difficulty == 'intermediate' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+              {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+              {{ decision.next_difficulty|title }}
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Performance Score:</span>
+            <span class="font-semibold text-gray-800 dark:text-gray-200">{{ decision.performance_score|floatformat:1
+              }}/10</span>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ decision.reason }}</p>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
   {% endif %}
@@ -348,47 +427,50 @@
     <div class="space-y-4">
       {% for response in responses %}
       {% with evaluation=response.analysis_data.content_evaluation %}
-        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div class="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h3 class="font-semibold text-gray-800 dark:text-gray-100">
-                Q{{ response.question_order }}. {{ response.question.question_text }}
-              </h3>
-              {% with speech=response.analysis_data.speech_analysis status=response.analysis_data.speech_analysis_status %}
-                {% if speech.transcription %}
-                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
-                {% elif response.response_text %}
-                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"</p>
-                {% elif status == 'failed' %}
-                  <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{ speech.error|default:"transcription unavailable" }}</p>
-                {% elif status == 'pending' %}
-                  <p class="text-sm text-yellow-500 mt-2">⏳ Still processing...</p>
-                {% else %}
-                  <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">No transcript available for this response.</p>
-                {% endif %}
-              {% endwith %}
-            </div>
-            <div class="text-right">
-              {% if evaluation.content_correctness_score is not None %}
-                <div class="text-lg font-bold text-blue-600">
-                  {{ evaluation.content_correctness_score|floatformat:1 }}/10
-                </div>
-              {% elif response.analysis_data.speech_analysis_status == 'failed' %}
-                <div class="text-sm text-red-400">Failed</div>
-              {% elif response.analysis_data.speech_analysis_status == 'pending' %}
-                <div class="text-sm text-yellow-400">Pending</div>
-              {% else %}
-                <div class="text-sm text-gray-400 dark:text-gray-500">N/A</div>
-              {% endif %}
-            </div>
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div class="flex items-start justify-between gap-4 mb-2">
+          <div>
+            <h3 class="font-semibold text-gray-800 dark:text-gray-100">
+              Q{{ response.question_order }}. {{ response.question.question_text }}
+            </h3>
+            {% with speech=response.analysis_data.speech_analysis status=response.analysis_data.speech_analysis_status
+            %}
+            {% if speech.transcription %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
+            {% elif response.response_text %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"
+            </p>
+            {% elif status == 'failed' %}
+            <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{ speech.error|default:"transcription unavailable"
+              }}</p>
+            {% elif status == 'pending' %}
+            <p class="text-sm text-yellow-500 mt-2">⏳ Still processing...</p>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">No transcript available for this response.</p>
+            {% endif %}
+            {% endwith %}
           </div>
-          {% if evaluation.explanation %}
-            <p class="text-sm text-gray-700 dark:text-gray-400">{{ evaluation.explanation }}</p>
-          {% endif %}
+          <div class="text-right">
+            {% if evaluation.content_correctness_score is not None %}
+            <div class="text-lg font-bold text-blue-600">
+              {{ evaluation.content_correctness_score|floatformat:1 }}/10
+            </div>
+            {% elif response.analysis_data.speech_analysis_status == 'failed' %}
+            <div class="text-sm text-red-400">Failed</div>
+            {% elif response.analysis_data.speech_analysis_status == 'pending' %}
+            <div class="text-sm text-yellow-400">Pending</div>
+            {% else %}
+            <div class="text-sm text-gray-400 dark:text-gray-500">N/A</div>
+            {% endif %}
+          </div>
         </div>
+        {% if evaluation.explanation %}
+        <p class="text-sm text-gray-700 dark:text-gray-400">{{ evaluation.explanation }}</p>
+        {% endif %}
+      </div>
       {% endwith %}
       {% empty %}
-        <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No responses available.</p>
+      <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No responses available.</p>
       {% endfor %}
     </div>
   </div>
@@ -408,7 +490,8 @@
     </div>
 
     {% if energy_insight %}
-    <div class="mt-5 flex items-start gap-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4">
+    <div
+      class="mt-5 flex items-start gap-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4">
       <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z" />
@@ -426,13 +509,13 @@
         <h3 class="font-semibold text-green-800 mb-3">Strengths</h3>
         <div class="space-y-2">
           {% if assessment.speaking_score >= 7 %}
-            <div class="feedback-item">Excellent speaking performance with clear communication</div>
+          <div class="feedback-item">Excellent speaking performance with clear communication</div>
           {% endif %}
           {% if assessment.body_language_score >= 7 %}
-            <div class="feedback-item">Professional body language and good posture</div>
+          <div class="feedback-item">Professional body language and good posture</div>
           {% endif %}
           {% if assessment.attire_score >= 7 %}
-            <div class="feedback-item">Appropriate professional attire</div>
+          <div class="feedback-item">Appropriate professional attire</div>
           {% endif %}
           <div class="feedback-item">Completed all assessment questions successfully</div>
         </div>
@@ -440,48 +523,52 @@
       <div>
         <h3 class="font-semibold text-yellow-800 mb-3">Areas for Improvement</h3>
         <div class="space-y-2">
-          {% if assessment.speaking_score < 7 %}
-            <div class="recommendation-item">Focus on improving speaking clarity and fluency</div>
-          {% endif %}
-          {% if assessment.body_language_score < 7 %}
-            <div class="recommendation-item">Work on maintaining confident body language</div>
-          {% endif %}
-          {% if assessment.attire_score < 7 %}
-            <div class="recommendation-item">Consider more professional attire choices</div>
-          {% endif %}
-          <div class="recommendation-item">Practice interview scenarios to build confidence</div>
-        </div>
+          {% if assessment.speaking_score < 7 %} <div class="recommendation-item">Focus on improving speaking clarity
+            and fluency</div>
+        {% endif %}
+        {% if assessment.body_language_score < 7 %} <div class="recommendation-item">Work on maintaining confident body
+          language
       </div>
+      {% endif %}
+      {% if assessment.attire_score < 7 %} <div class="recommendation-item">Consider more professional attire choices
     </div>
+    {% endif %}
+    <div class="recommendation-item">Practice interview scenarios to build confidence</div>
   </div>
+</div>
+</div>
+</div>
 
-  <div class="text-center space-x-4">
-    <a href="{% url 'analysis:individual_dashboard' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-      Back to Dashboard
-    </a>
-    <a href="{% url 'analysis:download_assessment_report' assessment.session_id %}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-      Download Report
-    </a>
-    <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-      Print Results
-    </button>
-    <a href="{% url 'analysis:individual_dashboard' %}" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-      New Assessment
-    </a>
-  </div>
+<div class="text-center space-x-4">
+  <a href="{% url 'analysis:individual_dashboard' %}"
+    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+    Back to Dashboard
+  </a>
+  <a href="{% url 'analysis:download_assessment_report' assessment.session_id %}"
+    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+    Download Report
+  </a>
+  <button onclick="window.print()"
+    class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+    Print Results
+  </button>
+  <a href="{% url 'analysis:individual_dashboard' %}"
+    class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+    New Assessment
+  </a>
+</div>
 
-  <div class="mt-12 bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
-    <h2 class="text-xl font-semibold mb-4 text-center">Assessment Statistics</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-      <div>
-        <div class="text-2xl font-bold text-blue-600">{{ responses.count }}</div>
-        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Questions Answered</div>
-      </div>
-      <div>
-        <div class="text-2xl font-bold text-green-600">
-          {% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{ duration_minutes }}m{% endif %}
-        </div>
-        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Total Duration</div>
+<div class="mt-12 bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+  <h2 class="text-xl font-semibold mb-4 text-center">Assessment Statistics</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+    <div>
+      <div class="text-2xl font-bold text-blue-600">{{ responses.count }}</div>
+      <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Questions Answered</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-green-600">
+        {% if duration_seconds < 60 %}{{ duration_seconds }}s{% else %}{{ duration_minutes }}m{% endif %} </div>
+          <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Total Duration</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-purple-600">{{ snapshots.count }}</div>
@@ -496,20 +583,21 @@
 </div>
 {% endblock %}
 
-{% if has_chart_data %}
 {% block extra_js %}
+{% if has_chart_data %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-(function () {
-  const raw = {{ confidence_chart_json|safe }};
+  (function () {
+    const raw = {{ confidence_chart_json| safe
+  }};
 
   // Colours
-  const energyColor      = 'rgba(99, 102, 241, 1)';
-  const energyFill       = 'rgba(99, 102, 241, 0.12)';
-  const rateColor        = 'rgba(16, 185, 129, 1)';
-  const rateFill         = 'rgba(16, 185, 129, 0.10)';
-  const pitchColor       = 'rgba(245, 158, 11, 1)';
-  const pitchFill        = 'rgba(245, 158, 11, 0.10)';
+  const energyColor = 'rgba(99, 102, 241, 1)';
+  const energyFill = 'rgba(99, 102, 241, 0.12)';
+  const rateColor = 'rgba(16, 185, 129, 1)';
+  const rateFill = 'rgba(16, 185, 129, 0.10)';
+  const pitchColor = 'rgba(245, 158, 11, 1)';
+  const pitchFill = 'rgba(245, 158, 11, 0.10)';
 
   new Chart(document.getElementById('energyChart'), {
     type: 'line',
@@ -557,7 +645,7 @@
         legend: { position: 'bottom', labels: { font: { family: 'Inter, sans-serif', size: 12 } } },
         tooltip: {
           callbacks: {
-            label: function(ctx) {
+            label: function (ctx) {
               const v = ctx.parsed.y;
               if (v === null) return ctx.dataset.label + ': No data';
               return ctx.dataset.label + ': ' + v.toFixed(1);
