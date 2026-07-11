@@ -91,6 +91,11 @@ class InterviewQuestion(models.Model):
         ('situational', 'Situational'),
         ('general', 'General'),
     ], default='general')
+    difficulty_level = models.CharField(max_length=20, choices=[
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ], default='intermediate', help_text="Difficulty tier for adaptive selection")
     order = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -159,6 +164,15 @@ class Assessment(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Adaptive Interview Engine fields
+    adaptive_mode = models.BooleanField(default=True, help_text="Whether adaptive difficulty adjustment is enabled. Always ON for Business Assessment.")
+    adaptive_path = models.JSONField(default=list, blank=True, help_text="List of adaptive decisions: [{question_order, previous_difficulty, performance_score, next_difficulty, reason}]")
+    current_difficulty = models.CharField(max_length=20, choices=[
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ], default='intermediate', help_text="Current difficulty tier for adaptive selection")
     
     def __str__(self):
         if self.assessment_type == 'individual':
@@ -303,9 +317,9 @@ class IndividualAssessment(models.Model):
     def select_questions_adaptive(self, num_non_mandatory=5):
         """Select questions for adaptive assessment based on current difficulty.
 
-        For adaptive mode, we select questions that match the current difficulty tier.
-        The first question uses the default (intermediate), then difficulty adjusts
-        based on performance after each answer.
+        For adaptive mode, we select mandatory questions plus placeholders or 
+        initially select questions of the default difficulty. These will be 
+        swapped out dynamically after each answer in views.py.
         """
         if self.selected_questions:
             return  # Already selected
@@ -317,7 +331,7 @@ class IndividualAssessment(models.Model):
             .values_list('id', flat=True)
         )
 
-        # Select non-mandatory questions from current difficulty tier
+        # Select initial non-mandatory questions from current difficulty tier
         available_questions = self.platform_job_title.questions.filter(
             is_mandatory=False,
             is_active=True,
@@ -363,6 +377,54 @@ class IndividualAssessment(models.Model):
 
         self.selected_questions = all_selected
         self.total_questions = len(all_selected)
+        self.save()
+        
+    def adjust_upcoming_questions_for_difficulty(self):
+        """
+        Re-selects the remaining unasked, non-mandatory questions in `self.selected_questions`
+        to match `self.current_difficulty`.
+        """
+        if not self.adaptive_mode:
+            return
+            
+        current_index = self.current_question_index
+        if current_index >= len(self.selected_questions):
+            return
+            
+        upcoming_ids = self.selected_questions[current_index:]
+        asked_ids = self.selected_questions[:current_index]
+        
+        upcoming_qs = list(PlatformQuestion.objects.filter(id__in=upcoming_ids))
+        
+        new_upcoming_ids = []
+        for q_id in upcoming_ids:
+            q = next((x for x in upcoming_qs if x.id == q_id), None)
+            if not q:
+                continue
+                
+            if q.is_mandatory:
+                new_upcoming_ids.append(q_id)
+            else:
+                excluded_ids = asked_ids + new_upcoming_ids
+                new_q = self.platform_job_title.questions.filter(
+                    is_mandatory=False,
+                    is_active=True,
+                    difficulty_level=self.current_difficulty
+                ).exclude(id__in=excluded_ids).order_by('?').first()
+                
+                if new_q:
+                    new_upcoming_ids.append(new_q.id)
+                else:
+                    fallback_q = self.platform_job_title.questions.filter(
+                        is_mandatory=False,
+                        is_active=True
+                    ).exclude(id__in=excluded_ids).order_by('?').first()
+                    if fallback_q:
+                        new_upcoming_ids.append(fallback_q.id)
+                    else:
+                        new_upcoming_ids.append(q_id)
+                        
+        self.selected_questions = asked_ids + new_upcoming_ids
         self.save()
     
     def select_questions(self, num_non_mandatory=5):

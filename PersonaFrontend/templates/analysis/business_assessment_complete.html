@@ -431,6 +431,31 @@
             </div>
         </div>
         
+        {% if assessment.adaptive_path %}
+        <div style="margin: 2rem 0; padding: 1.5rem; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; text-align: left;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">🎯 Adaptive Difficulty Journey</h3>
+          <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem;">The AI automatically adjusted question difficulty based on this candidate's answers.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: 0.7rem; color: #9ca3af; margin-bottom: 0.25rem;">Start</span>
+              <span style="padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; background: #fef3c7; color: #92400e;">Intermediate</span>
+            </div>
+            {% for decision in assessment.adaptive_path %}
+            <span style="color: #9ca3af;">›</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: 0.7rem; color: #9ca3af; margin-bottom: 0.25rem;">Q{{ decision.question_order }}</span>
+              <span title="{{ decision.reason }}" style="padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; 
+                background: {% if decision.next_difficulty == 'beginner' %}#d1fae5{% elif decision.next_difficulty == 'advanced' %}#fee2e2{% else %}#fef3c7{% endif %};
+                color: {% if decision.next_difficulty == 'beginner' %}#065f46{% elif decision.next_difficulty == 'advanced' %}#991b1b{% else %}#92400e{% endif %};">
+                {{ decision.next_difficulty|capfirst }}
+              </span>
+              <span style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.2rem;">{{ decision.performance_score|floatformat:1 }}/10</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        
         <div class="next-steps">
             <h4>
                 <i class="fas fa-info-circle"></i>

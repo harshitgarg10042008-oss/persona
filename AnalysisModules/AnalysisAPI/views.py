@@ -396,7 +396,7 @@ def business_combined_assessment(request, assessment_id):
         })
     
     # Get current progress
-    answered_questions = assessment.responses.values_list('question_order', flat=True)
+    answered_questions = assessment.responses.values_list('question_text', flat=True)
     total_questions = questions.count()
     current_question_number = len(answered_questions) + 1
     
@@ -408,8 +408,15 @@ def business_combined_assessment(request, assessment_id):
         assessment.save()
         return redirect('analysis:business_assessment_complete', assessment_id=assessment.id)
     
-    # Get current question
-    current_question = questions[current_question_number - 1]
+    # Adaptive selection: Pick next question based on current_difficulty
+    unasked_questions = questions.exclude(question_text__in=answered_questions)
+    
+    # Try to find a question matching the current difficulty
+    current_question = unasked_questions.filter(difficulty_level=assessment.current_difficulty).first()
+    
+    if not current_question:
+        # Fallback to any remaining question if no match found
+        current_question = unasked_questions.first()
     
     context = {
         'assessment': assessment,
@@ -691,6 +698,34 @@ def business_submit_response(request, assessment_id):
                 'speech_analysis_status': 'not_available'
             }
             response.save()
+        
+        # Adaptive difficulty analysis (always ON for business assessments)
+        try:
+            transcript = response.analysis_data.get('speech_analysis', {}).get('transcript', '') if isinstance(response.analysis_data, dict) else ''
+            adaptive_result = analyze_answer_for_adaptive_difficulty(
+                question_text=question.question_text,
+                transcript=transcript or question.question_text,  # use question as fallback if no transcript yet
+                current_difficulty=assessment.current_difficulty,
+            )
+            if adaptive_result:
+                adaptive_decision = {
+                    'question_order': question_order,
+                    'previous_difficulty': assessment.current_difficulty,
+                    'performance_score': adaptive_result['performance_score'],
+                    'next_difficulty': adaptive_result['next_difficulty'],
+                    'reason': adaptive_result['reason'],
+                }
+                if not isinstance(assessment.adaptive_path, list):
+                    assessment.adaptive_path = []
+                assessment.adaptive_path.append(adaptive_decision)
+                assessment.current_difficulty = adaptive_result['next_difficulty']
+                assessment.save()
+                print(f'[ADAPTIVE-BIZ] Q{question_order}: {adaptive_decision["previous_difficulty"]} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')
+            else:
+                print(f'[ADAPTIVE-BIZ] Adaptive analysis returned None for Q{question_order}, keeping current difficulty.')
+        except Exception as adaptive_err:
+            import logging as _logging
+            _logging.getLogger(__name__).warning('Business adaptive difficulty error: %s', adaptive_err)
         
         return JsonResponse({
             'success': True,
@@ -1076,6 +1111,8 @@ def individual_assessment_question(request, session_id):
         'total_questions': assessment.total_questions,
         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
         'session_id': session_id,
+        'adaptive_mode': assessment.adaptive_mode,
+        'current_difficulty': assessment.current_difficulty,
         'analysis_status': {
             'attire_available': ATTIRE_ANALYSIS_AVAILABLE,
             'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE,
@@ -1231,6 +1268,9 @@ def submit_assessment_response(request, session_id):
                     
                     # Update current difficulty
                     assessment.current_difficulty = adaptive_result['next_difficulty']
+                    
+                    # Swap out upcoming unasked non-mandatory questions
+                    assessment.adjust_upcoming_questions_for_difficulty()
                     
                     # Log the adaptive decision
                     print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')

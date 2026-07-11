@@ -165,6 +165,42 @@
       }}</p>
   </div>
 
+  {% if assessment.adaptive_mode and assessment.adaptive_path %}
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-2xl font-semibold mb-2">Adaptive Difficulty Journey</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+      This session used the Adaptive Interview Engine. The AI adjusted question difficulty in real time based on your answers.
+    </p>
+    <div class="flex flex-wrap gap-3 items-center">
+      <div class="flex flex-col items-center">
+        <span class="text-xs text-gray-400 mb-1">Start</span>
+        <span class="px-3 py-1 rounded-full text-sm font-semibold"
+          style="background: var(--color-warning-bg, #fef3c7); color: var(--color-warning, #92400e);">
+          Intermediate
+        </span>
+      </div>
+      {% for decision in assessment.adaptive_path %}
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        <div class="flex flex-col items-center">
+          <span class="text-xs text-gray-400 mb-1">Q{{ decision.question_order }}</span>
+          <span class="px-3 py-1 rounded-full text-sm font-semibold"
+            title="{{ decision.reason }}"
+            style="background: {% if decision.next_difficulty == 'beginner' %}var(--color-success-bg){% elif decision.next_difficulty == 'advanced' %}var(--color-error-bg){% else %}var(--color-warning-bg, #fef3c7){% endif %};
+                   color: {% if decision.next_difficulty == 'beginner' %}var(--color-success){% elif decision.next_difficulty == 'advanced' %}var(--color-error){% else %}var(--color-warning, #92400e){% endif %};">
+            {{ decision.next_difficulty|capfirst }}
+          </span>
+          <span class="text-xs text-gray-400 mt-1">{{ decision.performance_score|floatformat:1 }}/10</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-4">Hover over any badge to see why the AI chose that difficulty.</p>
+  </div>
+  {% endif %}
+
   {% if assessment.improvement_roadmap %}
   <div
     class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg shadow-sm p-6 mb-8">

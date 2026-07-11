@@ -336,6 +336,13 @@
                     Mandatory
                 </span>
                 {% endif %}
+                {% if adaptive_mode %}
+                <span id="difficulty-badge" class="ml-2 px-2 py-1 rounded text-xs font-medium"
+                  style="background: {% if current_difficulty == 'beginner' %}var(--color-success-bg){% elif current_difficulty == 'advanced' %}var(--color-error-bg){% else %}var(--color-warning-bg, #fef3c7){% endif %};
+                         color: {% if current_difficulty == 'beginner' %}var(--color-success){% elif current_difficulty == 'advanced' %}var(--color-error){% else %}var(--color-warning, #92400e){% endif %};">
+                  🎯 {{ current_difficulty|capfirst }}
+                </span>
+                {% endif %}
             </div>
             
             <div class="question-text">
