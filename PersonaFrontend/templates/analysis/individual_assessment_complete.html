@@ -169,7 +169,8 @@
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-2">Adaptive Difficulty Journey</h2>
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
-      This session used the Adaptive Interview Engine. The AI adjusted question difficulty in real time based on your answers.
+      This session used the Adaptive Interview Engine. The AI adjusted question difficulty in real time based on your
+      answers.
     </p>
     <div class="flex flex-wrap gap-3 items-center">
       <div class="flex flex-col items-center">
@@ -186,8 +187,7 @@
         </svg>
         <div class="flex flex-col items-center">
           <span class="text-xs text-gray-400 mb-1">Q{{ decision.question_order }}</span>
-          <span class="px-3 py-1 rounded-full text-sm font-semibold"
-            title="{{ decision.reason }}"
+          <span class="px-3 py-1 rounded-full text-sm font-semibold" title="{{ decision.reason }}"
             style="background: {% if decision.next_difficulty == 'beginner' %}var(--color-success-bg){% elif decision.next_difficulty == 'advanced' %}var(--color-error-bg){% else %}var(--color-warning-bg, #fef3c7){% endif %};
                    color: {% if decision.next_difficulty == 'beginner' %}var(--color-success){% elif decision.next_difficulty == 'advanced' %}var(--color-error){% else %}var(--color-warning, #92400e){% endif %};">
             {{ decision.next_difficulty|capfirst }}
@@ -197,7 +197,8 @@
       </div>
       {% endfor %}
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-4">Hover over any badge to see why the AI chose that difficulty.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-4">Hover over any badge to see why the AI chose that
+      difficulty.</p>
   </div>
   {% endif %}
 
@@ -503,6 +504,21 @@
         {% if evaluation.explanation %}
         <p class="text-sm text-gray-700 dark:text-gray-400">{{ evaluation.explanation }}</p>
         {% endif %}
+
+        <!-- Follow-up Q&A pairs -->
+        {% for follow_up in response.follow_ups.all %}
+        <div class="mt-4 ml-4 pl-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded-r p-3">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium">🤖 AI Follow-Up</span>
+          </div>
+          <p class="text-sm font-medium text-gray-800 dark:text-gray-100 mb-2">{{ follow_up.follow_up_prompt }}</p>
+          {% if follow_up.answer_text %}
+          <p class="text-sm text-gray-600 dark:text-gray-400 italic">"{{ follow_up.answer_text|truncatechars:150 }}"</p>
+          {% else %}
+          <p class="text-sm text-gray-500 dark:text-gray-500 italic">No answer recorded</p>
+          {% endif %}
+        </div>
+        {% endfor %}
       </div>
       {% endwith %}
       {% empty %}

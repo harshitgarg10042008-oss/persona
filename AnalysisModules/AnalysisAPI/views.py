@@ -28,7 +28,7 @@ except ImportError:
 from .models import (
     JobRole, InterviewQuestion, AssessmentLink, Assessment, AssessmentResult,
     PlatformJobTitle, PlatformQuestion, IndividualAssessment, 
-    IndividualAssessmentResponse, AssessmentSnapshot,
+    IndividualAssessmentResponse, FollowUpResponse, AssessmentSnapshot,
     BusinessAssessmentResponse, BusinessAssessmentSnapshot
 )
 from UserAPI.models import BusinessUser
@@ -38,7 +38,7 @@ from AnalysisModules.feedback_generator import (
     generate_improvement_roadmap,
     generate_tailored_questions,
     generate_ai_interview_coach,
-    analyze_answer_for_adaptive_difficulty,
+    analyze_answer_and_determine_next_step,
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
@@ -1097,17 +1097,29 @@ def individual_assessment_question(request, session_id):
         status='in_progress'
     )
     
-    # Get current question
-    current_question = assessment.get_next_question()
+    # Check for active follow-up
+    is_follow_up = bool(assessment.pending_follow_up_text)
     
-    if not current_question:
-        # No more questions, complete the assessment
-        return redirect('analysis:complete_individual_assessment', session_id=session_id)
+    if is_follow_up:
+        # Create a dummy question-like object for the template
+        class FollowUpQuestion:
+            question_text = assessment.pending_follow_up_text
+            question_type = "follow_up"
+            difficulty_level = assessment.current_difficulty
+        current_question = FollowUpQuestion()
+    else:
+        # Get current planned question
+        current_question = assessment.get_next_question()
+        
+        if not current_question:
+            # No more questions, complete the assessment
+            return redirect('analysis:complete_individual_assessment', session_id=session_id)
     
     context = {
         'assessment': assessment,
         'question': current_question,
-        'question_number': assessment.current_question_index + 1,
+        'is_follow_up': is_follow_up,
+        'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
         'total_questions': assessment.total_questions,
         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
         'session_id': session_id,
@@ -1134,32 +1146,52 @@ def submit_assessment_response(request, session_id):
             status='in_progress'
         )
         
-        # Get current question
-        current_question = assessment.get_next_question()
-        if not current_question:
-            return JsonResponse({'error': 'No current question'}, status=400)
+        # Check if we are answering a pending follow-up
+        is_answering_follow_up = bool(assessment.pending_follow_up_text)
+        
+        if is_answering_follow_up:
+            current_question = None
+            question_text_for_analysis = assessment.pending_follow_up_text
+            # Find the parent response (the last submitted response)
+            parent_response = IndividualAssessmentResponse.objects.filter(
+                assessment=assessment
+            ).order_by('-created_at').first()
+        else:
+            # Get current planned question
+            current_question = assessment.get_next_question()
+            if not current_question:
+                return JsonResponse({'error': 'No current question'}, status=400)
+            question_text_for_analysis = current_question.question_text
+            parent_response = None
         
         # Parse request data
         data = json.loads(request.body)
         
         # Handle skip
         if data.get('skipped'):
-            IndividualAssessmentResponse.objects.create(
-                assessment=assessment,
-                question=current_question,
-                question_order=assessment.current_question_index + 1,
-                question_started_at=timezone.now(),
-                response_started_at=timezone.now(),
-                response_ended_at=timezone.now(),
-                response_duration=0,
-                time_to_start=0,
-                analysis_data={
-                    'skipped': True,
-                    'skip_reason': data.get('skip_reason', 'user_skipped'),
-                    'fullscreen_violations': data.get('fullscreen_violations', 0),
-                }
-            )
-            assessment.current_question_index += 1
+            if not is_answering_follow_up:
+                IndividualAssessmentResponse.objects.create(
+                    assessment=assessment,
+                    question=current_question,
+                    question_order=assessment.current_question_index + 1,
+                    question_started_at=timezone.now(),
+                    response_started_at=timezone.now(),
+                    response_ended_at=timezone.now(),
+                    response_duration=0,
+                    time_to_start=0,
+                    analysis_data={
+                        'skipped': True,
+                        'skip_reason': data.get('skip_reason', 'user_skipped'),
+                        'fullscreen_violations': data.get('fullscreen_violations', 0),
+                    }
+                )
+                assessment.current_question_index += 1
+            else:
+                # If they skipped a follow-up, just clear it and move to next planned question
+                assessment.pending_follow_up_text = None
+                assessment.pending_follow_up_reason = None
+                assessment.current_question_index += 1
+                
             assessment.save()
             is_complete = assessment.current_question_index >= assessment.total_questions
             return JsonResponse({
@@ -1170,16 +1202,28 @@ def submit_assessment_response(request, session_id):
             })
 
         # Create response record
-        response = IndividualAssessmentResponse.objects.create(
-            assessment=assessment,
-            question=current_question,
-            question_order=assessment.current_question_index + 1,
-            question_started_at=timezone.now(),
-            response_started_at=timezone.now(),
-            response_ended_at=timezone.now(),
-            response_duration=data.get('response_duration', 0),
-            time_to_start=data.get('time_to_start', 0)
-        )
+        if is_answering_follow_up:
+            if not parent_response:
+                return JsonResponse({'error': 'No parent response found for follow-up'}, status=400)
+
+            follow_up_response = FollowUpResponse.objects.create(
+                parent_response=parent_response,
+                follow_up_prompt=question_text_for_analysis,
+                follow_up_reason=assessment.pending_follow_up_reason,
+                answer_text=data.get('response_text', ''),
+            )
+            response = None
+        else:
+            response = IndividualAssessmentResponse.objects.create(
+                assessment=assessment,
+                question=current_question,
+                question_order=assessment.current_question_index + 1,
+                question_started_at=timezone.now(),
+                response_started_at=timezone.now(),
+                response_ended_at=timezone.now(),
+                response_duration=data.get('response_duration', 0),
+                time_to_start=data.get('time_to_start', 0)
+            )
         
         # Process audio if provided
         if 'audio_data' in data and data['audio_data']:
@@ -1191,7 +1235,7 @@ def submit_assessment_response(request, session_id):
                 audio_data = base64.b64decode(data['audio_data'].split(',')[1])
                 
                 # Save audio file
-                filename = f"response_{assessment.id}_{response.question_order}_{uuid.uuid4().hex[:8]}.wav"
+                filename = f"response_{assessment.id}_{assessment.current_question_index + 1}_{uuid.uuid4().hex[:8]}.wav"
                 # In production, save to proper media storage
                 # For now, we'll process but not save
                 
@@ -1199,31 +1243,41 @@ def submit_assessment_response(request, session_id):
                 if SPEECH_ANALYSIS_AVAILABLE:
                     speech_analysis = analyze_speech(
                         audio_data, 
-                        current_question.question_text,
+                        question_text_for_analysis,
                         data.get('response_duration', 0)
                     )
                     
-                    response.response_text = speech_analysis.get('transcription', '')
-                    response.fluency_score = speech_analysis.get('fluency_score', 0)
-                    response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
-                    response.relevance_score = speech_analysis.get('content_score', 0)
-                    response.confidence_score = speech_analysis.get('confidence_score', 0)
-                    response.analysis_data = {
-                        'speech_analysis': speech_analysis,
-                        'content_evaluation': evaluate_answer_content(
-                            question_text=current_question.question_text,
-                            transcript=speech_analysis.get('transcription', ''),
-                            ideal_answer_points=current_question.ideal_answer_points,
-                        ),
-                    }
+                    if is_answering_follow_up:
+                        follow_up_response.answer_text = speech_analysis.get('transcription', '') or data.get('response_text', '')
+                        follow_up_response.save()
+                    else:
+                        response.response_text = speech_analysis.get('transcription', '')
+                        response.fluency_score = speech_analysis.get('fluency_score', 0)
+                        response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
+                        response.relevance_score = speech_analysis.get('content_score', 0)
+                        response.confidence_score = speech_analysis.get('confidence_score', 0)
+                        
+                        ideal_pts = current_question.ideal_answer_points if current_question else None
+                        response.analysis_data = {
+                            'speech_analysis': speech_analysis,
+                            'content_evaluation': evaluate_answer_content(
+                                question_text=question_text_for_analysis,
+                                transcript=speech_analysis.get('transcription', ''),
+                                ideal_answer_points=ideal_pts,
+                            ),
+                        }
                     
             except Exception as e:
                 print(f"Audio processing error: {e}")
         
-        response.save()
+        if not is_answering_follow_up:
+            response.save()
+        elif not follow_up_response.answer_text:
+            follow_up_response.answer_text = data.get('response_text', '')
+            follow_up_response.save()
         
         # Adaptive difficulty adjustment (if enabled and not the last question)
-        if assessment.adaptive_mode and assessment.current_question_index + 1 < assessment.total_questions:
+        if not is_answering_follow_up and assessment.adaptive_mode and assessment.current_question_index + 1 < assessment.total_questions:
             try:
                 # Get performance metrics for adaptive analysis
                 content_score = None
@@ -1246,46 +1300,69 @@ def submit_assessment_response(request, session_id):
                         body_score = sum(body_scores) / len(body_scores)
                 
                 # Call adaptive analysis
-                adaptive_result = analyze_answer_for_adaptive_difficulty(
-                    question_text=current_question.question_text,
+                adaptive_result = analyze_answer_and_determine_next_step(
+                    question_text=question_text_for_analysis,
                     transcript=response.response_text or '',
                     current_difficulty=assessment.current_difficulty,
+                    session_follow_up_count=assessment.session_follow_up_count,
                     content_score=content_score,
                     voice_confidence_score=voice_score,
-                    body_language_score=body_score
+                    body_language_score=body_score,
+                    max_follow_ups=2
                 )
                 
                 if adaptive_result:
-                    # Record adaptive decision
-                    adaptive_decision = {
-                        'question_order': assessment.current_question_index + 1,
-                        'previous_difficulty': assessment.current_difficulty,
-                        'performance_score': adaptive_result['performance_score'],
-                        'next_difficulty': adaptive_result['next_difficulty'],
-                        'reason': adaptive_result['reason']
-                    }
-                    assessment.adaptive_path.append(adaptive_decision)
-                    
-                    # Update current difficulty
-                    assessment.current_difficulty = adaptive_result['next_difficulty']
-                    
-                    # Swap out upcoming unasked non-mandatory questions
-                    assessment.adjust_upcoming_questions_for_difficulty()
-                    
-                    # Log the adaptive decision
-                    print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')
+                    # Check if a follow-up was generated
+                    if adaptive_result.get('generate_follow_up') and assessment.session_follow_up_count < 2:
+                        assessment.pending_follow_up_text = adaptive_result.get('follow_up_question')
+                        assessment.pending_follow_up_reason = adaptive_result.get('follow_up_reason')
+                        # Do NOT increment current_question_index so we stay on the same timeline spot
+                        print(f'[FOLLOW-UP] Generated follow up for Q{assessment.current_question_index + 1}')
+                    else:
+                        # Record adaptive decision
+                        adaptive_decision = {
+                            'question_order': assessment.current_question_index + 1,
+                            'previous_difficulty': assessment.current_difficulty,
+                            'performance_score': adaptive_result['performance_score'],
+                            'next_difficulty': adaptive_result['next_difficulty'],
+                            'reason': adaptive_result['reason']
+                        }
+                        assessment.adaptive_path.append(adaptive_decision)
+                        
+                        # Update current difficulty
+                        assessment.current_difficulty = adaptive_result['next_difficulty']
+                        
+                        # Swap out upcoming unasked non-mandatory questions
+                        assessment.adjust_upcoming_questions_for_difficulty()
+                        
+                        # Log the adaptive decision
+                        print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')
+                        
+                        # Clear any pending follow-ups just in case
+                        assessment.pending_follow_up_text = None
+                        assessment.pending_follow_up_reason = None
+                        
+                        # Move to next question if we're not asking a follow-up
+                        assessment.current_question_index += 1
                 else:
                     # Fallback: log but don't change difficulty
                     print(f'[ADAPTIVE] Analysis failed for Q{assessment.current_question_index + 1}, keeping current difficulty')
                     logger.warning('Adaptive difficulty analysis failed, falling back to current difficulty')
+                    assessment.current_question_index += 1
                     
             except Exception as e:
                 # Fallback: log error but continue with current difficulty
                 print(f'[ADAPTIVE] Error in adaptive analysis: {e}')
                 logger.warning(f'Adaptive difficulty analysis error: {e}')
+                assessment.current_question_index += 1
+        else:
+            # Not adaptive mode or last question, or a follow-up answer, just advance index
+            if is_answering_follow_up:
+                assessment.session_follow_up_count += 1
+                assessment.pending_follow_up_text = None
+                assessment.pending_follow_up_reason = None
+            assessment.current_question_index += 1
         
-        # Move to next question
-        assessment.current_question_index += 1
         assessment.save()
         
         # Check if assessment is complete
@@ -2061,9 +2138,16 @@ def submit_response_clean(request, session_id):
         response = IndividualAssessmentResponse.objects.create(
             assessment=assessment,
             question=question,
-            audio_data=audio_data,
-            response_time=response_time,
-            fullscreen_violations=fullscreen_violations
+            question_order=IndividualAssessmentResponse.objects.filter(assessment=assessment).count() + 1,
+            question_started_at=timezone.now(),
+            response_started_at=timezone.now(),
+            response_ended_at=timezone.now(),
+            response_duration=response_time,
+            time_to_start=0,
+            analysis_data={
+                'fullscreen_violations': fullscreen_violations,
+                'speech_analysis_status': 'pending' if audio_data else 'not_applicable'
+            }
         )
         
         # Perform speech analysis in background
@@ -2076,17 +2160,24 @@ def submit_response_clean(request, session_id):
                 try:
                     # Decode audio data
                     audio_bytes = base64.b64decode(audio_data)
-                    
+
                     # Analyze speech
                     speech_analysis = analyze_speech(audio_bytes, question.question_text)
-                    
+
                     # Update response with analysis
-                    response.speech_analysis = speech_analysis
+                    response.response_text = speech_analysis.get('transcription', '')
+                    response.fluency_score = speech_analysis.get('fluency_score', 0)
+                    response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
+                    response.relevance_score = speech_analysis.get('content_score', 0)
+                    response.confidence_score = speech_analysis.get('confidence_score', 0)
+                    response.analysis_data['speech_analysis'] = speech_analysis
+                    response.analysis_data['speech_analysis_status'] = 'completed'
                     response.save()
-                    
+
                 except Exception as e:
                     print(f"Speech analysis failed: {e}")
-                    response.speech_analysis = {"error": str(e)}
+                    response.analysis_data['speech_analysis'] = {"error": str(e)}
+                    response.analysis_data['speech_analysis_status'] = 'error'
                     response.save()
         
         # Check if assessment is complete

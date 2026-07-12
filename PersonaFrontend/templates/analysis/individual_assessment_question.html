@@ -328,10 +328,16 @@
         <!-- Question Panel -->
         <div class="question-panel">
             <div class="question-meta">
+                {% if is_follow_up %}
+                <span class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    🤖 AI Follow-Up
+                </span>
+                {% else %}
                 <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
                     {{ question.get_question_type_display }}
                 </span>
-                {% if question.is_mandatory %}
+                {% endif %}
+                {% if not is_follow_up and question.is_mandatory %}
                 <span class="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
                     Mandatory
                 </span>

@@ -1,0 +1,34 @@
+[1mdiff --git a/AnalysisModules/AnalysisAPI/models.py b/AnalysisModules/AnalysisAPI/models.py[m
+[1mindex 8e8479b..5e8f075 100644[m
+[1m--- a/AnalysisModules/AnalysisAPI/models.py[m
+[1m+++ b/AnalysisModules/AnalysisAPI/models.py[m
+[36m@@ -301,6 +301,11 @@[m [mclass IndividualAssessment(models.Model):[m
+         ('advanced', 'Advanced'),[m
+     ], default='intermediate', help_text="Current difficulty tier for adaptive selection")[m
+ [m
+[32m+[m[32m    # Follow-up Engine fields[m
+[32m+[m[32m    pending_follow_up_text = models.TextField(null=True, blank=True, help_text="AI-generated follow-up question waiting to be asked")[m
+[32m+[m[32m    pending_follow_up_reason = models.TextField(null=True, blank=True, help_text="Reason for generating the follow-up")[m
+[32m+[m[32m    session_follow_up_count = models.PositiveIntegerField(default=0, help_text="Number of follow-ups asked in this session")[m
+[32m+[m
+     created_at = models.DateTimeField(auto_now_add=True)[m
+     updated_at = models.DateTimeField(auto_now=True)[m
+     [m
+[36m@@ -498,6 +503,17 @@[m [mclass IndividualAssessmentResponse(models.Model):[m
+         return f"{self.assessment.user.email} - Q{self.question_order}"[m
+ [m
+ [m
+[32m+[m[32mclass FollowUpResponse(models.Model):[m
+[32m+[m[32m    """Follow-up responses generated for an assessment response"""[m
+[32m+[m[32m    parent_response = models.ForeignKey(IndividualAssessmentResponse, on_delete=models.CASCADE, related_name='follow_ups')[m
+[32m+[m[32m    follow_up_prompt = models.TextField(help_text="The AI-generated follow-up question text")[m
+[32m+[m[32m    follow_up_reason = models.TextField(null=True, blank=True, help_text="Why this follow-up was triggered")[m
+[32m+[m[32m    answer_text = models.TextField(null=True, blank=True)[m
+[32m+[m[32m    audio_file = models.FileField(upload_to='assessments/follow_up_audio/', null=True, blank=True)[m
+[32m+[m[32m    video_file = models.FileField(upload_to='assessments/follow_up_video/', null=True, blank=True)[m
+[32m+[m[32m    created_at = models.DateTimeField(auto_now_add=True)[m
+[32m+[m
+[32m+[m
+ class AssessmentSnapshot(models.Model):[m
+     """Snapshots taken during assessment for body language and attire analysis"""[m
+     ANALYSIS_TYPES = [[m

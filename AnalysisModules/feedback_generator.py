@@ -669,13 +669,15 @@ Return ONLY valid JSON matching this exact schema:
 # Adaptive Interview Engine — Difficulty adjustment
 # ---------------------------------------------------------------------------
 
-def analyze_answer_for_adaptive_difficulty(
+def analyze_answer_and_determine_next_step(
     question_text: str,
     transcript: str,
     current_difficulty: str,
+    session_follow_up_count: int,
     content_score: float = None,
     voice_confidence_score: float = None,
-    body_language_score: float = None
+    body_language_score: float = None,
+    max_follow_ups: int = 2
 ) -> Optional[dict]:
     """
     Analyze a candidate's answer to determine the next difficulty level.
@@ -684,6 +686,7 @@ def analyze_answer_for_adaptive_difficulty(
         question_text: The question that was asked
         transcript: The candidate's transcribed answer
         current_difficulty: Current difficulty tier (beginner/intermediate/advanced)
+        session_follow_up_count: How many follow-ups have been asked in this session.
         content_score: Optional content correctness score (0-10)
         voice_confidence_score: Optional voice confidence score (0-10)
         body_language_score: Optional body language score (0-10)
@@ -692,8 +695,11 @@ def analyze_answer_for_adaptive_difficulty(
         A dict with:
             {
                 "performance_score": float (0-10),
-                "next_difficulty": str (beginner/intermediate/advanced),
-                "reason": str (explanation of the decision)
+                "next_difficulty": str,
+                "reason": str,
+                "generate_follow_up": bool,
+                "follow_up_question": Optional[str],
+                "follow_up_reason": Optional[str]
             }
         Returns None on failure.
     """
@@ -724,7 +730,22 @@ CANDIDATE ANSWER:
 PERFORMANCE METRICS:
 {metrics_text}
 
-TASK: Evaluate the candidate's performance and recommend the next difficulty level.
+TASK: Evaluate the candidate's performance and decide the next step. You must provide two things:
+1. A recommendation for the next question's difficulty.
+2. A decision on whether to ask a context-aware follow-up question.
+
+FOLLOW-UP QUESTION RULES:
+- You can only generate a follow-up if the session follow-up count ({session_follow_up_count}) is less than the max ({max_follow_ups}).
+- A follow-up is warranted if the answer is vague, incomplete, generic, or mentions a specific project/skill worth probing deeper.
+- The follow-up question must be natural and directly related to the candidate's last answer.
+- Examples: "Can you provide a specific example of that?", "What was your exact role on that project?", "Tell me more about the challenges you faced with [technology mentioned]."
+- If no follow-up is needed, `generate_follow_up` must be `false`.
+
+DIFFICULTY ADJUSTMENT RULES:
+- Performance score 0-3: Poor understanding -> suggest easier questions ('beginner').
+- Performance score 4-6: Adequate understanding -> maintain current difficulty ('{current_difficulty}').
+- Performance score 7-10: Strong understanding -> suggest harder questions ('intermediate' or 'advanced').
+- Adhere to the allowed transitions based on the current difficulty.
 
 SCORING GUIDELINES:
 - Performance score 0-3: Poor understanding, needs easier questions
@@ -737,15 +758,21 @@ DIFFICULTY TRANSITIONS:
 - If current is advanced: can stay intermediate or stay advanced (don't go beyond advanced)
 
 Return ONLY valid JSON with these keys:
-- performance_score: a number between 0 and 10 based on overall answer quality
-- next_difficulty: one of "beginner", "intermediate", or "advanced"
-- reason: a brief 1-2 sentence explanation of why this difficulty was chosen
+- `performance_score`: a number between 0 and 10 for the answer's quality.
+- `next_difficulty`: one of "beginner", "intermediate", or "advanced".
+- `reason`: a brief 1-2 sentence explanation for the difficulty choice.
+- `generate_follow_up`: boolean `true` or `false`.
+- `follow_up_question`: the text of the follow-up question if `generate_follow_up` is true, otherwise `null`.
+- `follow_up_reason`: a brief explanation of why a follow-up was triggered, otherwise `null`.
 """
 
     try:
-        text = _call_groq(prompt, timeout=20)
+        # Increased timeout slightly to accommodate more complex generation
+        text = _call_groq(prompt, timeout=25)
         if not text:
-            logger.warning('Adaptive difficulty analysis: No Groq response')
+            logger.warning(
+                'analyze_answer_and_determine_next_step: No Groq response'
+            )
             return None
 
         # Strip markdown fences if present
@@ -755,16 +782,22 @@ Return ONLY valid JSON with these keys:
         try:
             result = json.loads(cleaned)
         except json.JSONDecodeError:
-            # Fallback: try to extract values with regex
+            # Fallback for malformed JSON is less reliable but better than nothing
             perf_match = re.search(r'performance_score[^0-9]*(\d+(?:\.\d+)?)', cleaned, flags=re.IGNORECASE)
             diff_match = re.search(r'next_difficulty["\s:]+(\w+)', cleaned, flags=re.IGNORECASE)
-            reason_match = re.search(r'reason["\s:]+([^,}\n]+)', cleaned, flags=re.IGNORECASE)
+            follow_up_match = re.search(r'generate_follow_up["\s:]+(true|false)', cleaned, flags=re.IGNORECASE)
 
             result = {
                 'performance_score': float(perf_match.group(1)) if perf_match else 5.0,
                 'next_difficulty': diff_match.group(1) if diff_match else current_difficulty,
-                'reason': reason_match.group(1).strip('"') if reason_match else 'Unable to determine reason'
+                'reason': 'Reason not parsable from response.',
+                'generate_follow_up': follow_up_match.group(1) == 'true' if follow_up_match else False,
+                'follow_up_question': None, # Too complex for regex fallback
+                'follow_up_reason': None,
             }
+            # If regex fallback decided to generate a follow-up, we can't trust it without the text.
+            if result['generate_follow_up']:
+                result['generate_follow_up'] = False
 
         # Validate and normalize
         perf_score = result.get('performance_score', 5.0)
@@ -784,14 +817,26 @@ Return ONLY valid JSON with these keys:
         elif current_difficulty == 'advanced' and next_diff == 'beginner':
             next_diff = 'intermediate'  # Drop to intermediate, not beginner
 
-        reason = result.get('reason', 'Performance analysis complete')[:200]
+        # Handle follow-up logic
+        generate_follow_up = result.get('generate_follow_up', False) and can_generate_follow_up
+        follow_up_question = result.get('follow_up_question') if generate_follow_up else None
+        follow_up_reason = result.get('follow_up_reason') if generate_follow_up else None
+
+        # Final sanity check: if we decided to generate a follow-up, the text must exist.
+        if generate_follow_up and not (isinstance(follow_up_question, str) and follow_up_question.strip()):
+            generate_follow_up = False
+            follow_up_question = None
+            follow_up_reason = None
 
         return {
             'performance_score': max(0.0, min(10.0, perf_score)),
             'next_difficulty': next_diff,
-            'reason': reason
+            'reason': str(result.get('reason', 'Analysis complete.'))[:500],
+            'generate_follow_up': generate_follow_up,
+            'follow_up_question': html.unescape(follow_up_question) if follow_up_question else None,
+            'follow_up_reason': html.unescape(follow_up_reason) if follow_up_reason else None,
         }
 
     except Exception as exc:
-        logger.warning('Adaptive difficulty analysis failed: %s', exc)
+        logger.warning('analyze_answer_and_determine_next_step failed: %s', exc)
         return None

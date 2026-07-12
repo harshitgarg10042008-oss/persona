@@ -301,6 +301,11 @@ class IndividualAssessment(models.Model):
         ('advanced', 'Advanced'),
     ], default='intermediate', help_text="Current difficulty tier for adaptive selection")
 
+    # Follow-up Engine fields
+    pending_follow_up_text = models.TextField(null=True, blank=True, help_text="AI-generated follow-up question waiting to be asked")
+    pending_follow_up_reason = models.TextField(null=True, blank=True, help_text="Reason for generating the follow-up")
+    session_follow_up_count = models.PositiveIntegerField(default=0, help_text="Number of follow-ups asked in this session")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -496,6 +501,17 @@ class IndividualAssessmentResponse(models.Model):
     
     def __str__(self):
         return f"{self.assessment.user.email} - Q{self.question_order}"
+
+
+class FollowUpResponse(models.Model):
+    """Follow-up responses generated for an assessment response"""
+    parent_response = models.ForeignKey(IndividualAssessmentResponse, on_delete=models.CASCADE, related_name='follow_ups')
+    follow_up_prompt = models.TextField(help_text="The AI-generated follow-up question text")
+    follow_up_reason = models.TextField(null=True, blank=True, help_text="Why this follow-up was triggered")
+    answer_text = models.TextField(null=True, blank=True)
+    audio_file = models.FileField(upload_to='assessments/follow_up_audio/', null=True, blank=True)
+    video_file = models.FileField(upload_to='assessments/follow_up_video/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class AssessmentSnapshot(models.Model):
