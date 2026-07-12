@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/business-assessment/{{assessment_id}}/combined/'
+order: 10000
+pathVariables:
+  - key: assessment_id
+    value: '{{assessment_id}}'

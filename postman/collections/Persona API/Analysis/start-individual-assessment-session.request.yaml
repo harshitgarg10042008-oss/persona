@@ -1,0 +1,16 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/analysis/individual/{{session_id}}/start-session/'
+order: 17000
+pathVariables:
+  - key: session_id
+    value: '{{session_id}}'
+body:
+  type: formdata
+  content:
+    - key: adaptive_mode
+      type: text
+      value: 'true'
+    - key: resume
+      type: file
+      src: ''

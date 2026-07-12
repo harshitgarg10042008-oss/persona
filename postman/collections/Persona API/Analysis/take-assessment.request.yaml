@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/assessment/{{link_id}}/'
+order: 8000
+pathVariables:
+  - key: link_id
+    value: '{{link_id}}'

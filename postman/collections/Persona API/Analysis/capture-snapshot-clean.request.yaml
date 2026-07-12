@@ -1,0 +1,18 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/analysis/capture-snapshot/{{session_id}}/'
+order: 28000
+headers:
+  - key: Content-Type
+    value: application/json
+pathVariables:
+  - key: session_id
+    value: '{{session_id}}'
+body:
+  type: json
+  content: |-
+    {
+      "analysis_type": "body_language",
+      "image_data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
+      "question_id": 1
+    }

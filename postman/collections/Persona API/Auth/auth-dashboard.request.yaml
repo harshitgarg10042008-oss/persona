@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'dashboard'
+method: GET
+url: '{{baseUrl}}/auth/dashboard/'
+order: 8000

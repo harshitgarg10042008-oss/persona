@@ -1,0 +1,4 @@
+$kind: collection
+name: 'Analysis'
+description: 'Business and individual assessment endpoints from AnalysisAPI.'
+order: 3000

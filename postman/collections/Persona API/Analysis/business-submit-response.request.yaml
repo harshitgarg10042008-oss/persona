@@ -1,0 +1,16 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/analysis/business-response/{{assessment_id}}/'
+order: 13000
+pathVariables:
+  - key: assessment_id
+    value: '{{assessment_id}}'
+body:
+  type: formdata
+  content:
+    - key: question_order
+      type: text
+      value: '1'
+    - key: audio_data
+      type: file
+      src: ''

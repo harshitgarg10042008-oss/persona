@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/individual/{{session_id}}/pdf/'
+order: 22000
+pathVariables:
+  - key: session_id
+    value: '{{session_id}}'

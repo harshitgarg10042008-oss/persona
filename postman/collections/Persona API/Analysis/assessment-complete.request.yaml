@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/assessment-complete/{{assessment_id}}/'
+order: 9000
+pathVariables:
+  - key: assessment_id
+    value: '{{assessment_id}}'

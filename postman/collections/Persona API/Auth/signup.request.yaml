@@ -1,0 +1,22 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/signup/'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: user_type
+      value: 'individual'
+    - key: username
+      value: 'demo_user'
+    - key: email
+      value: 'demo@example.com'
+    - key: password1
+      value: 'ChangeMe123!'
+    - key: password2
+      value: 'ChangeMe123!'
+    - key: remember_me
+      value: 'on'

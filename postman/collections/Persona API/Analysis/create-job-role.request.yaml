@@ -1,0 +1,14 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/analysis/job-roles/create/'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: title
+      value: 'Software Engineer'
+    - key: description
+      value: 'Backend-focused interview role'

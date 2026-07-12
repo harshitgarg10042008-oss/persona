@@ -1,0 +1,16 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/login/'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: username
+      value: 'demo_user'
+    - key: password
+      value: 'ChangeMe123!'
+    - key: remember_me
+      value: 'on'

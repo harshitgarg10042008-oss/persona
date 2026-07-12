@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/job-roles/{{job_role_id}}/results/'
+order: 4000
+pathVariables:
+  - key: job_role_id
+    value: '{{job_role_id}}'

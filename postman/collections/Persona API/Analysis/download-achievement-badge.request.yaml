@@ -1,0 +1,7 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/analysis/badge/{{session_id}}/download/'
+order: 33000
+pathVariables:
+  - key: session_id
+    value: '{{session_id}}'
