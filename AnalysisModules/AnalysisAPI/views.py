@@ -17,6 +17,9 @@ import base64
 from datetime import datetime, timedelta
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from pypdf import PdfReader
@@ -724,8 +727,7 @@ def business_submit_response(request, assessment_id):
             else:
                 print(f'[ADAPTIVE-BIZ] Adaptive analysis returned None for Q{question_order}, keeping current difficulty.')
         except Exception as adaptive_err:
-            import logging as _logging
-            _logging.getLogger(__name__).warning('Business adaptive difficulty error: %s', adaptive_err)
+            logger.warning('Business adaptive difficulty error: %s', adaptive_err)
         
         return JsonResponse({
             'success': True,
@@ -1148,7 +1150,7 @@ def submit_assessment_response(request, session_id):
         
         # Check if we are answering a pending follow-up
         is_answering_follow_up = bool(assessment.pending_follow_up_text)
-        
+
         if is_answering_follow_up:
             current_question = None
             question_text_for_analysis = assessment.pending_follow_up_text
@@ -1160,9 +1162,45 @@ def submit_assessment_response(request, session_id):
             # Get current planned question
             current_question = assessment.get_next_question()
             if not current_question:
-                return JsonResponse({'error': 'No current question'}, status=400)
+                # No more questions — this is a duplicate call after the assessment already
+                # advanced past the last question.  Return gracefully instead of crashing.
+                is_complete = assessment.current_question_index >= assessment.total_questions
+                logger.warning(
+                    'submit_assessment_response: no current question for session %s '
+                    '(index=%d total=%d) — probable duplicate POST, returning current state.',
+                    session_id, assessment.current_question_index, assessment.total_questions,
+                )
+                return JsonResponse({
+                    'success': True,
+                    'is_complete': is_complete,
+                    'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
+                    'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+                })
             question_text_for_analysis = current_question.question_text
             parent_response = None
+
+        # Idempotency guard: if a response for this exact question_order already exists
+        # (i.e. the first POST already committed before this duplicate arrived), return
+        # the current state instead of creating a duplicate record and crashing.
+        if not is_answering_follow_up:
+            already_answered = IndividualAssessmentResponse.objects.filter(
+                assessment=assessment,
+                question=current_question,
+                question_order=assessment.current_question_index + 1,
+            ).exists()
+            if already_answered:
+                is_complete = assessment.current_question_index >= assessment.total_questions
+                logger.warning(
+                    'submit_assessment_response: duplicate POST detected for session %s '
+                    'question_order=%d — returning current state without re-processing.',
+                    session_id, assessment.current_question_index + 1,
+                )
+                return JsonResponse({
+                    'success': True,
+                    'is_complete': is_complete,
+                    'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
+                    'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+                })
         
         # Parse request data
         data = json.loads(request.body)
@@ -1268,6 +1306,7 @@ def submit_assessment_response(request, session_id):
                         }
                     
             except Exception as e:
+                logger.exception("[DIAG] submit_assessment_response: Audio processing error — full traceback:")  # DIAG
                 print(f"Audio processing error: {e}")
         
         if not is_answering_follow_up:
@@ -1352,6 +1391,7 @@ def submit_assessment_response(request, session_id):
                     
             except Exception as e:
                 # Fallback: log error but continue with current difficulty
+                logger.exception("[DIAG] submit_assessment_response: Error in adaptive analysis block — full traceback:")  # DIAG
                 print(f'[ADAPTIVE] Error in adaptive analysis: {e}')
                 logger.warning(f'Adaptive difficulty analysis error: {e}')
                 assessment.current_question_index += 1
@@ -1376,6 +1416,7 @@ def submit_assessment_response(request, session_id):
         })
         
     except Exception as e:
+        logger.exception("[DIAG] submit_assessment_response: Outer exception — full traceback:")  # DIAG
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -2469,6 +2510,22 @@ def check_processing_status(request, session_id):
     except Exception as e:
         print(f"Processing status check failed: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def processing_interstitial(request, session_id):
+    """Show processing interstitial page while analysis completes in background"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+    
+    context = {
+        'assessment': assessment,
+        'session_id': session_id,
+    }
+    return render(request, 'analysis/processing_interstitial.html', context)
 
 
 @login_required

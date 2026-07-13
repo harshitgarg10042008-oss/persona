@@ -716,6 +716,10 @@ async function stopRecording() {
         
         try { mediaRecorder.requestData(); } catch(e) {}
         mediaRecorder.stop();
+        // NOTE: do NOT call processAudioRecording() here.
+        // mediaRecorder.onstop (set in startRecording) already calls it once
+        // the recorder has flushed all chunks. Calling it again here was the
+        // root cause of the duplicate POST to /submit/.
         
         if (recordingPromise) {
             await recordingPromise;
@@ -731,16 +735,20 @@ async function stopRecording() {
         recordStatus.innerHTML = '<span style="color: var(--color-success); font-weight: 600;">✓ Answer recorded successfully</span>';
         
         document.getElementById('next-button').style.display = 'block';
-        
-        // Process and submit the audio recording
-        processAudioRecording();
     }
 }
 
 // Process audio recording
 let submitPromise = null; // Track submission promise
+let submissionInFlight = false; // Guard against duplicate submissions
 
 function processAudioRecording() {
+    // Guard: if a submission is already in progress (e.g. onstop fired and
+    // stopRecording both called this), silently ignore the second call.
+    if (submissionInFlight) {
+        console.warn('[submit] processAudioRecording called while submission already in flight — ignoring duplicate.');
+        return;
+    }
     if (audioChunks.length === 0) {
         showWarning('No audio recorded. Please try again.');
         return;
@@ -765,7 +773,10 @@ function processAudioRecording() {
     
     reader.onload = function() {
         const audioData = reader.result;
-        submitPromise = submitResponse(audioData);
+        submissionInFlight = true;
+        submitPromise = submitResponse(audioData).finally(() => {
+            submissionInFlight = false;
+        });
     };
     
     reader.readAsDataURL(audioBlob);
@@ -814,11 +825,22 @@ async function submitResponse(audioData) {
 
 // Next question
 async function nextQuestion() {
+    // Disable the button immediately to prevent double-click double-POST
+    const nextBtn = document.getElementById('next-button');
+    if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.textContent = 'Saving…';
+    }
+
     // Wait for submission to complete before moving to next question
     if (submitPromise) {
         const result = await submitPromise;
         if (!result) {
             showWarning('Response submission failed. Please try again.');
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.textContent = 'Next Question →';
+            }
             return;
         }
     }

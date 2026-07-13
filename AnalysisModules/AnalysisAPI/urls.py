@@ -46,6 +46,7 @@ urlpatterns = [
     path('combined-snapshot/<uuid:session_id>/', views.capture_snapshot_combined, name='capture_snapshot_combined'),
     path('combined-response/<uuid:session_id>/', views.submit_response_combined, name='submit_response_combined'),
     path('processing-status/<uuid:session_id>/', views.check_processing_status, name='check_processing_status'),
+    path('assessment/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),
     
     # Clean Assessment System (New Implementation)
     path('assessment/<uuid:session_id>/clean/', views.clean_assessment_question, name='clean_assessment_question'),

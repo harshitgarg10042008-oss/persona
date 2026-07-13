@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Processing Your Interview | Persona AI{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
+    <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-900 p-10 rounded-xl shadow-lg text-center">
+        <div>
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900 dark:text-gray-50">
+                Analyzing Your Responses
+            </h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
+                Please wait while our AI analyzes your interview responses. This usually takes a few moments.
+            </p>
+        </div>
+
+        <div class="mt-8 flex justify-center">
+            <div id="spinner" class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+        </div>
+
+        <div class="mt-6">
+            <p id="status-text" class="text-md font-medium text-indigo-600 dark:text-indigo-400">
+                Analyzing your responses...
+            </p>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4">
+                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p id="pending-count" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Checking status...
+            </p>
+        </div>
+
+        <!-- Failed warning — hidden until needed -->
+        <div id="failed-warning" style="display:none;" class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-left">
+            <p class="text-sm font-medium text-yellow-800 dark:text-yellow-200">⚠️ Some responses could not be fully analyzed</p>
+            <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-1" id="failed-detail"></p>
+        </div>
+
+        <!-- Manual redirect button — shown after done or timeout -->
+        <div id="redirect-area" style="display:none;" class="mt-4">
+            <a id="redirect-link"
+               href="/analysis/individual/{{ session_id }}/complete/"
+               class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                View Results Now
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sessionId = "{{ session_id }}";
+        const statusText = document.getElementById('status-text');
+        const pendingCountText = document.getElementById('pending-count');
+        const progressBar = document.getElementById('progress-bar');
+        const spinner = document.getElementById('spinner');
+        const failedWarning = document.getElementById('failed-warning');
+        const failedDetail = document.getElementById('failed-detail');
+        const redirectArea = document.getElementById('redirect-area');
+
+        const startTime = Date.now();
+        const MAX_TIMEOUT_MS = 60 * 1000; // 60-second hard timeout
+
+        let pollInterval = setInterval(checkStatus, 3000); // Poll every 3 seconds
+
+        // Hard timeout: redirect to results anyway after 60 seconds
+        setTimeout(function() {
+            clearInterval(pollInterval);
+            spinner.style.display = 'none';
+            statusText.textContent = "Processing taking longer than expected — redirecting to results...";
+            redirectArea.style.display = 'block';
+            failedWarning.style.display = 'block';
+            failedDetail.textContent = "Processing took too long. Some transcripts may be missing.";
+            setTimeout(function() {
+                window.location.href = '/analysis/individual/' + sessionId + '/complete/';
+            }, 3000);
+        }, MAX_TIMEOUT_MS);
+
+        function checkStatus() {
+            fetch('/analysis/processing-status/' + sessionId + '/')
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        var failedCount = data.failed_count || 0;
+                        progressBar.style.width = data.progress_percentage + '%';
+
+                        if (data.processing_complete) {
+                            clearInterval(pollInterval);
+                            spinner.style.display = 'none';
+
+                            if (failedCount > 0) {
+                                statusText.textContent = 'Completed with ' + failedCount + ' error(s). Redirecting...';
+                                statusText.style.color = '#d97706'; // amber
+                                failedWarning.style.display = 'block';
+                                failedDetail.textContent = failedCount + ' response(s) could not be analyzed — those transcripts will be unavailable.';
+                            } else {
+                                statusText.textContent = 'Analysis complete! Redirecting to results...';
+                            }
+                            pendingCountText.textContent = '';
+                            redirectArea.style.display = 'block';
+
+                            // Auto-redirect after 2 seconds
+                            setTimeout(function() {
+                                window.location.href = '/analysis/individual/' + sessionId + '/complete/';
+                            }, 2000);
+
+                        } else {
+                            var info = data.pending_count + ' response(s) still processing...';
+                            if (failedCount > 0) { info += ' (' + failedCount + ' already failed)'; }
+                            pendingCountText.textContent = info;
+
+                            if (failedCount > 0) {
+                                failedWarning.style.display = 'block';
+                                failedDetail.textContent = failedCount + ' response(s) failed so far.';
+                            }
+                        }
+                    } else {
+                        console.error('Error checking status:', data.error);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Fetch error:', error);
+                });
+        }
+
+        // Initial check immediately
+        checkStatus();
+    });
+</script>
+{% endblock %}
