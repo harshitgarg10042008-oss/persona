@@ -1188,7 +1188,7 @@ def submit_assessment_response(request, session_id):
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                    'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+                    'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
                 })
             question_text_for_analysis = current_question.question_text
             parent_response = None
@@ -1213,7 +1213,7 @@ def submit_assessment_response(request, session_id):
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                    'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+                    'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
                 })
         
         # Parse request data
@@ -1250,7 +1250,7 @@ def submit_assessment_response(request, session_id):
                 'success': True,
                 'is_complete': is_complete,
                 'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None,
+                'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
             })
 
         # Create response record
@@ -1433,7 +1433,7 @@ def submit_assessment_response(request, session_id):
             'success': True,
             'is_complete': is_complete,
             'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-            'complete_url': f'/analysis/individual/{session_id}/complete/' if is_complete else None
+            'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None
         })
         
     except Exception as e:

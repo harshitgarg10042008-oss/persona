@@ -3,129 +3,538 @@
 
 {% block title %}Processing Your Interview | Persona AI{% endblock %}
 
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #0a0a14;
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+    }
+
+    .processing-page {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0a0a14 0%, #0d0d20 50%, #0a0a14 100%);
+    }
+
+    /* Animated background particles */
+    .bg-particles {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .particle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(99, 102, 241, 0.15);
+        animation: floatParticle linear infinite;
+    }
+
+    @keyframes floatParticle {
+        0% { transform: translateY(100vh) scale(0); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 0.5; }
+        100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
+
+    /* Grid lines background */
+    .grid-bg {
+        position: fixed;
+        inset: 0;
+        background-image: 
+            linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
+        pointer-events: none;
+    }
+
+    .card {
+        position: relative;
+        background: rgba(255,255,255,0.03);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 28px;
+        padding: 52px 48px;
+        max-width: 560px;
+        width: 90%;
+        box-shadow: 
+            0 0 0 1px rgba(99,102,241,0.1),
+            0 40px 80px rgba(0,0,0,0.5),
+            0 0 120px rgba(99,102,241,0.05);
+        z-index: 10;
+    }
+
+    /* Glowing orb behind card */
+    .card::before {
+        content: '';
+        position: absolute;
+        top: -80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: -1;
+        animation: orbPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes orbPulse {
+        0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    }
+
+    /* Brain icon with ring animation */
+    .icon-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 32px;
+        position: relative;
+    }
+
+    .icon-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        animation: spinRing linear infinite;
+    }
+    .ring-1 { width: 90px; height: 90px; border-top-color: rgba(99,102,241,0.8); animation-duration: 2s; }
+    .ring-2 { width: 110px; height: 110px; border-right-color: rgba(139,92,246,0.5); animation-duration: 3s; animation-direction: reverse; }
+    .ring-3 { width: 130px; height: 130px; border-bottom-color: rgba(99,102,241,0.3); animation-duration: 4s; }
+
+    @keyframes spinRing {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .icon-core {
+        width: 68px;
+        height: 68px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        box-shadow: 0 0 30px rgba(99,102,241,0.5), 0 0 60px rgba(99,102,241,0.2);
+        animation: iconGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes iconGlow {
+        0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.5), 0 0 60px rgba(99,102,241,0.2); }
+        50% { box-shadow: 0 0 50px rgba(99,102,241,0.8), 0 0 100px rgba(99,102,241,0.4); }
+    }
+
+    .title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #f1f5f9;
+        text-align: center;
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+        color: rgba(148,163,184,0.8);
+        text-align: center;
+        margin-bottom: 40px;
+        line-height: 1.6;
+    }
+
+    /* Status message cycling */
+    .status-message-wrap {
+        text-align: center;
+        height: 28px;
+        margin-bottom: 28px;
+        overflow: hidden;
+        position: relative;
+    }
+    .status-msg {
+        font-size: 15px;
+        font-weight: 500;
+        color: #818cf8;
+        position: absolute;
+        width: 100%;
+        left: 0;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .status-msg.active {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Main progress bar */
+    .progress-track {
+        background: rgba(255,255,255,0.06);
+        border-radius: 99px;
+        height: 8px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        position: relative;
+    }
+    .progress-fill {
+        height: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+        background-size: 200% 100%;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        animation: shimmer 2s linear infinite;
+    }
+    @keyframes shimmer {
+        0% { background-position: 200% center; }
+        100% { background-position: -200% center; }
+    }
+
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #a78bfa;
+        box-shadow: 0 0 10px rgba(167,139,250,0.8);
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(148,163,184,0.6);
+        margin-bottom: 32px;
+    }
+
+    /* Processing steps */
+    .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 36px;
+    }
+
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.04);
+        transition: all 0.4s ease;
+    }
+
+    .step.done {
+        background: rgba(99,102,241,0.08);
+        border-color: rgba(99,102,241,0.2);
+    }
+
+    .step.active {
+        background: rgba(99,102,241,0.12);
+        border-color: rgba(99,102,241,0.3);
+        box-shadow: 0 0 20px rgba(99,102,241,0.1);
+    }
+
+    .step-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+        transition: all 0.4s ease;
+    }
+
+    .step.done .step-icon {
+        background: rgba(34,197,94,0.15);
+    }
+
+    .step.active .step-icon {
+        background: rgba(99,102,241,0.2);
+        animation: stepIconPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes stepIconPulse {
+        0%, 100% { box-shadow: none; }
+        50% { box-shadow: 0 0 12px rgba(99,102,241,0.5); }
+    }
+
+    .step-text {
+        flex: 1;
+    }
+    .step-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(241,245,249,0.9);
+    }
+    .step-desc {
+        font-size: 11px;
+        color: rgba(148,163,184,0.6);
+        margin-top: 1px;
+    }
+    .step-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 99px;
+    }
+    .step.done .step-badge { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .step.active .step-badge { background: rgba(99,102,241,0.2); color: #818cf8; }
+    .step.pending .step-badge { background: rgba(255,255,255,0.05); color: rgba(148,163,184,0.5); }
+
+    /* Footer text */
+    .footer-note {
+        text-align: center;
+        font-size: 12px;
+        color: rgba(148,163,184,0.4);
+        line-height: 1.6;
+    }
+
+    .dots-loader {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+    }
+    .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #6366f1;
+        animation: dotBounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotBounce {
+        0%, 100% { transform: translateY(0); opacity: 0.4; }
+        50% { transform: translateY(-5px); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-    <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-900 p-10 rounded-xl shadow-lg text-center">
-        <div>
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900 dark:text-gray-50">
-                Analyzing Your Responses
-            </h2>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
-                Please wait while our AI analyzes your interview responses. This usually takes a few moments.
-            </p>
+<div class="processing-page">
+    <!-- Background effects -->
+    <div class="grid-bg"></div>
+    <div class="bg-particles" id="particles"></div>
+
+    <div class="card">
+        <!-- Animated icon -->
+        <div class="icon-container">
+            <div class="icon-ring ring-1"></div>
+            <div class="icon-ring ring-2"></div>
+            <div class="icon-ring ring-3"></div>
+            <div class="icon-core">🧠</div>
         </div>
 
-        <div class="mt-8 flex justify-center">
-            <div id="spinner" class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+        <h1 class="title">Analyzing Your Interview</h1>
+        <p class="subtitle">
+            Our AI is carefully reviewing every aspect of your responses.<br>
+            Sit back — this usually takes under a minute.
+        </p>
+
+        <!-- Cycling status messages -->
+        <div class="status-message-wrap">
+            <div class="status-msg active" id="msg-0">🔍 Transcribing your voice responses...</div>
+            <div class="status-msg" id="msg-1">💡 Evaluating communication clarity...</div>
+            <div class="status-msg" id="msg-2">📊 Scoring your technical knowledge...</div>
+            <div class="status-msg" id="msg-3">🎯 Analyzing behavioral signals...</div>
+            <div class="status-msg" id="msg-4">🧬 Checking body language patterns...</div>
+            <div class="status-msg" id="msg-5">✨ Generating your personalized report...</div>
+            <div class="status-msg" id="msg-6">⏳ Almost there — stay calm...</div>
         </div>
 
-        <div class="mt-6">
-            <p id="status-text" class="text-md font-medium text-indigo-600 dark:text-indigo-400">
-                Analyzing your responses...
-            </p>
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4">
-                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+        <!-- Progress bar -->
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="progress-label">
+            <span id="progress-pct">Initializing...</span>
+            <span id="pending-info"></span>
+        </div>
+
+        <!-- Processing steps -->
+        <div class="steps">
+            <div class="step active" id="step-transcription">
+                <div class="step-icon">🎤</div>
+                <div class="step-text">
+                    <div class="step-name">Voice Transcription</div>
+                    <div class="step-desc">Converting your answers to text</div>
+                </div>
+                <span class="step-badge">Processing</span>
             </div>
-            <p id="pending-count" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Checking status...
-            </p>
+            <div class="step pending" id="step-nlp">
+                <div class="step-icon">🧩</div>
+                <div class="step-text">
+                    <div class="step-name">Content Analysis</div>
+                    <div class="step-desc">Evaluating depth and accuracy</div>
+                </div>
+                <span class="step-badge">Pending</span>
+            </div>
+            <div class="step pending" id="step-behavior">
+                <div class="step-icon">👁️</div>
+                <div class="step-text">
+                    <div class="step-name">Behavioral Analysis</div>
+                    <div class="step-desc">Reviewing confidence & engagement</div>
+                </div>
+                <span class="step-badge">Pending</span>
+            </div>
+            <div class="step pending" id="step-report">
+                <div class="step-icon">📄</div>
+                <div class="step-text">
+                    <div class="step-name">Report Generation</div>
+                    <div class="step-desc">Compiling your full results</div>
+                </div>
+                <span class="step-badge">Pending</span>
+            </div>
         </div>
 
-        <!-- Failed warning — hidden until needed -->
-        <div id="failed-warning" style="display:none;" class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-left">
-            <p class="text-sm font-medium text-yellow-800 dark:text-yellow-200">⚠️ Some responses could not be fully analyzed</p>
-            <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-1" id="failed-detail"></p>
-        </div>
-
-        <!-- Manual redirect button — shown after done or timeout -->
-        <div id="redirect-area" style="display:none;" class="mt-4">
-            <a id="redirect-link"
-               href="/analysis/individual/{{ session_id }}/complete/"
-               class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                View Results Now
-            </a>
+        <div class="footer-note">
+            Please keep this tab open &mdash; we'll redirect you automatically when ready
+            <br>
+            <span class="dots-loader" style="margin-top: 8px; display: inline-flex;">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </span>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sessionId = "{{ session_id }}";
-        const statusText = document.getElementById('status-text');
-        const pendingCountText = document.getElementById('pending-count');
-        const progressBar = document.getElementById('progress-bar');
-        const spinner = document.getElementById('spinner');
-        const failedWarning = document.getElementById('failed-warning');
-        const failedDetail = document.getElementById('failed-detail');
-        const redirectArea = document.getElementById('redirect-area');
-
-        const startTime = Date.now();
-        const MAX_TIMEOUT_MS = 60 * 1000; // 60-second hard timeout
-
-        let pollInterval = setInterval(checkStatus, 3000); // Poll every 3 seconds
-
-        // Hard timeout: redirect to results anyway after 60 seconds
-        setTimeout(function() {
-            clearInterval(pollInterval);
-            spinner.style.display = 'none';
-            statusText.textContent = "Processing taking longer than expected — redirecting to results...";
-            redirectArea.style.display = 'block';
-            failedWarning.style.display = 'block';
-            failedDetail.textContent = "Processing took too long. Some transcripts may be missing.";
-            setTimeout(function() {
-                window.location.href = '/analysis/individual/' + sessionId + '/complete/';
-            }, 3000);
-        }, MAX_TIMEOUT_MS);
-
-        function checkStatus() {
-            fetch('/analysis/processing-status/' + sessionId + '/')
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        var failedCount = data.failed_count || 0;
-                        progressBar.style.width = data.progress_percentage + '%';
-
-                        if (data.processing_complete) {
-                            clearInterval(pollInterval);
-                            spinner.style.display = 'none';
-
-                            if (failedCount > 0) {
-                                statusText.textContent = 'Completed with ' + failedCount + ' error(s). Redirecting...';
-                                statusText.style.color = '#d97706'; // amber
-                                failedWarning.style.display = 'block';
-                                failedDetail.textContent = failedCount + ' response(s) could not be analyzed — those transcripts will be unavailable.';
-                            } else {
-                                statusText.textContent = 'Analysis complete! Redirecting to results...';
-                            }
-                            pendingCountText.textContent = '';
-                            redirectArea.style.display = 'block';
-
-                            // Auto-redirect after 2 seconds
-                            setTimeout(function() {
-                                window.location.href = '/analysis/individual/' + sessionId + '/complete/';
-                            }, 2000);
-
-                        } else {
-                            var info = data.pending_count + ' response(s) still processing...';
-                            if (failedCount > 0) { info += ' (' + failedCount + ' already failed)'; }
-                            pendingCountText.textContent = info;
-
-                            if (failedCount > 0) {
-                                failedWarning.style.display = 'block';
-                                failedDetail.textContent = failedCount + ' response(s) failed so far.';
-                            }
-                        }
-                    } else {
-                        console.error('Error checking status:', data.error);
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Fetch error:', error);
-                });
+    // Generate floating particles
+    (function() {
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 60 + 20;
+            p.style.cssText = `
+                width: ${size}px; height: ${size}px;
+                left: ${Math.random() * 100}%;
+                animation-duration: ${Math.random() * 15 + 10}s;
+                animation-delay: ${Math.random() * 10}s;
+            `;
+            container.appendChild(p);
         }
+    })();
 
-        // Initial check immediately
+    // Cycle status messages
+    const messages = document.querySelectorAll('.status-msg');
+    let currentMsg = 0;
+    setInterval(function() {
+        messages[currentMsg].classList.remove('active');
+        currentMsg = (currentMsg + 1) % messages.length;
+        messages[currentMsg].classList.add('active');
+    }, 2800);
+
+    // Steps definitions — unlock at progress thresholds
+    const steps = [
+        { el: document.getElementById('step-transcription'), threshold: 0 },
+        { el: document.getElementById('step-nlp'), threshold: 30 },
+        { el: document.getElementById('step-behavior'), threshold: 60 },
+        { el: document.getElementById('step-report'), threshold: 85 },
+    ];
+
+    function updateSteps(progress) {
+        steps.forEach((s, i) => {
+            const next = steps[i + 1];
+            if (progress >= s.threshold && (!next || progress < next.threshold)) {
+                s.el.className = 'step active';
+                s.el.querySelector('.step-badge').textContent = 'Processing';
+            } else if (progress >= s.threshold) {
+                s.el.className = 'step done';
+                s.el.querySelector('.step-badge').textContent = '✓ Done';
+            } else {
+                s.el.className = 'step pending';
+                s.el.querySelector('.step-badge').textContent = 'Pending';
+            }
+        });
+    }
+
+    // Polling logic
+    const sessionId = "{{ session_id }}";
+    const progressBar = document.getElementById('progress-bar');
+    const progressPct = document.getElementById('progress-pct');
+    const pendingInfo = document.getElementById('pending-info');
+
+    // Fake minimum progress so it doesn't look stuck at 0
+    let displayedProgress = 0;
+    let realProgress = 0;
+    let pollInterval;
+
+    function animateTo(target) {
+        if (displayedProgress < target) {
+            displayedProgress = Math.min(displayedProgress + 1, target);
+            progressBar.style.width = displayedProgress + '%';
+            progressPct.textContent = displayedProgress + '% complete';
+            updateSteps(displayedProgress);
+            if (displayedProgress < target) {
+                requestAnimationFrame(() => animateTo(target));
+            }
+        }
+    }
+
+    // Creep up slowly even before real data arrives
+    let creepInterval = setInterval(() => {
+        if (displayedProgress < 20) {
+            animateTo(displayedProgress + 1);
+        }
+    }, 400);
+
+    function checkStatus() {
+        fetch('/analysis/processing-status/' + sessionId + '/')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+
+                realProgress = data.progress_percentage || 0;
+                clearInterval(creepInterval);
+                animateTo(Math.max(realProgress, displayedProgress));
+
+                const failed = data.failed_count || 0;
+                if (data.pending_count != null) {
+                    pendingInfo.textContent = data.pending_count + ' remaining';
+                }
+
+                if (data.processing_complete) {
+                    clearInterval(pollInterval);
+                    animateTo(100);
+                    progressPct.textContent = '100% complete';
+                    updateSteps(100);
+
+                    setTimeout(() => {
+                        window.location.href = '/analysis/individual/' + sessionId + '/complete/';
+                    }, 1800);
+                }
+            })
+            .catch(() => {}); // silently retry
+    }
+
+    // Start polling after 2 seconds
+    setTimeout(() => {
         checkStatus();
-    });
+        pollInterval = setInterval(checkStatus, 3000);
+    }, 2000);
+
+    // Hard timeout at 90 seconds — redirect anyway
+    setTimeout(() => {
+        clearInterval(pollInterval);
+        window.location.href = '/analysis/individual/' + sessionId + '/complete/';
+    }, 90000);
 </script>
 {% endblock %}

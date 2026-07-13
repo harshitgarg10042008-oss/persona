@@ -435,7 +435,7 @@
             <p style="font-size: 18px; margin-bottom: 20px;">
                 You must return to fullscreen mode to continue your assessment.
             </p>
-            <div class="warning-timer" id="warning-timer">15</div>
+            <div class="warning-timer" id="warning-timer">10</div>
             <p style="margin-bottom: 30px;">
                 Assessment will terminate automatically if you don't return to fullscreen.
             </p>
@@ -484,6 +484,15 @@
                         Initializing Camera...<br>
                         <small>Please allow camera access</small>
                     </div>
+                </div>
+            </div>
+
+            <div class="timer">
+                <div id="prep-timer" style="display: block;">
+                    Preparation Time: <span id="prep-time">10</span>s
+                </div>
+                <div id="response-timer" style="display: none;">
+                    Response Time: <span id="response-time">0</span>s
                 </div>
             </div>
 
@@ -581,6 +590,8 @@
     let isRecording = false;
     let questionTimer = null;
     let warningTimer = null;
+    let preparationTime = 30;
+    let responseTime = null;
     let sessionStartTime = new Date();
     let currentQuestionStartTime = new Date();
     let bodyLanguageInterval = null;
@@ -738,15 +749,20 @@
         document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
         // Request fullscreen
-        const container = document.getElementById('assessment-container');
-        if (container.requestFullscreen) {
-            container.requestFullscreen();
-        } else if (container.webkitRequestFullscreen) {
-            container.webkitRequestFullscreen();
-        } else if (container.mozRequestFullScreen) {
-            container.mozRequestFullScreen();
-        } else if (container.msRequestFullscreen) {
-            container.msRequestFullscreen();
+        try {
+            const container = document.getElementById('assessment-container');
+            if (container.requestFullscreen) {
+                const promise = container.requestFullscreen();
+                if (promise) promise.catch(e => console.warn('Fullscreen request failed:', e));
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen();
+            } else if (container.mozRequestFullScreen) {
+                container.mozRequestFullScreen();
+            } else if (container.msRequestFullscreen) {
+                container.msRequestFullscreen();
+            }
+        } catch(e) {
+            console.warn('Fullscreen request failed:', e);
         }
     }
 
@@ -768,7 +784,7 @@
         const warning = document.getElementById('fullscreen-warning');
         warning.style.display = 'flex';
 
-        let timeLeft = 15;
+        let timeLeft = 10;
         const timerElement = document.getElementById('warning-timer');
 
         warningTimer = setInterval(() => {
@@ -883,7 +899,7 @@
 
     // Question timer
     function startQuestionTimer() {
-        let timeLeft = 15;
+        let timeLeft = 10;
         const timerDisplay = document.getElementById('timer-display');
         const countdown = document.getElementById('countdown');
 
@@ -1107,7 +1123,12 @@
     }
 
     // Utility functions
+    // Get CSRF token
     function getCookie(name) {
+        if (name === 'csrftoken') {
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfInput) return csrfInput.value;
+        }
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');

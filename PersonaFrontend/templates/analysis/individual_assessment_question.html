@@ -417,7 +417,7 @@
             <div class="recording-controls">
                 <div id="timer" class="timer">
                     <div id="prep-timer" style="display: block;">
-                        Preparation Time: <span id="prep-time">30</span>s
+                        Preparation Time: <span id="prep-time">10</span>s
                     </div>
                     <div id="response-timer" style="display: none;">
                         Response Time: <span id="response-time">0</span>s
@@ -478,12 +478,39 @@
 </div>
 
 <script>
+    // Global error handler for debugging
+    window.addEventListener('error', function(e) {
+        const errDiv = document.createElement('div');
+        errDiv.style.position = 'fixed';
+        errDiv.style.top = '0';
+        errDiv.style.left = '0';
+        errDiv.style.zIndex = '9999';
+        errDiv.style.background = 'red';
+        errDiv.style.color = 'white';
+        errDiv.style.padding = '10px';
+        errDiv.innerText = 'JS Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+        document.body.appendChild(errDiv);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        const errDiv = document.createElement('div');
+        errDiv.style.position = 'fixed';
+        errDiv.style.top = '40px';
+        errDiv.style.left = '0';
+        errDiv.style.zIndex = '9999';
+        errDiv.style.background = 'orange';
+        errDiv.style.color = 'white';
+        errDiv.style.padding = '10px';
+        errDiv.innerText = 'Promise Rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+        document.body.appendChild(errDiv);
+    });
+</script>
+<script>
     // Global variables
     let mediaRecorder = null;
     let audioChunks = [];
     let videoStream = null;
     let isRecording = false;
-    let preparationTime = 20;
+    let preparationTime = 10;
     let responseTime = 0;
     let questionStartTime = Date.now();
     let responseStartTime = null;
@@ -517,12 +544,17 @@
 
     // Initialize fullscreen
     function initializeFullscreen() {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.mozRequestFullScreen) {
-            document.documentElement.mozRequestFullScreen();
+        try {
+            if (document.documentElement.requestFullscreen) {
+                const promise = document.documentElement.requestFullscreen();
+                if (promise) promise.catch(e => console.warn('Fullscreen request failed:', e));
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) {
+                document.documentElement.mozRequestFullScreen();
+            }
+        } catch(e) {
+            console.warn('Fullscreen init failed:', e);
         }
     }
 
@@ -979,8 +1011,7 @@
 
     // Skip question
     async function skipQuestion() {
-        const isMandatory = {{ question.is_mandatory| yesno: "true,false"
-    }};
+        const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
 
     let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
     if (isMandatory) {
@@ -1071,6 +1102,10 @@
 
     // Get CSRF token
     function getCookie(name) {
+        if (name === 'csrftoken') {
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfInput) return csrfInput.value;
+        }
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');

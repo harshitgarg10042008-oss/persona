@@ -400,15 +400,20 @@ function initializeFullscreen() {
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     
     // Request fullscreen
-    const container = document.getElementById('assessment-container');
-    if (container.requestFullscreen) {
-        container.requestFullscreen();
-    } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-    } else if (container.mozRequestFullScreen) {
-        container.mozRequestFullScreen();
-    } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
+    try {
+        const container = document.getElementById('assessment-container');
+        if (container.requestFullscreen) {
+            const promise = container.requestFullscreen();
+            if (promise) promise.catch(e => console.warn('Fullscreen request failed:', e));
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        } else if (container.mozRequestFullScreen) {
+            container.mozRequestFullScreen();
+        } else if (container.msRequestFullscreen) {
+            container.msRequestFullscreen();
+        }
+    } catch (e) {
+        console.warn('Fullscreen request failed:', e);
     }
 }
 
