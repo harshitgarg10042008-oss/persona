@@ -201,7 +201,7 @@ class WebSpeechAnalyzer:
                 # Calculate overall score
                 results['overall_score'] = self._calculate_overall_score(results)
                 
-                return results
+                return self._sanitize_numpy_types(results)
                 
             finally:
                 # Clean up temporary file
@@ -601,7 +601,7 @@ class WebSpeechAnalyzer:
             # Calculate overall confidence score (0-10 scale)
             overall_confidence = sum(scores.values()) / len(scores) * 10
             
-            return {
+            results = {
                 'score': round(overall_confidence, 1),
                 'observations': observations,
                 'metrics': {
@@ -618,6 +618,7 @@ class WebSpeechAnalyzer:
                 },
                 'detailed_scores': {k: round(v, 2) for k, v in scores.items()}
             }
+            return self._sanitize_numpy_types(results)
             
         except Exception as e:
             logger.error(f"Voice confidence analysis failed: {e}")
@@ -926,6 +927,20 @@ class WebSpeechAnalyzer:
             logger.error(f"Error calculating overall score: {e}")
             return 0.5
     
+    def _sanitize_numpy_types(self, obj):
+        """Recursively convert numpy scalar types to native Python types"""
+        if hasattr(obj, 'item') and hasattr(obj, 'dtype'):
+            return obj.item()
+        elif hasattr(obj, 'tolist'):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: self._sanitize_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._sanitize_numpy_types(item) for item in obj]
+        elif isinstance(obj, tuple):
+            return tuple(self._sanitize_numpy_types(item) for item in obj)
+        return obj
+
     def _error_result(self, error_message: str) -> Dict:
         """Return standardized error result"""
         return {

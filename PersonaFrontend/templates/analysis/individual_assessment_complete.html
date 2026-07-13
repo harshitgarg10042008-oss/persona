@@ -470,8 +470,7 @@
             <h3 class="font-semibold text-gray-800 dark:text-gray-100">
               Q{{ response.question_order }}. {{ response.question.question_text }}
             </h3>
-            {% with speech=response.analysis_data.speech_analysis status=response.analysis_data.speech_analysis_status
-            %}
+            {% with speech=response.analysis_data.speech_analysis status=response.analysis_data.speech_analysis_status %}
             {% if speech.transcription %}
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ speech.transcription|truncatechars:180 }}"</p>
             {% elif response.response_text %}

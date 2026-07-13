@@ -21,6 +21,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def _sanitize_for_json(obj):
+    """Recursively convert numpy scalar types to native Python types for JSON serialization."""
+    if hasattr(obj, 'item') and hasattr(obj, 'dtype'):
+        return obj.item()
+    elif hasattr(obj, 'tolist'):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: _sanitize_for_json(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(_sanitize_for_json(item) for item in obj)
+    return obj
+
 try:
     from pypdf import PdfReader
 except ImportError:
@@ -1296,7 +1310,7 @@ def submit_assessment_response(request, session_id):
                         response.confidence_score = speech_analysis.get('confidence_score', 0)
                         
                         ideal_pts = current_question.ideal_answer_points if current_question else None
-                        response.analysis_data = {
+                        raw_analysis_data = {
                             'speech_analysis': speech_analysis,
                             'content_evaluation': evaluate_answer_content(
                                 question_text=question_text_for_analysis,
@@ -1304,7 +1318,14 @@ def submit_assessment_response(request, session_id):
                                 ideal_answer_points=ideal_pts,
                             ),
                         }
+                        response.analysis_data = _sanitize_for_json(raw_analysis_data)
+                        
+                        response.fluency_score = _sanitize_for_json(response.fluency_score)
+                        response.pronunciation_score = _sanitize_for_json(response.pronunciation_score)
+                        response.relevance_score = _sanitize_for_json(response.relevance_score)
+                        response.confidence_score = _sanitize_for_json(response.confidence_score)
                     
+
             except Exception as e:
                 logger.exception("[DIAG] submit_assessment_response: Audio processing error — full traceback:")  # DIAG
                 print(f"Audio processing error: {e}")
@@ -2213,6 +2234,14 @@ def submit_response_clean(request, session_id):
                     response.confidence_score = speech_analysis.get('confidence_score', 0)
                     response.analysis_data['speech_analysis'] = speech_analysis
                     response.analysis_data['speech_analysis_status'] = 'completed'
+                    response.analysis_data = _sanitize_for_json(response.analysis_data)
+                    
+                    # Sanitize explicit score fields to ensure they are native Python types
+                    response.fluency_score = _sanitize_for_json(response.fluency_score)
+                    response.pronunciation_score = _sanitize_for_json(response.pronunciation_score)
+                    response.relevance_score = _sanitize_for_json(response.relevance_score)
+                    response.confidence_score = _sanitize_for_json(response.confidence_score)
+                    
                     response.save()
 
                 except Exception as e:
