@@ -706,6 +706,8 @@ def analyze_answer_and_determine_next_step(
     if not question_text or not transcript:
         return None
 
+    can_generate_follow_up = session_follow_up_count < max_follow_ups
+
     # Build performance metrics for the prompt
     metrics = []
     if content_score is not None:
