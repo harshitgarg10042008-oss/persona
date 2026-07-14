@@ -55,6 +55,7 @@ from AnalysisModules.feedback_generator import (
     generate_improvement_roadmap,
     generate_tailored_questions,
     generate_ai_interview_coach,
+    generate_skill_gap_analysis,
     analyze_answer_and_determine_next_step,
 )
 from django_ratelimit.decorators import ratelimit
@@ -1794,6 +1795,58 @@ def complete_individual_assessment(request, session_id):
             assessment.save(update_fields=['ai_coach_status'])
             print(f"[AI Coach] Error generating coaching: {e}")
             # Don't crash the assessment completion if coaching fails
+
+    # Skill Gap Detection — one-shot Groq analysis of all responses (alongside AI Coach)
+    if assessment.skill_gap_analysis is None:
+        try:
+            response_payloads = []
+            for response in responses:
+                analysis_data = response.analysis_data if isinstance(response.analysis_data, dict) else {}
+                speech_analysis = analysis_data.get('speech_analysis', {}) if isinstance(analysis_data, dict) else {}
+                transcript = ''
+                if isinstance(speech_analysis, dict):
+                    transcript = (
+                        speech_analysis.get('transcription')
+                        or speech_analysis.get('transcript')
+                        or ''
+                    )
+                if not transcript and response.response_text:
+                    transcript = response.response_text
+
+                response_payloads.append({
+                    'question_text': response.question.question_text if response.question_id else '',
+                    'response_text': transcript or '',
+                    'fluency_score': response.fluency_score,
+                    'pronunciation_score': response.pronunciation_score,
+                    'relevance_score': response.relevance_score,
+                    'confidence_score': response.confidence_score,
+                    'content_evaluation': analysis_data.get('content_evaluation', {}) if isinstance(analysis_data, dict) else {},
+                })
+
+            skill_gap_result = generate_skill_gap_analysis(
+                job_role=assessment.platform_job_title.title if assessment.platform_job_title_id else '',
+                response_payloads=response_payloads,
+            )
+            if skill_gap_result is not None:
+                assessment.skill_gap_analysis = skill_gap_result
+                assessment.save(update_fields=['skill_gap_analysis'])
+                print(f"[Skill Gaps] Stored analysis for assessment {assessment.session_id}")
+            else:
+                # Persist empty shell so we do not retry Groq on every results page refresh
+                assessment.skill_gap_analysis = {'skill_gaps': [], 'strengths': []}
+                assessment.save(update_fields=['skill_gap_analysis'])
+                logger.warning(
+                    'Skill gap analysis unavailable for assessment %s — stored empty result',
+                    assessment.session_id,
+                )
+        except Exception as e:
+            logger.warning('Skill gap analysis error for assessment %s: %s', assessment.session_id, e)
+            try:
+                assessment.skill_gap_analysis = {'skill_gaps': [], 'strengths': []}
+                assessment.save(update_fields=['skill_gap_analysis'])
+            except Exception:
+                pass
+            # Do not block the completion page
 
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py

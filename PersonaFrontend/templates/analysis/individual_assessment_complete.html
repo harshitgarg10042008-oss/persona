@@ -235,6 +235,50 @@
   </div>
   {% endif %}
 
+  {% if assessment.skill_gap_analysis.skill_gaps or assessment.skill_gap_analysis.strengths %}
+  <div class="mb-8 rounded-lg border p-6"
+       style="background: var(--color-bg-primary); border-color: var(--color-border);">
+    <div class="mb-6">
+      <h2 class="text-2xl font-semibold" style="font-family: var(--font-heading); color: var(--color-text-primary);">
+        Skill Gap Detection
+      </h2>
+      <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+        Competencies evidenced across your full interview — strengths vs areas to improve
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="rounded-lg p-5" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
+        <h3 class="text-lg font-semibold mb-4" style="color: var(--color-warning-dark);">Areas to Improve</h3>
+        <ul class="space-y-4">
+          {% for gap in assessment.skill_gap_analysis.skill_gaps %}
+          <li>
+            <div class="font-semibold mb-1" style="color: var(--color-text-primary);">{{ gap.skill }}</div>
+            <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">{{ gap.explanation }}</p>
+          </li>
+          {% empty %}
+          <li class="text-sm italic" style="color: var(--color-text-tertiary);">No clear skill gaps identified from this session.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="rounded-lg p-5" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
+        <h3 class="text-lg font-semibold mb-4" style="color: var(--color-success-dark);">Strengths Demonstrated</h3>
+        <ul class="space-y-4">
+          {% for strength in assessment.skill_gap_analysis.strengths %}
+          <li>
+            <div class="font-semibold mb-1" style="color: var(--color-text-primary);">{{ strength.skill }}</div>
+            <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">{{ strength.explanation }}</p>
+          </li>
+          {% empty %}
+          <li class="text-sm italic" style="color: var(--color-text-tertiary);">No clear strengths identified from this session.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   {% if assessment.ai_coach_status == 'generated' %}
   <div
     class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg shadow-sm p-6 mb-8">

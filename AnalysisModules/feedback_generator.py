@@ -666,6 +666,141 @@ Return ONLY valid JSON matching this exact schema:
 
 
 # ---------------------------------------------------------------------------
+# Skill Gap Detection — one-shot post-completion competency analysis
+# ---------------------------------------------------------------------------
+
+def generate_skill_gap_analysis(
+    *,
+    job_role: str,
+    response_payloads: list,
+) -> Optional[dict]:
+    """
+    Analyze all responses for one completed assessment and return skill gaps
+    vs strengths grounded in actual answer evidence.
+
+    Args:
+        job_role: Platform job title string for role context
+        response_payloads: List of per-question dicts with keys:
+            question_text, response_text, fluency_score, pronunciation_score,
+            relevance_score, confidence_score, content_evaluation
+
+    Returns:
+        {
+            "skill_gaps": [{"skill": str, "explanation": str}, ...],  # 0–6
+            "strengths": [{"skill": str, "explanation": str}, ...],   # 0–4
+        }
+        or None on failure / insufficient evidence (caller may store null/empty).
+    """
+    if not response_payloads:
+        return {'skill_gaps': [], 'strengths': []}
+
+    # Require at least one non-empty answer with some signal — avoid fabricating
+    usable = []
+    for item in response_payloads:
+        text = (item.get('response_text') or '').strip()
+        eval_data = item.get('content_evaluation') or {}
+        has_eval = isinstance(eval_data, dict) and (
+            eval_data.get('content_correctness_score') is not None
+            or (eval_data.get('explanation') or '').strip()
+        )
+        if text or has_eval:
+            usable.append(item)
+
+    if len(usable) < 1:
+        return {'skill_gaps': [], 'strengths': []}
+
+    lines = []
+    for i, item in enumerate(usable, start=1):
+        eval_data = item.get('content_evaluation') if isinstance(item.get('content_evaluation'), dict) else {}
+        lines.append(
+            f"--- Response {i} ---\n"
+            f"Question: {item.get('question_text') or 'N/A'}\n"
+            f"Answer transcript: {(item.get('response_text') or '').strip() or '(empty / skipped)'}\n"
+            f"Scores: fluency={item.get('fluency_score')}, pronunciation={item.get('pronunciation_score')}, "
+            f"relevance={item.get('relevance_score')}, confidence={item.get('confidence_score')}\n"
+            f"Content evaluation score: {eval_data.get('content_correctness_score', 'N/A')}\n"
+            f"Content evaluation notes: {(eval_data.get('explanation') or 'N/A')[:400]}"
+        )
+
+    responses_block = "\n\n".join(lines)
+
+    prompt = f"""You are analyzing a completed practice interview for the role: {job_role or 'Not specified'}.
+
+Below are the candidate's questions, answer transcripts, and per-question scores.
+Identify skill/competency GAPS and STRENGTHS that are directly evidenced by these answers.
+
+CANDIDATE RESPONSES:
+{responses_block}
+
+RULES:
+- Return 3-6 skill_gaps ONLY if there is clear evidence of weakness in the answers. Prefer fewer over inventing filler.
+- Return 2-4 strengths ONLY if there is clear evidence of strength. Prefer fewer over inventing filler.
+- If evidence is thin (mostly skipped/empty/unavailable), return empty lists for both.
+- Each item must name a specific skill relevant to the role (e.g. "System Design", "Behavioral Storytelling (STAR)", "SQL Query Optimization") — not vague labels like "Communication".
+- Each explanation must be 1-2 sentences citing what in their answers showed the gap or strength.
+- Do NOT invent generic filler. Do NOT mention scores alone without linking to answer content when a transcript exists.
+- Return ONLY valid JSON (no markdown fences, no prose outside JSON).
+
+Schema:
+{{
+  "skill_gaps": [
+    {{"skill": "<specific skill name>", "explanation": "<1-2 sentences with evidence>"}}
+  ],
+  "strengths": [
+    {{"skill": "<specific skill name>", "explanation": "<1-2 sentences with evidence>"}}
+  ]
+}}"""
+
+    try:
+        text = _call_groq(prompt, timeout=45)
+        if not text:
+            logger.warning('generate_skill_gap_analysis: Groq returned no response')
+            return None
+
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+        payload = json.loads(cleaned)
+
+        if not isinstance(payload, dict):
+            logger.warning('generate_skill_gap_analysis: response was not a JSON object')
+            return None
+
+        def _normalize_items(raw, limit):
+            if not isinstance(raw, list):
+                return []
+            out = []
+            for entry in raw[:limit]:
+                if not isinstance(entry, dict):
+                    continue
+                skill = html.unescape(str(entry.get('skill') or '').strip())
+                explanation = html.unescape(str(entry.get('explanation') or '').strip())
+                if not skill or not explanation:
+                    continue
+                out.append({
+                    'skill': skill[:120],
+                    'explanation': explanation[:500],
+                })
+            return out
+
+        result = {
+            'skill_gaps': _normalize_items(payload.get('skill_gaps'), 6),
+            'strengths': _normalize_items(payload.get('strengths'), 4),
+        }
+        print(
+            f"[Skill Gaps] Generated {len(result['skill_gaps'])} gap(s), "
+            f"{len(result['strengths'])} strength(s) for role={job_role!r}"
+        )
+        return result
+
+    except json.JSONDecodeError as exc:
+        logger.warning('generate_skill_gap_analysis: JSON parse failed: %s', exc)
+        return None
+    except Exception as exc:
+        logger.warning('generate_skill_gap_analysis failed: %s', exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Adaptive Interview Engine — Difficulty adjustment
 # ---------------------------------------------------------------------------
 
