@@ -280,6 +280,34 @@
         justify-content: center;
         color: var(--color-text-inverse);
         text-align: center;
+        padding: 1.5rem;
+    }
+
+    .assessment-start-gate {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.92);
+        z-index: 10001;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-inverse);
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .assessment-start-gate .gate-panel {
+        max-width: 28rem;
+    }
+
+    .assessment-start-gate .gate-error {
+        display: none;
+        color: #fca5a5;
+        font-size: 0.875rem;
+        margin-top: 1rem;
     }
 
     /* Modern Typography */
@@ -337,17 +365,28 @@
 {% block content %}
 {% csrf_token %}
 <div class="assessment-container">
-    <!-- Fullscreen Exit Warning -->
+    <!-- Start Assessment gate — fullscreen + camera require a user gesture -->
+    <div id="assessment-start-gate" class="assessment-start-gate">
+        <div class="gate-panel">
+            <h2 class="text-3xl font-bold mb-4">Ready to Begin</h2>
+            <p class="text-lg mb-4">This is a proctored assessment. You must stay in fullscreen and keep this tab active for the entire session.</p>
+            <p class="text-sm text-gray-300 dark:text-gray-400 mb-8">Clicking Start will enter fullscreen and enable your camera and microphone.</p>
+            <button id="start-assessment-btn" type="button"
+                class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 text-lg font-medium">
+                Start Assessment
+            </button>
+            <p id="start-gate-error" class="gate-error"></p>
+        </div>
+    </div>
+
+    <!-- Proctor violation end message (no return path) -->
     <div id="fullscreen-warning" class="fullscreen-exit-warning">
         <div>
-            <h2 class="text-3xl font-bold mb-4">⚠️ Fullscreen Required</h2>
-            <p class="text-lg mb-6">Please return to fullscreen mode to continue your assessment.</p>
-            <p class="text-sm text-gray-300 dark:text-gray-400 mb-8">Exiting fullscreen is tracked and may affect your
-                final score.</p>
-            <button id="return-fullscreen"
-                class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 text-lg font-medium">
-                Return to Fullscreen
-            </button>
+            <h2 class="text-3xl font-bold mb-4">Assessment Ended</h2>
+            <p id="proctor-end-message" class="text-lg mb-6">
+                Assessment ended: fullscreen was exited or you switched tabs, which is not permitted during a proctored assessment.
+            </p>
+            <p class="text-sm text-gray-300 dark:text-gray-400">Redirecting you now...</p>
         </div>
     </div>
 
@@ -517,75 +556,176 @@
     let fullscreenViolations = 0;
     let bodyLanguageInterval = null;
     let attireInterval = null;
+    let assessmentActive = false;
+    let _assessmentEnded = false;  // set by next/skip/complete or proctor abandon
+    let _proctorAbandonTriggered = false;
+    let _proctorDebounceTimer = null;
+    const PROCTOR_DEBOUNCE_MS = 300;
+    const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
+    const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
 
-    // Initialize assessment
+    function isFullscreenActive() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    }
+
+    // Initialize assessment — wait for Start gate click (user gesture for fullscreen)
     document.addEventListener('DOMContentLoaded', function () {
-        initializeFullscreen();
-        initializeCamera();
-        startPreparationTimer();
-        startBackgroundAnalysis();
+        document.getElementById('start-assessment-btn').addEventListener('click', startAssessmentFromGate);
 
-        // Add event listeners
+        // Safe to wire before start — handlers no-op until assessmentActive / recording UI ready
         document.getElementById('record-button').addEventListener('click', toggleRecording);
         document.getElementById('next-button').addEventListener('click', nextQuestion);
-        document.getElementById('return-fullscreen').addEventListener('click', returnToFullscreen);
 
-        // Monitor fullscreen changes
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // Prevent leaving fullscreen with ESC (track violations)
-        document.addEventListener('keydown', handleKeyPress);
-
-        // Start session timer
         updateSessionTimer();
         setInterval(updateSessionTimer, 1000);
     });
 
-    // Initialize fullscreen
-    function initializeFullscreen() {
+    function startAssessmentFromGate() {
+        const gateError = document.getElementById('start-gate-error');
+        const startBtn = document.getElementById('start-assessment-btn');
+        gateError.style.display = 'none';
+        gateError.textContent = '';
+
+        // MUST call requestFullscreen synchronously in this click handler
+        let fullscreenPromise = null;
         try {
             if (document.documentElement.requestFullscreen) {
-                const promise = document.documentElement.requestFullscreen();
-                if (promise) promise.catch(e => console.warn('Fullscreen request failed:', e));
+                fullscreenPromise = document.documentElement.requestFullscreen();
             } else if (document.documentElement.webkitRequestFullscreen) {
                 document.documentElement.webkitRequestFullscreen();
             } else if (document.documentElement.mozRequestFullScreen) {
                 document.documentElement.mozRequestFullScreen();
+            } else {
+                gateError.textContent = 'Fullscreen is required but not supported in this browser.';
+                gateError.style.display = 'block';
+                return;
             }
-        } catch(e) {
+        } catch (e) {
             console.warn('Fullscreen init failed:', e);
+            gateError.textContent = 'Could not enter fullscreen. Please allow fullscreen and try again.';
+            gateError.style.display = 'block';
+            return;
         }
-    }
 
-    // Handle fullscreen changes
-    function handleFullscreenChange() {
-        const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+        // Start getUserMedia in the same user-gesture turn so permissions still work
+        initializeCamera();
 
-        if (!isFullscreen) {
-            fullscreenViolations++;
-            document.getElementById('fullscreen-warning').style.display = 'flex';
+        function beginActiveSession() {
+            if (assessmentActive) return;
+            assessmentActive = true;
+            startBtn.disabled = true;
+            document.getElementById('assessment-start-gate').style.display = 'none';
+            questionStartTime = Date.now();
+            startPreparationTimer();
+            startBackgroundAnalysis();
+        }
 
-            if (fullscreenViolations > 1) {
-                showWarning('Multiple fullscreen violations detected. This may affect your score.');
+        function failFullscreen(message) {
+            assessmentActive = false;
+            if (videoStream) {
+                videoStream.getTracks().forEach(function (track) { track.stop(); });
+                videoStream = null;
             }
+            gateError.textContent = message;
+            gateError.style.display = 'block';
+            startBtn.disabled = false;
+        }
+
+        if (fullscreenPromise && typeof fullscreenPromise.then === 'function') {
+            fullscreenPromise.then(function () {
+                beginActiveSession();
+            }).catch(function (e) {
+                console.warn('Fullscreen request failed:', e);
+                failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
+            });
         } else {
-            document.getElementById('fullscreen-warning').style.display = 'none';
+            // Older webkit/moz paths: verify shortly without delaying getUserMedia
+            setTimeout(function () {
+                if (isFullscreenActive()) {
+                    beginActiveSession();
+                } else {
+                    failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
+                }
+            }, 100);
         }
     }
 
-    // Return to fullscreen
-    function returnToFullscreen() {
-        initializeFullscreen();
+    function scheduleProctorAbandon(reason) {
+        if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered) return;
+
+        if (_proctorDebounceTimer) clearTimeout(_proctorDebounceTimer);
+        _proctorDebounceTimer = setTimeout(function () {
+            // Re-check after debounce (ignore fullscreen transition flicker)
+            if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered) return;
+
+            const exitedFullscreen = !isFullscreenActive();
+            const tabHidden = document.hidden;
+            if (!exitedFullscreen && !tabHidden) return;
+
+            triggerProctorAbandon(reason);
+        }, PROCTOR_DEBOUNCE_MS);
     }
 
-    // Handle key presses
-    function handleKeyPress(event) {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            showWarning('Attempted to exit fullscreen. Please stay in fullscreen mode.');
-            return false;
+    function handleFullscreenChange() {
+        if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered) return;
+        if (!isFullscreenActive()) {
+            scheduleProctorAbandon('fullscreen');
         }
+    }
+
+    function handleVisibilityChange() {
+        if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered) return;
+        if (document.hidden) {
+            scheduleProctorAbandon('visibility');
+        }
+    }
+
+    async function triggerProctorAbandon(reason) {
+        if (_proctorAbandonTriggered || _assessmentEnded) return;
+        _proctorAbandonTriggered = true;
+        _assessmentEnded = true;
+        assessmentActive = false;
+
+        fullscreenViolations++;
+
+        const endOverlay = document.getElementById('fullscreen-warning');
+        const msgEl = document.getElementById('proctor-end-message');
+        if (msgEl) {
+            msgEl.textContent = 'Assessment ended: fullscreen was exited or you switched tabs, which is not permitted during a proctored assessment.';
+        }
+        endOverlay.style.display = 'flex';
+
+        if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+        if (attireInterval) clearInterval(attireInterval);
+        if (videoStream) {
+            videoStream.getTracks().forEach(function (track) { track.stop(); });
+        }
+
+        try {
+            await fetch(ABANDON_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    reason: reason,
+                    fullscreen_violations: fullscreenViolations
+                }),
+                credentials: 'same-origin'
+            });
+        } catch (e) {
+            console.warn('Abandon request failed:', e);
+        }
+
+        setTimeout(function () {
+            window.location.href = DASHBOARD_URL;
+        }, 1800);
     }
 
     // Initialize camera
@@ -1121,22 +1261,19 @@
     }
 
     // Cleanup on page unload — stop camera and abandon the assessment
-    let _assessmentEnded = false;  // set to true by nextQuestion/skipQuestion so normal flow skips abandon
-
     window.addEventListener('beforeunload', function () {
         if (videoStream) {
             videoStream.getTracks().forEach(track => track.stop());
         }
 
-        if (!_assessmentEnded) {
+        if (!_assessmentEnded && assessmentActive) {
             const csrfToken = getCookie('csrftoken');
-            const abandonUrl = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
             // sendBeacon is fire-and-forget; works reliably even while the page is unloading
             const blob = new Blob(
-                [JSON.stringify({ csrfmiddlewaretoken: csrfToken })],
+                [JSON.stringify({ csrfmiddlewaretoken: csrfToken, fullscreen_violations: fullscreenViolations })],
                 { type: 'application/json' }
             );
-            navigator.sendBeacon(abandonUrl + '?_method=POST', blob);
+            navigator.sendBeacon(ABANDON_URL + '?_method=POST', blob);
         }
     });
 </script>
