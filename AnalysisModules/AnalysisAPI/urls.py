@@ -38,6 +38,8 @@ urlpatterns = [
     path('individual/<uuid:session_id>/question/', views.individual_assessment_question, name='individual_assessment_question'),
     path('individual/<uuid:session_id>/submit/', views.submit_assessment_response, name='submit_assessment_response'),
     path('individual/<uuid:session_id>/snapshot/', views.capture_assessment_snapshot, name='capture_assessment_snapshot'),
+    path('individual/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),
+    path('individual/<uuid:session_id>/processing-status/', views.check_processing_status, name='check_processing_status'),
     path('individual/<uuid:session_id>/complete/', views.complete_individual_assessment, name='complete_individual_assessment'),
     path('individual/<uuid:session_id>/pdf/', views.download_assessment_report, name='download_assessment_report'),
     
@@ -45,8 +47,9 @@ urlpatterns = [
     path('assessment/<uuid:session_id>/combined/', views.combined_assessment, name='combined_assessment'),
     path('combined-snapshot/<uuid:session_id>/', views.capture_snapshot_combined, name='capture_snapshot_combined'),
     path('combined-response/<uuid:session_id>/', views.submit_response_combined, name='submit_response_combined'),
-    path('processing-status/<uuid:session_id>/', views.check_processing_status, name='check_processing_status'),
-    path('assessment/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),
+    # Legacy alias kept so older processing_results.html / bookmarks still resolve
+    path('processing-status/<uuid:session_id>/', views.check_processing_status, name='check_processing_status_legacy'),
+    path('assessment/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial_legacy'),
     
     # Clean Assessment System (New Implementation)
     path('assessment/<uuid:session_id>/clean/', views.clean_assessment_question, name='clean_assessment_question'),

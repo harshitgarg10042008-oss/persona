@@ -1188,7 +1188,7 @@ def submit_assessment_response(request, session_id):
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                    'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
+                    'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
                 })
             question_text_for_analysis = current_question.question_text
             parent_response = None
@@ -1213,7 +1213,7 @@ def submit_assessment_response(request, session_id):
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                    'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
+                    'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
                 })
         
         # Parse request data
@@ -1250,7 +1250,7 @@ def submit_assessment_response(request, session_id):
                 'success': True,
                 'is_complete': is_complete,
                 'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None,
+                'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
             })
 
         # Create response record
@@ -1426,14 +1426,14 @@ def submit_assessment_response(request, session_id):
         
         assessment.save()
         
-        # Check if assessment is complete
+        # Check if assessment is complete — send candidate to processing interstitial first
         is_complete = assessment.current_question_index >= assessment.total_questions
         
         return JsonResponse({
             'success': True,
             'is_complete': is_complete,
             'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-            'complete_url': f'/analysis/assessment/{session_id}/processing/' if is_complete else None
+            'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None
         })
         
     except Exception as e:
@@ -2522,6 +2522,8 @@ def check_processing_status(request, session_id):
                 failed_responses += 1
         
         total_responses = all_responses.count()
+        # Ready when nothing remains 'pending'. Terminal states
+        # (completed / failed / error / not_applicable / not_available) all count as done.
         processing_complete = pending_responses == 0
         
         # Log for debugging
@@ -2529,6 +2531,7 @@ def check_processing_status(request, session_id):
         
         return JsonResponse({
             'success': True,
+            'ready': processing_complete,
             'processing_complete': processing_complete,
             'pending_count': pending_responses,
             'failed_count': failed_responses,
@@ -2538,7 +2541,7 @@ def check_processing_status(request, session_id):
         
     except Exception as e:
         print(f"Processing status check failed: {e}")
-        return JsonResponse({'success': False, 'error': str(e)})
+        return JsonResponse({'success': False, 'error': str(e), 'ready': False})
 
 
 @login_required
