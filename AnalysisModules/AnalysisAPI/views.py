@@ -1185,12 +1185,34 @@ def submit_assessment_response(request, session_id):
                     '(index=%d total=%d) — probable duplicate POST, returning current state.',
                     session_id, assessment.current_question_index, assessment.total_questions,
                 )
-                return JsonResponse({
+                response_data = {
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
                     'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
-                })
+                }
+                if not is_complete:
+                    is_follow_up = bool(assessment.pending_follow_up_text)
+                    if is_follow_up:
+                        next_q_text = assessment.pending_follow_up_text
+                        next_q_type_display = "Follow-up"
+                        next_q_is_mandatory = False
+                    else:
+                        next_q = assessment.get_next_question()
+                        next_q_text = next_q.question_text if next_q else ""
+                        next_q_type_display = next_q.get_question_type_display() if next_q else ""
+                        next_q_is_mandatory = next_q.is_mandatory if next_q else False
+                        
+                    response_data['next_question'] = {
+                        'is_follow_up': is_follow_up,
+                        'question_text': next_q_text,
+                        'question_type_display': next_q_type_display,
+                        'is_mandatory': next_q_is_mandatory,
+                        'difficulty_level': assessment.current_difficulty,
+                        'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
+                        'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                    }
+                return JsonResponse(response_data)
             question_text_for_analysis = current_question.question_text
             parent_response = None
 
@@ -1210,12 +1232,34 @@ def submit_assessment_response(request, session_id):
                     'question_order=%d — returning current state without re-processing.',
                     session_id, assessment.current_question_index + 1,
                 )
-                return JsonResponse({
+                response_data = {
                     'success': True,
                     'is_complete': is_complete,
                     'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
                     'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
-                })
+                }
+                if not is_complete:
+                    is_follow_up = bool(assessment.pending_follow_up_text)
+                    if is_follow_up:
+                        next_q_text = assessment.pending_follow_up_text
+                        next_q_type_display = "Follow-up"
+                        next_q_is_mandatory = False
+                    else:
+                        next_q = assessment.get_next_question()
+                        next_q_text = next_q.question_text if next_q else ""
+                        next_q_type_display = next_q.get_question_type_display() if next_q else ""
+                        next_q_is_mandatory = next_q.is_mandatory if next_q else False
+                        
+                    response_data['next_question'] = {
+                        'is_follow_up': is_follow_up,
+                        'question_text': next_q_text,
+                        'question_type_display': next_q_type_display,
+                        'is_mandatory': next_q_is_mandatory,
+                        'difficulty_level': assessment.current_difficulty,
+                        'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
+                        'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                    }
+                return JsonResponse(response_data)
         
         # Parse request data
         data = json.loads(request.body)
@@ -1247,12 +1291,34 @@ def submit_assessment_response(request, session_id):
                 
             assessment.save()
             is_complete = assessment.current_question_index >= assessment.total_questions
-            return JsonResponse({
+            response_data = {
                 'success': True,
                 'is_complete': is_complete,
                 'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
                 'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
-            })
+            }
+            if not is_complete:
+                is_follow_up = bool(assessment.pending_follow_up_text)
+                if is_follow_up:
+                    next_q_text = assessment.pending_follow_up_text
+                    next_q_type_display = "Follow-up"
+                    next_q_is_mandatory = False
+                else:
+                    next_q = assessment.get_next_question()
+                    next_q_text = next_q.question_text if next_q else ""
+                    next_q_type_display = next_q.get_question_type_display() if next_q else ""
+                    next_q_is_mandatory = next_q.is_mandatory if next_q else False
+                    
+                response_data['next_question'] = {
+                    'is_follow_up': is_follow_up,
+                    'question_text': next_q_text,
+                    'question_type_display': next_q_type_display,
+                    'is_mandatory': next_q_is_mandatory,
+                    'difficulty_level': assessment.current_difficulty,
+                    'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
+                    'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                }
+            return JsonResponse(response_data)
 
         # Create response record
         if is_answering_follow_up:
@@ -1430,12 +1496,34 @@ def submit_assessment_response(request, session_id):
         # Check if assessment is complete — send candidate to processing interstitial first
         is_complete = assessment.current_question_index >= assessment.total_questions
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'is_complete': is_complete,
             'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
             'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None
-        })
+        }
+        if not is_complete:
+            is_follow_up = bool(assessment.pending_follow_up_text)
+            if is_follow_up:
+                next_q_text = assessment.pending_follow_up_text
+                next_q_type_display = "Follow-up"
+                next_q_is_mandatory = False
+            else:
+                next_q = assessment.get_next_question()
+                next_q_text = next_q.question_text if next_q else ""
+                next_q_type_display = next_q.get_question_type_display() if next_q else ""
+                next_q_is_mandatory = next_q.is_mandatory if next_q else False
+                
+            response_data['next_question'] = {
+                'is_follow_up': is_follow_up,
+                'question_text': next_q_text,
+                'question_type_display': next_q_type_display,
+                'is_mandatory': next_q_is_mandatory,
+                'difficulty_level': assessment.current_difficulty,
+                'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
+                'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+            }
+        return JsonResponse(response_data)
         
     except Exception as e:
         logger.exception("[DIAG] submit_assessment_response: Outer exception — full traceback:")  # DIAG

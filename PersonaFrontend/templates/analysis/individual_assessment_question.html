@@ -508,6 +508,12 @@
                         <div class="text-xs mt-2">Please allow camera access</div>
                     </div>
                 </div>
+                <div class="video-overlay" id="video-transition" style="display: none; z-index: 10;">
+                    <div>
+                        <div class="mb-2"><i class="fas fa-spinner fa-spin text-2xl" style="color: white;"></i></div>
+                        <div id="transition-text">Saving your answer...</div>
+                    </div>
+                </div>
                 <div class="status-indicator" id="recording-indicator" style="display: none;"></div>
             </div>
 
@@ -551,6 +557,8 @@
     let isRecording = false;
     let preparationTime = 10;
     let responseTime = 0;
+    let prepInterval = null;
+    let responseInterval = null;
     let questionStartTime = Date.now();
     let responseStartTime = null;
     let fullscreenViolations = 0;
@@ -892,12 +900,14 @@
 
     // Start preparation timer
     function startPreparationTimer() {
-        const prepTimer = setInterval(() => {
+        if (prepInterval) clearInterval(prepInterval);
+        prepInterval = setInterval(() => {
             preparationTime--;
             document.getElementById('prep-time').textContent = preparationTime;
 
             if (preparationTime <= 0) {
-                clearInterval(prepTimer);
+                clearInterval(prepInterval);
+                prepInterval = null;
                 document.getElementById('prep-timer').style.display = 'none';
                 document.getElementById('response-timer').style.display = 'block';
 
@@ -917,7 +927,8 @@
 
     // Start response timer
     function startResponseTimer() {
-        const responseTimer = setInterval(() => {
+        if (responseInterval) clearInterval(responseInterval);
+        responseInterval = setInterval(() => {
             responseTime++;
             document.getElementById('response-time').textContent = responseTime;
         }, 1000);
@@ -1005,6 +1016,23 @@
     async function stopRecording() {
         if (mediaRecorder && isRecording) {
             isRecording = false;
+
+            if (responseInterval) {
+                clearInterval(responseInterval);
+                responseInterval = null;
+            }
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+
+            const videoFeed = document.getElementById('video-feed');
+            if (videoFeed) videoFeed.style.opacity = '0';
+            const videoTransition = document.getElementById('video-transition');
+            if (videoTransition) {
+                videoTransition.style.display = 'flex';
+                document.getElementById('transition-text').textContent = 'Saving your answer...';
+            }
 
             try { mediaRecorder.requestData(); } catch (e) { }
             mediaRecorder.stop();
@@ -1128,25 +1156,42 @@
         if (submitPromise) {
             const result = await submitPromise;
             if (!result) {
-                showWarning('Response submission failed. Please try again.');
                 if (nextBtn) {
                     nextBtn.disabled = false;
                     nextBtn.textContent = 'Next Question →';
                 }
+                return; // Failed to submit. Stay on page for retry.
+            }
+            
+            if (result.is_complete) {
+                _assessmentEnded = true;  // normal flow — do not abandon
+        
+                // Clear background analysis intervals
+                if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                if (attireInterval) clearInterval(attireInterval);
+        
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+                const transitionText = document.getElementById('transition-text');
+                if (transitionText) transitionText.textContent = 'Completing assessment...';
+                const videoTransition = document.getElementById('video-transition');
+                if (videoTransition) videoTransition.style.display = 'flex';
+                const videoFeed = document.getElementById('video-feed');
+                if (videoFeed) videoFeed.style.opacity = '0';
+
+                window.location.href = result.complete_url;
                 return;
+            } else if (result.next_question) {
+                if (nextBtn) {
+                    nextBtn.disabled = false;
+                    nextBtn.textContent = 'Next Question →';
+                }
+                const transitionText = document.getElementById('transition-text');
+                if (transitionText) transitionText.textContent = 'Loading next question...';
+                updateQuestionUI(result.next_question);
             }
         }
-
-        _assessmentEnded = true;  // normal flow — do not abandon
-
-        // Clear background analysis intervals
-        if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
-        if (attireInterval) clearInterval(attireInterval);
-
-        if (videoStream) {
-            videoStream.getTracks().forEach(track => track.stop());
-        }
-        window.location.href = `{% url 'analysis:individual_assessment_question' session_id=session_id %}`;
     }
 
     // Skip question
@@ -1191,17 +1236,26 @@
         const result = await response.json();
 
         if (result.success) {
-            _assessmentEnded = true;  // normal flow — do not abandon
-
-            // Clear background analysis intervals
-            if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
-            if (attireInterval) clearInterval(attireInterval);
-
-            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
             if (result.is_complete) {
+                _assessmentEnded = true;  // normal flow — do not abandon
+    
+                // Clear background analysis intervals
+                if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                if (attireInterval) clearInterval(attireInterval);
+    
+                if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+                const transitionText = document.getElementById('transition-text');
+                if (transitionText) transitionText.textContent = 'Completing assessment...';
+                const videoTransition = document.getElementById('video-transition');
+                if (videoTransition) videoTransition.style.display = 'flex';
+                const videoFeed = document.getElementById('video-feed');
+                if (videoFeed) videoFeed.style.opacity = '0';
                 window.location.href = result.complete_url;
-            } else {
-                window.location.href = result.next_question_url;
+                return;
+            } else if (result.next_question) {
+                skipButton.disabled = false;
+                skipButton.textContent = 'Skip this question';
+                updateQuestionUI(result.next_question);
             }
         } else {
             showWarning('Could not skip: ' + (result.error || 'Unknown error'));
@@ -1214,6 +1268,117 @@
         skipButton.disabled = false;
         skipButton.textContent = 'Skip this question';
     }
+}
+
+function updateQuestionUI(next_question) {
+    // 1. Update progress
+    const progressContainer = document.querySelector('.progress-container');
+    if (progressContainer) {
+        progressContainer.innerHTML = `
+            <div class="flex justify-between text-sm mb-1">
+                <span>Question ${next_question.question_number} of {{ total_questions }}</span>
+                <span>${Math.round(next_question.progress_percentage)}% Complete</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${next_question.progress_percentage}%"></div>
+            </div>
+        `;
+    }
+
+    // 2. Update Question Meta Badges
+    const questionMeta = document.querySelector('.question-meta');
+    if (questionMeta) {
+        let metaHtml = '';
+        if (next_question.is_follow_up) {
+            metaHtml += `<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium">🤖 AI Follow-Up</span>`;
+        } else {
+            metaHtml += `<span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">${next_question.question_type_display}</span>`;
+        }
+        if (!next_question.is_follow_up && next_question.is_mandatory) {
+            metaHtml += `<span class="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">Mandatory</span>`;
+        }
+        {% if adaptive_mode %}
+        let diffColorBg = next_question.difficulty_level === 'beginner' ? 'var(--color-success-bg)' : next_question.difficulty_level === 'advanced' ? 'var(--color-error-bg)' : 'var(--color-warning-bg, #fef3c7)';
+        let diffColorText = next_question.difficulty_level === 'beginner' ? 'var(--color-success)' : next_question.difficulty_level === 'advanced' ? 'var(--color-error)' : 'var(--color-warning, #92400e)';
+        metaHtml += `<span id="difficulty-badge" class="ml-2 px-2 py-1 rounded text-xs font-medium" style="background: ${diffColorBg}; color: ${diffColorText};">🎯 ${next_question.difficulty_level.charAt(0).toUpperCase() + next_question.difficulty_level.slice(1)}</span>`;
+        {% endif %}
+        questionMeta.innerHTML = metaHtml;
+    }
+
+    // 3. Update Question Text
+    const questionText = document.querySelector('.question-text');
+    if (questionText) {
+        questionText.textContent = next_question.question_text;
+    }
+
+    // 4. Reset Timers & Variables
+    preparationTime = 10;
+    responseTime = 0;
+    questionStartTime = Date.now();
+    responseStartTime = null;
+    isRecording = false;
+    audioChunks = [];
+    recordingPromise = null;
+    submitPromise = null;
+    
+    document.getElementById('prep-time').textContent = preparationTime;
+    document.getElementById('response-time').textContent = responseTime;
+    
+    document.getElementById('prep-timer').style.display = 'block';
+    document.getElementById('response-timer').style.display = 'none';
+
+    // 5. Reset UI Controls
+    const recordButton = document.getElementById('record-button');
+    if (recordButton) {
+        recordButton.style.display = 'flex';
+        recordButton.disabled = true;
+        recordButton.className = 'record-button start disabled';
+        recordButton.querySelector('#record-icon').textContent = '🎙️';
+    }
+
+    const recordStatus = document.getElementById('record-status');
+    if (recordStatus) {
+        recordStatus.textContent = 'Prepare to Record';
+    }
+
+    const nextBtn = document.getElementById('next-button');
+    if (nextBtn) {
+        nextBtn.style.display = 'none';
+    }
+    
+    const skipBtn = document.getElementById('skip-button');
+    if (skipBtn) {
+        skipBtn.style.display = 'inline-block';
+    }
+    
+    const indicator = document.getElementById('recording-indicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+
+    const videoLoading = document.getElementById('video-loading');
+    if (videoLoading) {
+        videoLoading.style.display = 'flex'; // show loading since camera initializing
+        videoLoading.innerHTML = `
+            <div>
+                <div>📹 Initializing Camera...</div>
+                <div class="text-xs mt-2">Please allow camera access</div>
+            </div>
+        `;
+    }
+
+    const videoTransition = document.getElementById('video-transition');
+    if (videoTransition) {
+        videoTransition.style.display = 'none';
+    }
+    const videoFeed = document.getElementById('video-feed');
+    if (videoFeed) {
+        videoFeed.style.opacity = '1';
+    }
+
+    // 6. Start new question flow
+    initializeCamera();
+    startPreparationTimer();
 }
 
     // Show warning
