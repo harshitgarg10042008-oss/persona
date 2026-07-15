@@ -977,3 +977,78 @@ Return ONLY valid JSON with these keys:
     except Exception as exc:
         logger.warning('analyze_answer_and_determine_next_step failed: %s', exc)
         return None
+
+
+def generate_skill_gap_analysis(job_role: str, response_payloads: list) -> Optional[dict]:
+    """
+    Analyze all of the candidate's responses together to identify 3-6 specific skill gaps
+    and 2-4 demonstrated strengths.
+    """
+    if not response_payloads:
+        return {'skill_gaps': [], 'strengths': []}
+
+    # Format the responses into a clear text block
+    q_and_a_text = []
+    for i, payload in enumerate(response_payloads, start=1):
+        q = payload.get('question_text', 'N/A')
+        a = payload.get('response_text', 'N/A')
+        # Skip if no real text
+        if not str(a).strip():
+            a = "No response provided."
+        q_and_a_text.append(f"Q{i}: {q}\nA{i}: {a}\n")
+        
+    compiled_qa = "\n".join(q_and_a_text)
+    
+    prompt = f"""
+You are an expert technical interviewer evaluating a candidate for a {job_role or 'General Role'} position.
+Below is the transcript of their answers across the entire interview session.
+
+Transcript:
+{compiled_qa}
+
+Based ONLY on the evidence in these answers, identify 3-6 specific skill/competency gaps and 2-4 demonstrated strengths.
+If there is insufficient data (e.g. they skipped most questions or gave very short/empty answers), return empty lists rather than making up generic content. Do NOT invent generic filler content.
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "skill_gaps": [
+    {{"skill": "Name of gap (e.g. Error Handling)", "explanation": "Brief explanation citing what they missed or got wrong in their answers."}}
+  ],
+  "strengths": [
+    {{"skill": "Name of strength (e.g. System Design)", "explanation": "Brief explanation citing what they answered well."}}
+  ]
+}}
+"""
+
+    try:
+        text = _call_groq(prompt, timeout=40)
+        if not text:
+            logger.warning('generate_skill_gap_analysis: No Groq response')
+            return None
+
+        # Strip markdown fences if present
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        try:
+            result = json.loads(cleaned)
+        except json.JSONDecodeError:
+            logger.warning('generate_skill_gap_analysis: Could not parse JSON from Groq')
+            return None
+            
+        # Ensure correct structure
+        skill_gaps = result.get('skill_gaps', [])
+        strengths = result.get('strengths', [])
+        
+        # basic validation
+        if not isinstance(skill_gaps, list): skill_gaps = []
+        if not isinstance(strengths, list): strengths = []
+        
+        return {
+            'skill_gaps': [gap for gap in skill_gaps if isinstance(gap, dict) and gap.get('skill') and gap.get('explanation')],
+            'strengths': [strength for strength in strengths if isinstance(strength, dict) and strength.get('skill') and strength.get('explanation')]
+        }
+
+    except Exception as exc:
+        logger.warning('generate_skill_gap_analysis failed: %s', exc)
+        return None
