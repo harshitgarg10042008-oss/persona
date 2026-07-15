@@ -56,6 +56,7 @@ from AnalysisModules.feedback_generator import (
     generate_tailored_questions,
     generate_ai_interview_coach,
     generate_skill_gap_analysis,
+    generate_learning_roadmap,
     analyze_answer_and_determine_next_step,
 )
 from django_ratelimit.decorators import ratelimit
@@ -1935,6 +1936,36 @@ def complete_individual_assessment(request, session_id):
             except Exception:
                 pass
             # Do not block the completion page
+
+    # Personalized Learning Roadmap — one-shot generation built upon skill gaps
+    if assessment.learning_roadmap is None:
+        try:
+            skill_gaps_list = []
+            if assessment.skill_gap_analysis and isinstance(assessment.skill_gap_analysis.get('skill_gaps'), list):
+                skill_gaps_list = assessment.skill_gap_analysis['skill_gaps']
+            
+            roadmap_result = generate_learning_roadmap(
+                job_role=assessment.platform_job_title.title if assessment.platform_job_title_id else '',
+                skill_gaps=skill_gaps_list
+            )
+            if roadmap_result is not None:
+                assessment.learning_roadmap = roadmap_result
+                assessment.save(update_fields=['learning_roadmap'])
+                print(f"[Learning Roadmap] Stored analysis for assessment {assessment.session_id}")
+            else:
+                assessment.learning_roadmap = {'weeks': []}
+                assessment.save(update_fields=['learning_roadmap'])
+                logger.warning(
+                    'Learning roadmap unavailable for assessment %s — stored empty result',
+                    assessment.session_id,
+                )
+        except Exception as e:
+            logger.warning('Learning roadmap error for assessment %s: %s', assessment.session_id, e)
+            try:
+                assessment.learning_roadmap = {'weeks': []}
+                assessment.save(update_fields=['learning_roadmap'])
+            except Exception:
+                pass
 
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py

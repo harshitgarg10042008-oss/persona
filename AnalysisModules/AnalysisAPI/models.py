@@ -286,6 +286,13 @@ class IndividualAssessment(models.Model):
         help_text="Structured skill gaps/strengths JSON from generate_skill_gap_analysis()",
     )
 
+    # Personalized Learning Roadmap — multi-week curriculum based on skill gaps
+    learning_roadmap = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Structured multi-week learning path from generate_learning_roadmap()"
+    )
+
     # AI Interview Coach data — comprehensive coaching insights
     ai_coach_summary = models.TextField(blank=True, null=True, help_text="Overall summary of performance")
     ai_coach_strengths = models.JSONField(null=True, blank=True, help_text="List of strengths identified")

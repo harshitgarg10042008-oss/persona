@@ -1052,3 +1052,65 @@ Return ONLY valid JSON with this exact structure:
     except Exception as exc:
         logger.warning('generate_skill_gap_analysis failed: %s', exc)
         return None
+
+
+def generate_learning_roadmap(job_role: str, skill_gaps: list) -> Optional[dict]:
+    """
+    Generate a multi-week structured learning curriculum based on identified skill gaps.
+    """
+    if not skill_gaps:
+        return {'weeks': []}
+
+    gaps_text = "\n".join([f"- {g.get('skill')}: {g.get('explanation')}" for g in skill_gaps])
+
+    prompt = f"""
+You are an expert technical career coach building a personalized learning roadmap for a {job_role or 'General Role'} candidate.
+Below are the specific skill and competency gaps identified during their interview:
+
+{gaps_text}
+
+Based on these gaps, create a 3-5 week structured curriculum to help them improve.
+For each week, provide a clear topic, 2-4 concrete learning objectives, and a generic suggested resource TYPE (e.g. "official documentation", "an interactive coding platform", "a system design workbook").
+DO NOT fabricate specific course names, instructor names, or URLs. Keep resource types generic but descriptive.
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "weeks": [
+    {{
+      "week_title": "Week 1: [Topic]",
+      "objectives": ["Objective 1", "Objective 2"],
+      "resource_type": "Suggested resource type"
+    }}
+  ]
+}}
+"""
+
+    try:
+        text = _call_groq(prompt, timeout=40)
+        if not text:
+            logger.warning('generate_learning_roadmap: No Groq response')
+            return None
+
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        try:
+            result = json.loads(cleaned)
+        except json.JSONDecodeError:
+            logger.warning('generate_learning_roadmap: Could not parse JSON from Groq')
+            return None
+
+        weeks = result.get('weeks', [])
+        if not isinstance(weeks, list):
+            weeks = []
+
+        validated_weeks = []
+        for w in weeks:
+            if isinstance(w, dict) and w.get('week_title') and w.get('objectives') and w.get('resource_type'):
+                validated_weeks.append(w)
+
+        return {'weeks': validated_weeks}
+
+    except Exception as exc:
+        logger.warning('generate_learning_roadmap failed: %s', exc)
+        return None

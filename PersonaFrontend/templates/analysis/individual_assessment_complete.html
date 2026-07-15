@@ -279,6 +279,42 @@
   </div>
   {% endif %}
 
+  {% if assessment.learning_roadmap.weeks %}
+  <div class="mb-8 rounded-lg border p-6"
+       style="background: var(--color-bg-primary); border-color: var(--color-border);">
+    <div class="mb-6">
+      <h2 class="text-2xl font-semibold flex items-center gap-2" style="font-family: var(--font-heading); color: var(--color-primary);">
+        <i class="fas fa-route"></i> Personalized Learning Path
+      </h2>
+      <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+        A structured, multi-week curriculum to help you bridge your identified skill gaps.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      {% for week in assessment.learning_roadmap.weeks %}
+      <div class="rounded-lg p-5" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
+        <h3 class="text-lg font-semibold mb-3" style="color: var(--color-text-primary);">{{ week.week_title }}</h3>
+        
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold mb-2" style="color: var(--color-text-secondary);">Learning Objectives:</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            {% for objective in week.objectives %}
+            <li class="text-sm" style="color: var(--color-text-primary);">{{ objective }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium" 
+             style="background: var(--color-bg-tertiary); color: var(--color-text-secondary); border: 1px solid var(--color-border);">
+          <i class="fas fa-book-reader"></i> Suggested Resource: {{ week.resource_type }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if assessment.ai_coach_status == 'generated' %}
   <div
     class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg shadow-sm p-6 mb-8">
