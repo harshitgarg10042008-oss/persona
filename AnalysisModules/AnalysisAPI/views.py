@@ -57,7 +57,9 @@ from AnalysisModules.feedback_generator import (
     generate_ai_interview_coach,
     generate_skill_gap_analysis,
     generate_learning_roadmap,
+    generate_communication_analysis,
     analyze_answer_and_determine_next_step,
+    analyze_star_framework,
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
@@ -1427,7 +1429,13 @@ def submit_assessment_response(request, session_id):
                     if body_scores:
                         body_score = sum(body_scores) / len(body_scores)
                 
-                # Call adaptive analysis
+                # Determine if this is a behavioral question for STAR analysis
+                _is_behavioral = (
+                    current_question is not None
+                    and current_question.question_type == 'behavioral'
+                )
+
+                # Call adaptive analysis (combined with STAR for behavioral questions)
                 adaptive_result = analyze_answer_and_determine_next_step(
                     question_text=question_text_for_analysis,
                     transcript=response.response_text or '',
@@ -1436,10 +1444,21 @@ def submit_assessment_response(request, session_id):
                     content_score=content_score,
                     voice_confidence_score=voice_score,
                     body_language_score=body_score,
+                    is_behavioral=_is_behavioral,
                     max_follow_ups=2
                 )
                 
                 if adaptive_result:
+                    # Save STAR analysis for behavioral questions (independent of adaptive path)
+                    _star = adaptive_result.get('star_analysis')
+                    if _star is not None:
+                        try:
+                            response.star_analysis = _star
+                            response.save(update_fields=['star_analysis'])
+                            print(f'[STAR] Saved STAR analysis for Q{assessment.current_question_index + 1}: score={_star.get("score")}')
+                        except Exception as _star_save_err:
+                            logger.warning('[STAR] Failed to save star_analysis for response %s: %s', response.id, _star_save_err)
+
                     # Check if a follow-up was generated
                     if adaptive_result.get('generate_follow_up') and assessment.session_follow_up_count < 2:
                         assessment.pending_follow_up_text = adaptive_result.get('follow_up_question')
@@ -1491,6 +1510,30 @@ def submit_assessment_response(request, session_id):
                 assessment.pending_follow_up_text = None
                 assessment.pending_follow_up_reason = None
             assessment.current_question_index += 1
+
+            # STAR analysis for behavioral questions not covered by the adaptive call above.
+            # This path fires when: adaptive mode is OFF, OR this is the final question
+            # (adaptive block condition requires index+1 < total_questions).
+            # We only call Groq here; never for non-behavioral or skipped responses.
+            if (
+                not is_answering_follow_up
+                and current_question is not None
+                and current_question.question_type == 'behavioral'
+                and (response.response_text or '').strip()
+            ):
+                try:
+                    _star = analyze_star_framework(
+                        question_text=current_question.question_text,
+                        transcript=response.response_text,
+                    )
+                    if _star is not None:
+                        response.star_analysis = _star
+                        response.save(update_fields=['star_analysis'])
+                        print(f'[STAR] Saved STAR analysis (standalone) for Q{assessment.current_question_index}: score={_star.get("score")}')
+                    else:
+                        logger.warning('[STAR] analyze_star_framework returned None for response %s', response.id)
+                except Exception as _star_err:
+                    logger.warning('[STAR] Standalone STAR analysis failed for response %s: %s', response.id, _star_err)
         
         assessment.save()
         
@@ -1967,6 +2010,102 @@ def complete_individual_assessment(request, session_id):
             except Exception:
                 pass
 
+    # AI Communication Analysis — whole-assessment style analysis (one Groq call)
+    # Triggered alongside AI Coach / Skill Gaps / Roadmap; guarded so it only runs once.
+    if assessment.communication_analysis is None:
+        try:
+            comm_payloads = []
+            for _resp in responses:
+                _ad = _resp.analysis_data if isinstance(_resp.analysis_data, dict) else {}
+                _sa = _ad.get('speech_analysis', {})
+                _sa = _sa if isinstance(_sa, dict) else {}
+                _vc = _ad.get('voice_confidence', {})
+                _vc = _vc if isinstance(_vc, dict) else {}
+                _fluency = _ad.get('fluency', {})
+                _fluency = _fluency if isinstance(_fluency, dict) else {}
+
+                # Prefer speech_analysis transcript, fall back to response_text
+                transcript = (
+                    _sa.get('transcription') or _sa.get('transcript') or _resp.response_text or ''
+                )
+
+                # Voice scores — already computed, just read from analysis_data
+                fluency_score = _resp.fluency_score
+                if fluency_score is not None and fluency_score <= 1:
+                    fluency_score *= 10
+                pronunciation_score = _resp.pronunciation_score
+                if pronunciation_score is not None and pronunciation_score <= 1:
+                    pronunciation_score *= 10
+                confidence_score = _resp.confidence_score
+                if confidence_score is not None and confidence_score <= 1:
+                    confidence_score *= 10
+
+                # Fluency sub-metrics from speech_analysis details
+                _fluency_details = _sa.get('details', {}).get('fluency', {})
+                if isinstance(_fluency_details, dict):
+                    filler_count = _fluency_details.get('filler_count')
+                    filler_ratio = _fluency_details.get('filler_ratio')
+                    words_per_minute = _fluency_details.get('words_per_minute')
+                else:
+                    filler_count = filler_ratio = words_per_minute = None
+
+                # Audio energy / pitch from speech_analysis details
+                _audio_features = _sa.get('details', {}).get('audio_features', {})
+                _audio_features = _audio_features if isinstance(_audio_features, dict) else {}
+                raw_avg_energy = _audio_features.get('avg_energy')
+                raw_pitch_var = _audio_features.get('pitch_variance')
+
+                import math as _math
+                avg_energy_norm = round(min(raw_avg_energy * 300, 100), 2) if raw_avg_energy is not None else None
+                if raw_pitch_var is not None and raw_pitch_var > 0:
+                    pitch_var_norm = round(min(_math.log1p(raw_pitch_var) / 15 * 100, 100), 2)
+                elif raw_pitch_var == 0:
+                    pitch_var_norm = 0.0
+                else:
+                    pitch_var_norm = None
+
+                comm_payloads.append({
+                    'question_text': _resp.question.question_text if _resp.question_id else '',
+                    'response_text': transcript,
+                    'fluency_score': fluency_score,
+                    'pronunciation_score': pronunciation_score,
+                    'confidence_score': confidence_score,
+                    'filler_count': filler_count,
+                    'filler_ratio': filler_ratio,
+                    'words_per_minute': words_per_minute,
+                    'speaking_rate': _sa.get('speaking_rate'),
+                    'avg_energy': avg_energy_norm,
+                    'pitch_variance': pitch_var_norm,
+                })
+
+            comm_result = generate_communication_analysis(
+                job_role=assessment.platform_job_title.title if assessment.platform_job_title_id else '',
+                response_payloads=comm_payloads,
+            )
+            if comm_result is not None:
+                assessment.communication_analysis = comm_result
+                assessment.save(update_fields=['communication_analysis'])
+                print(f"[CommAnalysis] Stored for assessment {assessment.session_id}")
+            else:
+                # Persist empty shell so we skip on every subsequent page refresh
+                assessment.communication_analysis = {'summary': '', 'traits': []}
+                assessment.save(update_fields=['communication_analysis'])
+                logger.warning(
+                    'Communication analysis unavailable for assessment %s — stored empty result',
+                    assessment.session_id,
+                )
+        except Exception as _comm_err:
+            logger.warning(
+                'Communication analysis error for assessment %s: %s',
+                assessment.session_id, _comm_err,
+            )
+            try:
+                assessment.communication_analysis = {'summary': '', 'traits': []}
+                assessment.save(update_fields=['communication_analysis'])
+            except Exception:
+                pass
+            # Must not block the completion page
+
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py
     # from each response's analysis_data['speech_analysis'] dict.
@@ -2055,6 +2194,7 @@ def complete_individual_assessment(request, session_id):
         'energy_insight': energy_insight,
         'has_chart_data': bool(valid_energy),
         'platform_average': platform_average,
+        'communication_analysis': assessment.communication_analysis,
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
 

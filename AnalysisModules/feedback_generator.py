@@ -812,6 +812,7 @@ def analyze_answer_and_determine_next_step(
     content_score: float = None,
     voice_confidence_score: float = None,
     body_language_score: float = None,
+    is_behavioral: bool = False,
     max_follow_ups: int = 2
 ) -> Optional[dict]:
     """
@@ -853,6 +854,21 @@ def analyze_answer_and_determine_next_step(
         metrics.append(f"Body language: {body_language_score:.1f}/10")
 
     metrics_text = "\n".join(metrics) if metrics else "No detailed metrics available"
+
+    # For behavioral questions, append a STAR analysis block to the same prompt.
+    # This avoids a second Groq call: the model evaluates both tasks on the same read.
+    _star_prompt_addendum = ''
+    if is_behavioral:
+        _star_prompt_addendum = """
+
+STAR FRAMEWORK ANALYSIS (this is a behavioral question):
+In addition to the adaptive difficulty fields, also evaluate whether the candidate's answer follows the STAR method (Situation, Task, Action, Result). Add these six extra keys to your JSON response:
+- "star_situation": true if the candidate clearly described the Situation/context, false otherwise.
+- "star_task": true if the candidate clearly described their Task or role, false otherwise.
+- "star_action": true if the candidate clearly described specific Actions they personally took, false otherwise.
+- "star_result": true if the candidate clearly described the Result or outcome, false otherwise.
+- "star_score": a number 0-10 for overall STAR structure quality (10 = all four components present and well-developed; 0 = none present).
+- "star_missing_explanation": a 1-2 sentence note on what STAR components were missing or underdeveloped. Use "All STAR components present." if all four are covered."""
 
     prompt = f"""You are an adaptive interview engine that adjusts question difficulty based on candidate performance.
 
@@ -900,7 +916,7 @@ Return ONLY valid JSON with these keys:
 - `reason`: a brief 1-2 sentence explanation for the difficulty choice.
 - `generate_follow_up`: boolean `true` or `false`.
 - `follow_up_question`: the text of the follow-up question if `generate_follow_up` is true, otherwise `null`.
-- `follow_up_reason`: a brief explanation of why a follow-up was triggered, otherwise `null`.
+- `follow_up_reason`: a brief explanation of why a follow-up was triggered, otherwise `null`.{_star_prompt_addendum}
 """
 
     try:
@@ -965,6 +981,27 @@ Return ONLY valid JSON with these keys:
             follow_up_question = None
             follow_up_reason = None
 
+        # Extract STAR analysis for behavioral questions — best-effort, fully isolated.
+        # A parse failure here yields star_analysis=None and never affects adaptive result.
+        star_analysis = None
+        if is_behavioral:
+            try:
+                raw_star_score = result.get('star_score', 0)
+                star_analysis = {
+                    'situation': bool(result.get('star_situation', False)),
+                    'task': bool(result.get('star_task', False)),
+                    'action': bool(result.get('star_action', False)),
+                    'result': bool(result.get('star_result', False)),
+                    'score': max(
+                        0.0,
+                        min(10.0, float(raw_star_score) if raw_star_score is not None else 0.0),
+                    ),
+                    'missing_explanation': str(result.get('star_missing_explanation', ''))[:500],
+                }
+            except Exception as _star_exc:
+                logger.warning('STAR extraction in combined adaptive call failed: %s', _star_exc)
+                star_analysis = None
+
         return {
             'performance_score': max(0.0, min(10.0, perf_score)),
             'next_difficulty': next_diff,
@@ -972,10 +1009,82 @@ Return ONLY valid JSON with these keys:
             'generate_follow_up': generate_follow_up,
             'follow_up_question': html.unescape(follow_up_question) if follow_up_question else None,
             'follow_up_reason': html.unescape(follow_up_reason) if follow_up_reason else None,
+            'star_analysis': star_analysis,
         }
 
     except Exception as exc:
         logger.warning('analyze_answer_and_determine_next_step failed: %s', exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# STAR Framework Analysis — standalone call
+# Used when adaptive engine is not invoked (adaptive mode OFF or final question)
+# so there is no existing Groq call to extend for behavioral responses.
+# ---------------------------------------------------------------------------
+
+def analyze_star_framework(question_text: str, transcript: str) -> Optional[dict]:
+    """
+    Analyze a behavioral interview answer for STAR method structure.
+
+    This is the standalone path invoked when ``analyze_answer_and_determine_next_step``
+    is not called (adaptive mode OFF, or final question of the session).  It uses a
+    single, focused ``_call_groq`` request rather than a combined prompt.
+
+    Args:
+        question_text: The behavioral question that was asked.
+        transcript:    The candidate's transcribed answer.
+
+    Returns:
+        Dict with keys: situation, task, action, result (bool each),
+        score (float 0-10), missing_explanation (str).
+        Returns None on any Groq failure — caller stores null and logs a warning.
+    """
+    if not question_text or not transcript:
+        return None
+
+    prompt = f"""You are evaluating whether a behavioral interview answer follows the STAR method (Situation, Task, Action, Result).
+
+QUESTION:
+{question_text}
+
+CANDIDATE ANSWER:
+{transcript}
+
+Evaluate the answer against the four STAR components and return ONLY valid JSON with exactly these keys:
+- "situation": true if the candidate clearly described the Situation/context, false otherwise.
+- "task": true if the candidate clearly described their Task or role, false otherwise.
+- "action": true if the candidate clearly described specific Actions they personally took, false otherwise.
+- "result": true if the candidate clearly described the Result or outcome, false otherwise.
+- "star_score": a number 0-10 for overall STAR structure quality (10 = all four present and well-developed; 0 = none present).
+- "missing_explanation": a 1-2 sentence note on what was missing or underdeveloped. Use "All STAR components present." if all four are covered.
+
+Return ONLY valid JSON, no markdown fences, no prose outside the JSON."""
+
+    try:
+        text = _call_groq(prompt, timeout=20)
+        if not text:
+            logger.warning('analyze_star_framework: No Groq response')
+            return None
+
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        result = json.loads(cleaned)
+
+        # Accept either key name the model may use for the score
+        raw_score = result.get('star_score', result.get('score', 0))
+        return {
+            'situation': bool(result.get('situation', False)),
+            'task': bool(result.get('task', False)),
+            'action': bool(result.get('action', False)),
+            'result': bool(result.get('result', False)),
+            'score': max(0.0, min(10.0, float(raw_score) if raw_score is not None else 0.0)),
+            'missing_explanation': str(result.get('missing_explanation', ''))[:500],
+        }
+
+    except Exception as exc:
+        logger.warning('analyze_star_framework failed: %s', exc)
         return None
 
 
@@ -1113,4 +1222,158 @@ Return ONLY valid JSON with this exact structure:
 
     except Exception as exc:
         logger.warning('generate_learning_roadmap failed: %s', exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# AI Personality & Communication Analysis — whole-assessment, one Groq call
+# ---------------------------------------------------------------------------
+
+def generate_communication_analysis(
+    *,
+    job_role: str,
+    response_payloads: list,
+) -> Optional[dict]:
+    """
+    Analyze the candidate's overall communication style across a completed assessment.
+
+    Evaluates HOW the candidate communicated (clarity, pacing, filler words, directness,
+    confidence signals, structural habits) rather than WHAT they said (content correctness
+    is covered by skill gaps; STAR structure is a separate feature).
+
+    Args:
+        job_role: Platform job title string for role context.
+        response_payloads: List of dicts, one per response, with keys:
+            question_text (str), response_text (str),
+            fluency_score (float|None), pronunciation_score (float|None),
+            confidence_score (float|None),
+            filler_count (int|None), filler_ratio (float|None),
+            words_per_minute (float|None), speaking_rate (float|None),
+            pitch_variance (float|None), avg_energy (float|None).
+
+    Returns:
+        {
+            "summary": "2-3 sentence overall communication summary",
+            "traits": [
+                {"label": "Short trait label", "explanation": "1-2 sentence evidence-based explanation"},
+                ...  # 2-4 items
+            ]
+        }
+        Returns None on any failure — caller stores null and logs a warning.
+    """
+    # Require at least one response with some signal
+    usable = [p for p in response_payloads if (p.get('response_text') or '').strip()]
+    if not usable:
+        return None
+
+    # Build a compact evidence block for each response
+    evidence_lines = []
+    for i, p in enumerate(usable, start=1):
+        parts = [f"--- Response {i} ---"]
+        parts.append(f"Question: {p.get('question_text') or 'N/A'}")
+        parts.append(f"Transcript snippet: {(p.get('response_text') or '')[:400].strip() or '(empty)'}")
+
+        metrics = []
+        if p.get('fluency_score') is not None:
+            metrics.append(f"fluency={p['fluency_score']:.1f}/10")
+        if p.get('pronunciation_score') is not None:
+            metrics.append(f"pronunciation={p['pronunciation_score']:.1f}/10")
+        if p.get('confidence_score') is not None:
+            metrics.append(f"confidence={p['confidence_score']:.1f}/10")
+        if p.get('words_per_minute') is not None:
+            metrics.append(f"pace={p['words_per_minute']:.0f} WPM")
+        elif p.get('speaking_rate') is not None:
+            metrics.append(f"speaking_rate={p['speaking_rate']:.2f} onsets/s")
+        if p.get('filler_count') is not None:
+            ratio_str = f" ({p['filler_ratio']:.1%})" if p.get('filler_ratio') is not None else ''
+            metrics.append(f"filler_words={p['filler_count']}{ratio_str}")
+        if p.get('avg_energy') is not None:
+            metrics.append(f"vocal_energy={p['avg_energy']:.1f}/100")
+        if p.get('pitch_variance') is not None:
+            metrics.append(f"pitch_variance={p['pitch_variance']:.1f}/100")
+
+        if metrics:
+            parts.append("Voice metrics: " + ", ".join(metrics))
+        evidence_lines.append("\n".join(parts))
+
+    evidence_block = "\n\n".join(evidence_lines)
+
+    prompt = f"""You are an interview communication coach analyzing a candidate's communication style.
+
+ROLE BEING ASSESSED: {job_role or 'Not specified'}
+
+CANDIDATE RESPONSES AND VOICE METRICS:
+{evidence_block}
+
+TASK: Based ONLY on the evidence above, identify the candidate's communication patterns — how they speak, not what they said.
+
+STRICT RULES:
+1. Focus exclusively on observable interview communication behaviours: clarity, conciseness, pacing, use of filler words, structural habits (e.g. tends to ramble vs. gets to the point), vocal confidence signals, directness.
+2. Do NOT make clinical, psychological, or personality-diagnostic claims. Do NOT write "shows signs of anxiety", "introverted", "neurotic", or anything beyond interview-communication skill framing.
+3. Identify 2-4 traits that are clearly evidenced by the data. Do NOT invent filler traits if evidence is thin — return fewer traits.
+4. Each trait label should be short (2-6 words), e.g. "Concise and direct", "Heavy filler word usage", "Consistent vocal energy", "Tends to over-explain".
+5. Each explanation must cite specific evidence (e.g. mention filler count, WPM, transcript pattern).
+6. The summary must be 2-3 sentences, grounded in the data, appropriate for a candidate to read.
+
+Return ONLY valid JSON matching this exact schema (no markdown fences, no prose outside JSON):
+{{
+  "summary": "<2-3 sentence overall communication summary>",
+  "traits": [
+    {{
+      "label": "<short trait label>",
+      "explanation": "<1-2 sentence evidence-based explanation>"
+    }}
+  ]
+}}"""
+
+    try:
+        text = _call_groq(prompt, timeout=35)
+        if not text:
+            logger.warning('generate_communication_analysis: No Groq response')
+            return None
+
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        result = json.loads(cleaned)
+
+        if not isinstance(result, dict):
+            logger.warning('generate_communication_analysis: response was not a JSON object')
+            return None
+
+        summary = str(result.get('summary') or '').strip()
+        raw_traits = result.get('traits')
+        if not summary or not isinstance(raw_traits, list):
+            logger.warning('generate_communication_analysis: missing required keys')
+            return None
+
+        validated_traits = []
+        for entry in raw_traits[:4]:  # cap at 4
+            if not isinstance(entry, dict):
+                continue
+            label = html.unescape(str(entry.get('label') or '').strip())
+            explanation = html.unescape(str(entry.get('explanation') or '').strip())
+            if label and explanation:
+                validated_traits.append({
+                    'label': label[:100],
+                    'explanation': explanation[:400],
+                })
+
+        if not validated_traits:
+            logger.warning('generate_communication_analysis: no valid traits after validation')
+            return None
+
+        print(
+            f"[CommAnalysis] Generated {len(validated_traits)} trait(s) for role={job_role!r}"
+        )
+        return {
+            'summary': html.unescape(summary)[:600],
+            'traits': validated_traits,
+        }
+
+    except json.JSONDecodeError as exc:
+        logger.warning('generate_communication_analysis: JSON parse failed: %s', exc)
+        return None
+    except Exception as exc:
+        logger.warning('generate_communication_analysis failed: %s', exc)
         return None

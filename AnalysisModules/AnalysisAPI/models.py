@@ -293,6 +293,16 @@ class IndividualAssessment(models.Model):
         help_text="Structured multi-week learning path from generate_learning_roadmap()"
     )
 
+    # AI Personality & Communication Analysis — whole-assessment style analysis
+    communication_analysis = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Communication style analysis from generate_communication_analysis(). "
+            "Schema: {summary: str, traits: [{label: str, explanation: str}, ...]}"
+        ),
+    )
+
     # AI Interview Coach data — comprehensive coaching insights
     ai_coach_summary = models.TextField(blank=True, null=True, help_text="Overall summary of performance")
     ai_coach_strengths = models.JSONField(null=True, blank=True, help_text="List of strengths identified")
@@ -510,7 +520,18 @@ class IndividualAssessmentResponse(models.Model):
     
     # Detailed analysis
     analysis_data = models.JSONField(default=dict, help_text="Detailed analysis results")
-    
+
+    # STAR Framework Analysis — per-response, behavioral questions only
+    star_analysis = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=(
+            "STAR structure analysis for behavioral responses. "
+            "Schema: {situation: bool, task: bool, action: bool, result: bool, "
+            "score: float 0-10, missing_explanation: str}"
+        ),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

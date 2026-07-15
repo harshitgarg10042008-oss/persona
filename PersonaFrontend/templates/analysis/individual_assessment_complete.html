@@ -479,6 +479,41 @@
   </div>
   {% endif %}
 
+  {% if assessment.communication_analysis and assessment.communication_analysis.summary %}
+  <div class="mb-8 rounded-lg border p-6" style="background: var(--color-bg-primary); border-color: var(--color-border);">
+    <div class="mb-6">
+      <h2 class="text-2xl font-semibold flex items-center gap-2" style="font-family: var(--font-heading); color: var(--color-text-primary);">
+        <i class="fas fa-comments"></i> Communication Style
+      </h2>
+      <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+        Overall speaking patterns and stylistic traits observed across your answers.
+      </p>
+    </div>
+
+    <div class="space-y-6">
+      <!-- Summary -->
+      <div class="rounded-lg p-5" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
+        <p class="text-sm leading-relaxed" style="color: var(--color-text-primary);">{{ assessment.communication_analysis.summary }}</p>
+      </div>
+
+      <!-- Traits -->
+      {% if assessment.communication_analysis.traits %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for trait in assessment.communication_analysis.traits %}
+        <div class="rounded-lg p-4" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
+          <div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold mb-2" 
+               style="background: var(--color-bg-tertiary); color: var(--color-primary); border: 1px solid var(--color-border);">
+            {{ trait.label }}
+          </div>
+          <p class="text-xs leading-relaxed" style="color: var(--color-text-secondary);">{{ trait.explanation }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if assessment.adaptive_mode and assessment.adaptive_path %}
   <div
     class="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-100 dark:border-cyan-800 rounded-lg shadow-sm p-6 mb-8">
@@ -597,6 +632,46 @@
           {% endif %}
         </div>
         {% endfor %}
+
+        {% if response.question.question_type == 'behavioral' and response.star_analysis %}
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">STAR Structure</span>
+            <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold
+              {% if response.star_analysis.score >= 7 %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+              {% elif response.star_analysis.score >= 4 %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300
+              {% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300{% endif %}">
+              {{ response.star_analysis.score|floatformat:0 }}/10
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-2">
+            {% if response.star_analysis.situation %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">✓ Situation</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">✗ Situation</span>
+            {% endif %}
+            {% if response.star_analysis.task %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">✓ Task</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">✗ Task</span>
+            {% endif %}
+            {% if response.star_analysis.action %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">✓ Action</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">✗ Action</span>
+            {% endif %}
+            {% if response.star_analysis.result %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">✓ Result</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">✗ Result</span>
+            {% endif %}
+          </div>
+          {% if response.star_analysis.missing_explanation %}
+          <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{{ response.star_analysis.missing_explanation }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
       </div>
       
       {% empty %}
