@@ -1,4 +1,0 @@
-$kind: http-request
-method: GET
-url: '{{baseUrl}}/analysis/history/'
-order: 31000

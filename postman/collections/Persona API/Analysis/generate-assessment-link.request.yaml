@@ -1,7 +1,0 @@
-$kind: http-request
-method: POST
-url: '{{baseUrl}}/analysis/job-roles/{{job_role_id}}/generate-link/'
-order: 7000
-pathVariables:
-  - key: job_role_id
-    value: '{{job_role_id}}'

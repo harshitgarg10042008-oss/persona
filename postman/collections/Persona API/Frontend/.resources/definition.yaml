@@ -1,4 +1,0 @@
-$kind: collection
-name: 'Frontend'
-description: 'Frontend pages exposed by PersonaFrontend URLs.'
-order: 1000

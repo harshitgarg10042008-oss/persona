@@ -1,4 +1,0 @@
-$kind: collection
-name: 'Auth'
-description: 'Authentication and account management endpoints from UserAPI.'
-order: 2000

@@ -1,4 +1,0 @@
-$kind: http-request
-method: GET
-url: '{{baseUrl}}/dashboard/'
-order: 2000

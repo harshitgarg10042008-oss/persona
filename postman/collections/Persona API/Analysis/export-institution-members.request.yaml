@@ -1,4 +1,0 @@
-$kind: http-request
-method: GET
-url: '{{baseUrl}}/analysis/export-institution-members/'
-order: 34000

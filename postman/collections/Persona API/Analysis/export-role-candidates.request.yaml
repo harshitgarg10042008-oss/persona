@@ -1,7 +1,0 @@
-$kind: http-request
-method: GET
-url: '{{baseUrl}}/analysis/job-roles/{{job_role_id}}/export/'
-order: 5000
-pathVariables:
-  - key: role_id
-    value: '{{job_role_id}}'
