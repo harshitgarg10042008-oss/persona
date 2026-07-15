@@ -3,78 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        @page {
+            size: 18cm 12cm;
+            margin: 0;
+        }
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
+            background-color: #6c63ff;
+            color: #ffffff;
         }
-        .badge-container {
-            width: 600px;
-            height: 400px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
+        .outer {
+            width: 100%;
+            height: 100%;
+            background-color: #6c63ff;
+            padding: 0;
+        }
+        table.layout {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        /* Top accent bar */
+        .accent-bar {
+            background-color: #a78bfa;
+            height: 8px;
+        }
+        /* Main content cell */
+        .content-cell {
+            padding: 36px 50px 20px 50px;
             text-align: center;
-            padding: 40px;
-            box-sizing: border-box;
+            vertical-align: middle;
         }
-        .badge-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-        .badge-title {
-            font-size: 36px;
-            font-weight: bold;
+        .icon {
+            font-size: 56px;
+            line-height: 1.1;
             margin-bottom: 10px;
         }
-        .badge-description {
-            font-size: 18px;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-        .badge-divider {
-            width: 80%;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 20px 0;
-        }
-        .badge-user {
-            font-size: 14px;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-        .badge-name {
-            font-size: 24px;
+        .title {
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 5px;
+            color: #ffffff;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
         }
-        .badge-date {
-            font-size: 12px;
-            opacity: 0.7;
+        .description {
+            font-size: 14px;
+            color: #e0d7ff;
+            margin-bottom: 20px;
         }
-        .badge-footer {
-            margin-top: 30px;
-            font-size: 12px;
-            opacity: 0.6;
+        .divider-cell {
+            padding: 0 50px;
+        }
+        .divider-line {
+            border-top: 1px solid rgba(255,255,255,0.35);
+            margin: 0;
+        }
+        .user-cell {
+            padding: 16px 50px 10px 50px;
+            text-align: center;
+        }
+        .achieved-label {
+            font-size: 11px;
+            color: #c4b5fd;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .user-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .user-date {
+            font-size: 11px;
+            color: #c4b5fd;
+            margin-bottom: 0;
+        }
+        .footer-cell {
+            padding: 10px 50px 20px 50px;
+            text-align: center;
+        }
+        .footer-text {
+            font-size: 10px;
+            color: #a78bfa;
+            letter-spacing: 0.5px;
+        }
+        /* Bottom accent bar */
+        .bottom-bar {
+            background-color: #a78bfa;
+            height: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="badge-container">
-        <div class="badge-icon">{{ badge_data.achievement_icon }}</div>
-        <div class="badge-title">{{ badge_data.achievement_title }}</div>
-        <div class="badge-description">{{ badge_data.achievement_description }}</div>
-        
-        <div class="badge-divider"></div>
-        
-        <div class="badge-user">Achieved by</div>
-        <div class="badge-name">{{ badge_data.user_name }}</div>
-        <div class="badge-date">{{ badge_data.date|date:"F d, Y" }}</div>
-        
-        <div class="badge-footer">Persona - Interview Preparation Platform</div>
-    </div>
+<div class="outer">
+    <table class="layout" cellspacing="0" cellpadding="0">
+        <!-- Top accent bar -->
+        <tr><td class="accent-bar"></td></tr>
+
+        <!-- Icon + Title + Description -->
+        <tr>
+            <td class="content-cell">
+                <div class="icon">{{ badge_data.achievement_icon }}</div>
+                <div class="title">{{ badge_data.achievement_title }}</div>
+                <div class="description">{{ badge_data.achievement_description }}</div>
+            </td>
+        </tr>
+
+        <!-- Divider -->
+        <tr>
+            <td class="divider-cell">
+                <div class="divider-line"></div>
+            </td>
+        </tr>
+
+        <!-- User info -->
+        <tr>
+            <td class="user-cell">
+                <div class="achieved-label">Achieved by</div>
+                <div class="user-name">{{ badge_data.user_name }}</div>
+                <div class="user-date">{{ badge_data.date|date:"F d, Y" }}</div>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td class="footer-cell">
+                <div class="footer-text">Persona &mdash; Interview Preparation Platform</div>
+            </td>
+        </tr>
+
+        <!-- Bottom accent bar -->
+        <tr><td class="bottom-bar"></td></tr>
+    </table>
+</div>
 </body>
 </html>

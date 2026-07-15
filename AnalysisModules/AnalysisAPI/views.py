@@ -2831,27 +2831,35 @@ def download_achievement_badge(request, session_id):
         messages.error(request, "No achievements unlocked yet.")
         return redirect('analysis:individual_assessment_complete', session_id=session_id)
     
-    # Generate badge as HTML then convert to image
+    # Generate badge as HTML then convert to PDF via xhtml2pdf
     from django.template.loader import render_to_string
     from xhtml2pdf import pisa
     import io
-    
+    import logging
+    logger = logging.getLogger(__name__)
+
     html_string = render_to_string('analysis/badge_image.html', {
         'badge_data': badge_data,
         'assessment': assessment,
     })
-    
+
     # Create PDF
     result = io.BytesIO()
-    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode('utf-8')), result)
-    
+    pdf = pisa.pisaDocument(
+        io.BytesIO(html_string.encode('utf-8')),
+        result,
+        encoding='utf-8'
+    )
+
     if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        result.seek(0)
+        response = HttpResponse(result.read(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="persona_achievement_{session_id}.pdf"'
         return response
-    
-    messages.error(request, "Error generating badge.")
-    return redirect('analysis:individual_assessment_complete', session_id=session_id)
+
+    logger.error('xhtml2pdf badge generation error for session %s: %s', session_id, pdf.err)
+    messages.error(request, "Error generating badge PDF. Please try again.")
+    return redirect('analysis:achievement_badge', session_id=session_id)
 
 
 @login_required
