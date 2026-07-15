@@ -1075,8 +1075,13 @@
             console.warn('[submit] processAudioRecording called while submission already in flight — ignoring duplicate.');
             return;
         }
+        
+        // Immediately set in-flight flag to prevent concurrent FileReader spawns
+        submissionInFlight = true;
+        
         if (audioChunks.length === 0) {
             showWarning('No audio recorded. Please try again.');
+            submissionInFlight = false;
             return;
         }
 
@@ -1092,6 +1097,7 @@
             recordButton.classList.add('start');
             recordButton.querySelector('#record-icon').textContent = '🎙️';
             audioChunks = [];
+            submissionInFlight = false;
             return;
         }
 
@@ -1099,7 +1105,6 @@
 
         reader.onload = function () {
             const audioData = reader.result;
-            submissionInFlight = true;
             submitPromise = submitResponse(audioData).finally(() => {
                 submissionInFlight = false;
             });

@@ -1165,6 +1165,7 @@ def submit_assessment_response(request, session_id):
             user=request.user,
             status='in_progress'
         )
+        logger.info(f"[DIAG] submit_assessment_response START: session_id={session_id}, current_question_index={assessment.current_question_index}")
         
         # Check if we are answering a pending follow-up
         is_answering_follow_up = bool(assessment.pending_follow_up_text)
@@ -1228,6 +1229,7 @@ def submit_assessment_response(request, session_id):
                 question=current_question,
                 question_order=assessment.current_question_index + 1,
             ).exists()
+            logger.info(f"[DIAG] Idempotency check: already_answered={already_answered}, question_order={assessment.current_question_index + 1}")
             if already_answered:
                 is_complete = assessment.current_question_index >= assessment.total_questions
                 logger.warning(
@@ -1235,6 +1237,7 @@ def submit_assessment_response(request, session_id):
                     'question_order=%d — returning current state without re-processing.',
                     session_id, assessment.current_question_index + 1,
                 )
+                logger.info(f"[DIAG] Idempotency guard fired! Returning state for question_index={assessment.current_question_index}")
                 response_data = {
                     'success': True,
                     'is_complete': is_complete,
@@ -1539,6 +1542,7 @@ def submit_assessment_response(request, session_id):
         
         # Check if assessment is complete — send candidate to processing interstitial first
         is_complete = assessment.current_question_index >= assessment.total_questions
+        logger.info(f"[DIAG] Assessment save complete. is_complete={is_complete}, new current_question_index={assessment.current_question_index}, pending_follow_up={bool(assessment.pending_follow_up_text)}")
         
         response_data = {
             'success': True,
