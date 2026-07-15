@@ -738,7 +738,10 @@
     }
 
     // Initialize camera
+    let _isInitializingCamera = false;
     async function initializeCamera() {
+        if (_isInitializingCamera) return;
+        _isInitializingCamera = true;
         console.log('Starting camera initialization...');
 
         try {
@@ -808,6 +811,8 @@
         } catch (error) {
             console.error('Camera initialization failed:', error);
             showCameraError(error);
+        } finally {
+            _isInitializingCamera = false;
         }
     }
 
@@ -847,10 +852,10 @@
     function startBackgroundAnalysis() {
         console.log('Starting background analysis...');
 
-        // Body language analysis every 2 seconds
+        // Body language analysis every 5 seconds to avoid 30/m rate limit
         bodyLanguageInterval = setInterval(() => {
             captureSnapshot('body_language');
-        }, 2000);
+        }, 5000);
 
         // Attire analysis every 10 seconds
         attireInterval = setInterval(() => {
@@ -875,7 +880,7 @@
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
         // Send to analysis endpoint
-        fetch(`/analysis/capture-snapshot/{{ session_id }}/`, {
+        fetch(`{% url 'analysis:capture_assessment_snapshot' session_id=session_id %}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1190,6 +1195,11 @@
                 }
                 const transitionText = document.getElementById('transition-text');
                 if (transitionText) transitionText.textContent = 'Loading next question...';
+                
+                // Clear background analysis intervals before transitioning
+                if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                if (attireInterval) clearInterval(attireInterval);
+                
                 updateQuestionUI(result.next_question);
             }
         }
@@ -1287,6 +1297,11 @@
                     skipButton.disabled = false;
                     skipButton.textContent = 'Skip this question';
                     await restoreFullscreenAndProctor();
+                    
+                    // Clear background analysis intervals before transitioning
+                    if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                    if (attireInterval) clearInterval(attireInterval);
+                    
                     updateQuestionUI(result.next_question);
                 }
             } else {
@@ -1414,6 +1429,7 @@ function updateQuestionUI(next_question) {
     // 6. Start new question flow
     initializeCamera();
     startPreparationTimer();
+    startBackgroundAnalysis();
 }
 
     // Show warning
