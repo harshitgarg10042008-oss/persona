@@ -35,6 +35,11 @@ This project integrates a comprehensive Machine Learning and AI pipeline:
 - **Body Language**: Uses **MediaPipe** to track posture, gestures, and facial landmarks for engagement and confidence metrics.
 - **Speech & Fluency**: Uses **OpenAI Whisper** and `librosa` for robust audio transcription and vocal delivery analysis.
 - **Content Correctness**: Utilizes **Groq (Llama 3.3)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
+- **Adaptive Difficulty Engine**: Adjusts the difficulty of upcoming questions on the fly based on the candidate's real-time performance.
+- **AI Follow-Up Questions**: Dynamically generates contextual follow-up questions during the interview to probe deeper into candidate answers.
+- **STAR Framework Analysis**: Strictly evaluates behavioral question responses against the Situation, Task, Action, Result methodology.
+- **Anti-Cheating Proctoring**: Enforces fullscreen mode and detects tab-switching to maintain assessment integrity.
+- **Resume Upload & Tailored Questions**: Extracts text from candidate resumes (PDF/TXT) to generate highly personalized interview questions.
 - **Asynchronous Task Queue**: Leverages **Django-Q2** (via ORM broker) to process heavy ML operations in the background without blocking the main server threads.
 - **PDF Reports & Tracking**: Generates downloadable PDF reports with detailed performance breakdowns and tracks progress via interactive charts (Chart.js) over time.
 - **Gamification & Badges**: Users earn dynamic achievement badges for reaching milestones or completing specific role assessments.
