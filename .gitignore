@@ -9,5 +9,4 @@ venv/
 uv.lock
 postman/
 .postman/
-.env
 node_modules/
