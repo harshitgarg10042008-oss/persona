@@ -2099,9 +2099,9 @@ def complete_individual_assessment(request, session_id):
                     assessment.session_id,
                 )
         except Exception as _comm_err:
-            logger.warning(
-                'Communication analysis error for assessment %s: %s',
-                assessment.session_id, _comm_err,
+            logger.exception(
+                'Communication analysis error for assessment %s',
+                assessment.session_id,
             )
             try:
                 assessment.communication_analysis = {'summary': '', 'traits': []}

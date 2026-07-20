@@ -501,10 +501,10 @@ def generate_ai_interview_coach(
     if not interview_transcript or not questions:
         return None
 
-    overall_score = scores.get('overall_score')
-    speaking_score = scores.get('speaking_score')
-    body_language_score = scores.get('body_language_score')
-    attire_score = scores.get('attire_score')
+    overall_score = round(scores.get('overall_score'), 1) if scores.get('overall_score') is not None else None
+    speaking_score = round(scores.get('speaking_score'), 1) if scores.get('speaking_score') is not None else None
+    body_language_score = round(scores.get('body_language_score'), 1) if scores.get('body_language_score') is not None else None
+    attire_score = round(scores.get('attire_score'), 1) if scores.get('attire_score') is not None else None
 
     # Build questions text
     questions_text = "\n".join([f"Q{i+1}: {q}" for i, q in enumerate(questions)])
@@ -513,7 +513,7 @@ def generate_ai_interview_coach(
     voice_details = []
     if voice_confidence_metrics and isinstance(voice_confidence_metrics, dict):
         if voice_confidence_metrics.get('score'):
-            voice_details.append(f"Voice confidence score: {voice_confidence_metrics['score']}/10")
+            voice_details.append(f"Voice confidence score: {round(voice_confidence_metrics['score'], 1)}/10")
         if voice_confidence_metrics.get('pace'):
             voice_details.append(f"Speaking pace: {voice_confidence_metrics['pace']}")
         if voice_confidence_metrics.get('clarity'):
@@ -523,11 +523,11 @@ def generate_ai_interview_coach(
     body_details = []
     if body_language_metrics and isinstance(body_language_metrics, dict):
         if body_language_metrics.get('posture_score'):
-            body_details.append(f"Posture score: {body_language_metrics['posture_score']}/10")
+            body_details.append(f"Posture score: {round(body_language_metrics['posture_score'], 1)}/10")
         if body_language_metrics.get('eye_contact_score'):
-            body_details.append(f"Eye contact score: {body_language_metrics['eye_contact_score']}/10")
+            body_details.append(f"Eye contact score: {round(body_language_metrics['eye_contact_score'], 1)}/10")
         if body_language_metrics.get('gesture_score'):
-            body_details.append(f"Gesture score: {body_language_metrics['gesture_score']}/10")
+            body_details.append(f"Gesture score: {round(body_language_metrics['gesture_score'], 1)}/10")
 
     prompt = f"""You are an expert AI interview coach providing personalized feedback to help candidates improve.
 
@@ -1372,8 +1372,8 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose 
         }
 
     except json.JSONDecodeError as exc:
-        logger.warning('generate_communication_analysis: JSON parse failed: %s', exc)
+        logger.exception('generate_communication_analysis: JSON parse failed')
         return None
     except Exception as exc:
-        logger.warning('generate_communication_analysis failed: %s', exc)
+        logger.exception('generate_communication_analysis failed')
         return None
