@@ -6,34 +6,34 @@
 <div class="container mx-auto px-4 py-8">
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Welcome, {{ user.first_name|default:user.username }}!</h1>
-        <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">Practice your interview skills and improve your confidence.</p>
+        <p class="text-gray-600 dark:text-gray-400">Practice your interview skills and improve your confidence.</p>
     </div>
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Practice Sessions</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-400 mb-2">Practice Sessions</h3>
             <p class="text-3xl font-bold text-blue-600">{{ total_sessions }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Total assessments taken</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Total assessments taken</p>
         </div>
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Completed</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-400 mb-2">Completed</h3>
             <p class="text-3xl font-bold text-green-600">{{ completed_sessions }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Successfully completed</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Successfully completed</p>
         </div>
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Average Score</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-400 mb-2">Average Score</h3>
             <p class="text-3xl font-bold text-purple-600">
                 {% if avg_score is not None %}{{ avg_score|floatformat:1 }}/10{% else %}--{% endif %}
             </p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Overall performance</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Overall performance</p>
         </div>
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">Current Streak</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-400 mb-2">Current Streak</h3>
             <p class="text-3xl font-bold text-orange-600">
                 {% if current_streak > 0 %}🔥 {{ current_streak }}{% else %}--{% endif %}
             </p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+            <p class="text-sm text-gray-500 dark:text-gray-500">
                 {% if current_streak == 1 %}Day streak{% elif current_streak > 1 %}Day streak{% else %}No active streak{% endif %}
                 {% if longest_streak > 1 %}(Best: {{ longest_streak }}){% endif %}
             </p>
@@ -45,7 +45,7 @@
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Your Progress</h2>
         <div id="chartContainer" class="relative w-full h-64 flex items-center justify-center">
             <canvas id="progressChart"></canvas>
-            <p id="chartFallbackMessage" class="text-gray-500 dark:text-gray-400 dark:text-gray-500 hidden">Complete more assessments to see your progress.</p>
+            <p id="chartFallbackMessage" class="text-gray-500 dark:text-gray-500 hidden">Complete more assessments to see your progress.</p>
         </div>
     </div>
 
@@ -54,7 +54,7 @@
         <!-- Practice Interview -->
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Practice Interview</h2>
-            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-6">
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
                 Improve your interview skills with AI-powered practice sessions. Get personalized feedback on your communication style, confidence, and responses.
             </p>
             
@@ -67,7 +67,7 @@
                     </div>
                     <div>
                         <h3 class="font-semibold text-gray-800 dark:text-gray-100">Video Practice</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Record yourself answering common interview questions</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Record yourself answering common interview questions</p>
                     </div>
                 </div>
                 
@@ -79,7 +79,7 @@
                     </div>
                     <div>
                         <h3 class="font-semibold text-gray-800 dark:text-gray-100">AI Analysis</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Get detailed feedback on your performance</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Get detailed feedback on your performance</p>
                     </div>
                 </div>
                 
@@ -91,7 +91,7 @@
                     </div>
                     <div>
                         <h3 class="font-semibold text-gray-800 dark:text-gray-100">Track Progress</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Monitor your improvement over time</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Monitor your improvement over time</p>
                     </div>
                 </div>
             </div>
@@ -110,8 +110,8 @@
                     <div class="space-y-4">
                         {% for assessment in recent_assessments %}
                         <div class="border-l-4 border-blue-500 pl-4 py-2">
-                            <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400">{{ assessment.platform_job_title.title }}</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
+                            <h3 class="font-semibold text-gray-700 dark:text-gray-400">{{ assessment.platform_job_title.title }}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
                             <span class="inline-block px-2 py-1 text-xs rounded-full mt-1
                                 {% if assessment.status == 'completed' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
                                 {% elif assessment.status == 'in_progress' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
@@ -122,7 +122,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    <div class="text-center py-8 text-gray-500 dark:text-gray-500">
                         <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>
@@ -137,16 +137,16 @@
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Interview Tips</h2>
                 <div class="space-y-4">
                     <div class="border-l-4 border-blue-500 pl-4">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400">Body Language</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Maintain good posture and make eye contact with the camera.</p>
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-400">Body Language</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Maintain good posture and make eye contact with the camera.</p>
                     </div>
                     <div class="border-l-4 border-green-500 pl-4">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400">STAR Method</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Structure your answers using Situation, Task, Action, Result.</p>
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-400">STAR Method</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Structure your answers using Situation, Task, Action, Result.</p>
                     </div>
                     <div class="border-l-4 border-purple-500 pl-4">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-400">Practice Regularly</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Consistent practice leads to better performance and confidence.</p>
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-400">Practice Regularly</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Consistent practice leads to better performance and confidence.</p>
                     </div>
                 </div>
             </div>
@@ -160,8 +160,8 @@
             <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-2">No Assessments Yet</h3>
-            <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
+            <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">No Assessments Yet</h3>
+            <p class="text-gray-500 dark:text-gray-500 mb-4">
                 When you take assessments from companies, they'll appear here for you to review.
             </p>
         </div>
@@ -174,13 +174,13 @@
         <!-- Join Institution Form -->
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8 mb-6">
             <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Join an Institution</h3>
-            <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-4">
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
                 Enter an institution code to join a company or school's assessment program. This will allow them to view your assessment results.
             </p>
             <form method="post" action="{% url 'join_institution' %}" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label for="institution_code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-400 mb-2">
+                    <label for="institution_code" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                         Institution Code
                     </label>
                     <input
@@ -200,7 +200,7 @@
                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded mt-1"
                         required
                     />
-                    <label for="consent_granted" class="ml-3 block text-sm text-gray-700 dark:text-gray-300 dark:text-gray-400">
+                    <label for="consent_granted" class="ml-3 block text-sm text-gray-700 dark:text-gray-400">
                         <span class="font-semibold">I consent</span> to share my assessment results with this institution. I understand that my scores and feedback will be visible to their administrators, but my video/audio recordings will remain private unless explicitly authorized.
                     </label>
                 </div>
@@ -222,7 +222,7 @@
                 <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div>
                         <h4 class="font-semibold text-gray-800 dark:text-gray-100">{{ membership.business.company_name|default:membership.business.name }}</h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
                             Joined on {{ membership.joined_at|date:"M d, Y" }}
                             {% if membership.consent_granted %}
                             <span class="text-green-600 ml-2">• Consent granted</span>
@@ -241,7 +241,7 @@
             <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
             </svg>
-            <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No institution memberships yet.</p>
+            <p class="text-gray-500 dark:text-gray-500">No institution memberships yet.</p>
             <p class="text-sm text-gray-400 dark:text-gray-500">Join an institution to participate in their assessment programs.</p>
         </div>
         {% endif %}

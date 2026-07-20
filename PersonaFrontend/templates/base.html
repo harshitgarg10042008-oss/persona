@@ -85,26 +85,26 @@
 
         <div class="flex items-center space-x-4">
           <!-- Theme Toggle -->
-          <button id="theme-toggle" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 dark:text-gray-400 hover:text-primary transition-colors duration-300" aria-label="Toggle theme">
+          <button id="theme-toggle" class="p-2 rounded-lg text-gray-700 dark:text-gray-400 hover:text-primary transition-colors duration-300" aria-label="Toggle theme">
             <i class="fas fa-sun" id="theme-icon"></i>
           </button>
           
           {% if user.is_authenticated %} {% if user.business_profile %}
           <a
             href="{% url 'analysis:business_dashboard' %}"
-            class="text-gray-700 dark:text-gray-300 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
+            class="text-gray-700 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
           >
             Business Dashboard
           </a>
           {% else %}
           <a
             href="{% url 'individual_dashboard' %}"
-            class="text-gray-700 dark:text-gray-300 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
+            class="text-gray-700 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
           >
             Dashboard
           </a>
           {% endif %}
-          <span class="text-gray-700 dark:text-gray-300 dark:text-gray-400 text-sm"
+          <span class="text-gray-700 dark:text-gray-400 text-sm"
             >Welcome, {{ user.first_name|default:user.username }}!</span
           >
           <a
@@ -116,7 +116,7 @@
           {% else %}
           <a
             href="{% url 'login' %}"
-            class="text-gray-700 dark:text-gray-300 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
+            class="text-gray-700 dark:text-gray-400 hover:text-accent transition-colors duration-300 px-3 py-2 text-sm font-medium"
           >
             Login
           </a>
@@ -141,7 +141,7 @@
           class="alert alert-{{ message.tags }} bg-white dark:bg-gray-900 border-l-4 {% if message.tags == 'error' %}border-red-500 text-red-700{% elif message.tags == 'success' %}border-green-500 text-green-700{% else %}border-blue-500 text-blue-700{% endif %} p-4 rounded-lg shadow-lg max-w-sm relative"
           data-auto-dismiss="true"
         >
-          <button class="absolute top-2 right-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-300 dark:text-gray-400 transition-colors" onclick="this.parentElement.remove()">
+          <button class="absolute top-2 right-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 transition-colors" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
           </button>
           <div class="flex">
@@ -167,13 +167,13 @@
     <!-- Minimal Footer -->
     <footer class="bg-white dark:bg-gray-900 py-8 mt-20 border-t border-gray-200 dark:border-gray-700">
       <div class="max-w-6xl mx-auto px-6 text-center">
-        <p class="text-gray-700 dark:text-gray-300 dark:text-gray-400 text-lg font-medium">Persona — Your AI Interviewer</p>
+        <p class="text-gray-700 dark:text-gray-400 text-lg font-medium">Persona — Your AI Interviewer</p>
         <div class="flex items-center justify-center space-x-2 mt-1">
-          <span class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">by Harshit Garg</span>
+          <span class="text-gray-600 dark:text-gray-400 text-sm">by Harshit Garg</span>
           <a
             href="https://github.com"
             target="_blank"
-            class="text-gray-600 dark:text-gray-300 dark:text-gray-400 hover:text-accent transition-colors duration-300"
+            class="text-gray-600 dark:text-gray-400 hover:text-accent transition-colors duration-300"
           >
             <i class="fab fa-github text-lg"></i>
           </a>

@@ -47,8 +47,7 @@
       <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700">
         <span>
           <strong>Duration:</strong>
-          {% if duration_seconds < 60 %} {{ duration_seconds }} seconds {% else %} {{ duration_minutes }} minutes {%
-            endif %} </span>
+          {% if duration_seconds < 60 %} {{ duration_seconds }} seconds {% else %} {{ duration_minutes }} minutes {% endif %} </span>
             <span><strong>Questions:</strong> {{ responses.count }}</span>
             <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
@@ -79,12 +78,11 @@
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No analysis data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Complete assessment</p>
+      <p class="text-center text-gray-600 dark:text-gray-400">Complete assessment</p>
       {% if platform_average %}
       <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Platform average for this role: <span class="font-semibold text-gray-700 dark:text-gray-300">{{
-            platform_average }}/10</span>
+          Platform average for this role: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ platform_average|floatformat:1 }}/10</span>
         </p>
       </div>
       {% endif %}
@@ -107,7 +105,7 @@
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Posture and gestures</p>
+      <p class="text-center text-gray-600 dark:text-gray-400">Posture and gestures</p>
     </div>
 
     <div class="metric-card">
@@ -127,7 +125,7 @@
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No snapshot data recorded</p>
         {% endif %}
       </div>
-      <p class="text-center text-gray-600 dark:text-gray-300 dark:text-gray-400">Appearance and grooming</p>
+      <p class="text-center text-gray-600 dark:text-gray-400">Appearance and grooming</p>
     </div>
   </div>
 
@@ -136,7 +134,7 @@
     <div class="text-center">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Speaking</h3>
       <div class="text-4xl font-bold text-indigo-600">{{ assessment.speaking_score|floatformat:1 }}/10</div>
-      <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">Fluency, clarity, and content quality
+      <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Fluency, clarity, and content quality
       </p>
     </div>
   </div>
@@ -147,7 +145,7 @@
     <div class="text-center">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Vocal Confidence</h3>
       <div class="text-4xl font-bold text-orange-600">{{ assessment.voice_confidence_score|floatformat:1 }}/10</div>
-      <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">Voice tone, pace, and delivery</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Voice tone, pace, and delivery</p>
     </div>
   </div>
   {% endif %}
@@ -161,8 +159,7 @@
 
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-4">AI Feedback Summary</h2>
-    <p class="text-gray-700 dark:text-gray-300 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr
-      }}</p>
+    <p class="text-gray-700 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr }}</p>
   </div>
 
   {% if assessment.adaptive_mode and assessment.adaptive_path %}
@@ -213,8 +210,8 @@
     </div>
 
     <div class="text-sm text-indigo-800 mb-6 bg-white dark:bg-gray-900 bg-opacity-60 p-3 rounded">
-      Your current score is <strong>{{ assessment.improvement_roadmap.current_score }}</strong>.
-      Let's get you to <strong>{{ assessment.improvement_roadmap.target_score }}</strong>.
+      Your current score is <strong>{{ assessment.improvement_roadmap.current_score|floatformat:1 }}</strong>.
+      Let's get you to <strong>{{ assessment.improvement_roadmap.target_score|floatformat:1 }}</strong>.
     </div>
 
     <div class="space-y-4">
@@ -228,7 +225,7 @@
         <div>
           <span class="text-xs font-semibold uppercase tracking-wider text-indigo-500 mb-1 block">{{ item.area }}</span>
           <h4 class="text-gray-900 dark:text-gray-50 font-medium mb-1">{{ item.action }}</h4>
-          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm">{{ item.why }}</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm">{{ item.why }}</p>
         </div>
       </div>
       {% endfor %}
@@ -461,7 +458,7 @@
       <div class="flex flex-wrap gap-2">
         {% for topic in assessment.ai_coach_recommended_topics %}
         <span
-          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:text-purple-200">
           {{ topic }}
         </span>
         {% empty %}
@@ -504,8 +501,7 @@
       <!-- Summary -->
       <div class="rounded-lg p-5"
         style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
-        <p class="text-sm leading-relaxed" style="color: var(--color-text-primary);">{{
-          assessment.communication_analysis.summary }}</p>
+        <p class="text-sm leading-relaxed" style="color: var(--color-text-primary);">{{ assessment.communication_analysis.summary }}</p>
       </div>
 
       <!-- Traits -->
@@ -538,14 +534,12 @@
               Q{{ response.question_order }}. {{ response.question.question_text }}
             </h3>
             {% if response.analysis_data.speech_analysis.transcription %}
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{
-              response.analysis_data.speech_analysis.transcription|truncatechars:180 }}"</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.analysis_data.speech_analysis.transcription|truncatechars:180 }}"</p>
             {% elif response.response_text %}
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"
             </p>
             {% elif response.analysis_data.speech_analysis_status == 'failed' %}
-            <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{
-              response.analysis_data.speech_analysis.error|default:"transcription unavailable" }}</p>
+            <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{ response.analysis_data.speech_analysis.error|default:"transcription unavailable" }}</p>
             {% elif response.analysis_data.speech_analysis_status == 'pending' %}
             <p class="text-sm text-yellow-500 mt-2">⏳ Still processing...</p>
             {% else %}
@@ -636,15 +630,14 @@
             {% endif %}
           </div>
           {% if response.star_analysis.missing_explanation %}
-          <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{{
-            response.star_analysis.missing_explanation }}</p>
+          <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{{ response.star_analysis.missing_explanation }}</p>
           {% endif %}
         </div>
         {% endif %}
 
       </div>
       {% empty %}
-      <p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">No responses available.</p>
+      <p class="text-gray-500 dark:text-gray-500">No responses available.</p>
       {% endfor %}
     </div>
   </div>
@@ -653,7 +646,7 @@
   <!-- ── Confidence & Energy Breakdown Chart ─────────────────────────── -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-2xl font-semibold mb-1">Confidence &amp; Energy by Question</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">
+    <p class="text-sm text-gray-500 dark:text-gray-500 mb-6">
       These metrics are derived from your audio — higher energy means a louder, more
       projected voice; speaking rate measures your pace (onsets/sec); pitch variation
       reflects natural expressiveness.
@@ -708,11 +701,9 @@
     </div>
     {% endif %}
     <div class="recommendation-item">Practice interview scenarios to build confidence</div>
+      </div>
+    </div>
   </div>
-</div>
-</div>
-</div>
-</div>
 </div>
 
 <div class="text-center space-x-4">
@@ -739,32 +730,33 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
     <div>
       <div class="text-2xl font-bold text-blue-600">{{ responses.count }}</div>
-      <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Questions Answered</div>
+      <div class="text-sm text-gray-600 dark:text-gray-400">Questions Answered</div>
     </div>
     <div>
       <div class="text-2xl font-bold text-green-600">
         {% if duration_seconds < 60 %} {{ duration_seconds }}s {% else %} {{ duration_minutes }}m {% endif %} </div>
-          <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Total Duration</div>
+          <div class="text-sm text-gray-600 dark:text-gray-400">Total Duration</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-purple-600">{{ snapshots.count }}</div>
-        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Analysis Snapshots</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">Analysis Snapshots</div>
       </div>
       <div>
         <div class="text-2xl font-bold text-orange-600">0</div>
-        <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Focus Breaks</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">Focus Breaks</div>
       </div>
     </div>
   </div>
-  {% endblock %}
+</div>
+
+{% endblock %}
 
   {% block extra_js %}
   {% if has_chart_data %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script>
     (function () {
-      const raw = {{ confidence_chart_json| safe
-    }};
+      const raw = {{ confidence_chart_json|safe }};
 
     // Colours
     const energyColor = 'rgba(99, 102, 241, 1)';

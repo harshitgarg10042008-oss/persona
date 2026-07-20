@@ -33,7 +33,7 @@ Dashboard{% endblock %} {% block extra_css %}
     <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
       Practice Interview Dashboard
     </h1>
-    <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-2">
+    <p class="text-gray-600 dark:text-gray-400 mt-2">
       Improve your interview skills with AI-powered analysis
     </p>
   </div>
@@ -45,7 +45,7 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Professional Attire</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">AI attire analysis</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">AI attire analysis</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.attire_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -57,7 +57,7 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Body Language</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Posture & eye contact</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Posture & eye contact</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.body_language_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -69,7 +69,7 @@ Dashboard{% endblock %} {% block extra_css %}
       <div class="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <h3 class="font-medium">Speech Analysis</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">Fluency & content</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Fluency & content</p>
         </div>
         <span
           class="analysis-status {% if analysis_status.speech_available %}status-available{% else %}status-unavailable{% endif %}"
@@ -107,9 +107,9 @@ Dashboard{% endblock %} {% block extra_css %}
               class="mt-1"
             />
           </div>
-          <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400 text-sm mb-4">{{ job_title.description }}</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">{{ job_title.description }}</p>
           <div class="flex items-center justify-between">
-            <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-400 px-2 py-1 rounded">
+            <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
               {{ job_title.get_category_display }}
             </span>
             <span class="text-xs text-blue-600 font-medium">
@@ -131,7 +131,7 @@ Dashboard{% endblock %} {% block extra_css %}
     </form>
     {% else %}
     <div class="text-center py-8">
-      <p class="text-gray-600 dark:text-gray-300 dark:text-gray-400">
+      <p class="text-gray-600 dark:text-gray-400">
         No job titles available for assessment at this time.
       </p>
     </div>
@@ -159,7 +159,7 @@ Dashboard{% endblock %} {% block extra_css %}
             <h3 class="font-medium text-gray-800 dark:text-gray-100">
               {{ assessment.platform_job_title.title }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
               {{ assessment.created_at|date:"M d, Y" }}
             </p>
           </div>
@@ -170,7 +170,7 @@ Dashboard{% endblock %} {% block extra_css %}
               {{ assessment.get_status_display }}
             </span>
             {% if assessment.overall_score %}
-            <div class="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-1">
+            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Score: {{ assessment.overall_score|floatformat:1 }}/10
             </div>
             {% endif %}
