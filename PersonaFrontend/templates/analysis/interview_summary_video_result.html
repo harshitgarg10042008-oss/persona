@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Summary Video - {{ assessment.platform_job_title.title|default:assessment.job_title|default:"Assessment" }}{% endblock %}
+{% block title %}Summary Video - {{ assessment.platform_job_title.title|default:"Assessment" }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -150,7 +150,7 @@
         {% if video_record.status == 'completed' %}
             <h1 class="video-title">Your Summary Video</h1>
             <p class="video-subtitle">
-                Interview summary for {{ assessment.platform_job_title.title|default:assessment.job_title|default:"Assessment" }}
+                Interview summary for {{ assessment.platform_job_title.title|default:"Assessment" }}
             </p>
 
             <div class="success-message">

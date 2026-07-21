@@ -15,25 +15,25 @@ def _truncate(text, max_len=100):
     truncated = text[:max_len].rsplit(' ', 1)[0]
     return truncated + "..."
 
-def generate_summary_video(assessment):
+def generate_summary_video(assessment, video_record_id):
     """
-    Takes an IndividualAssessment instance.
-    Returns the file path of the generated MP4 on success, or raises an 
+    Takes an IndividualAssessment instance and the InterviewSummaryVideo PK.
+    Uses video_record_id in all temp and output file names so that concurrent
+    workers processing different records for the same assessment never collide.
+    Returns the file path of the generated MP4 on success, or raises an
     exception on failure (caller will handle try/except).
     """
-    session_id = str(assessment.session_id)
+    record_id = str(video_record_id)
     output_dir = os.path.join("media", "summary_videos")
     os.makedirs(output_dir, exist_ok=True)
-    output_filepath = os.path.join(output_dir, f"{session_id}_summary.mp4")
+    output_filepath = os.path.join(output_dir, f"{record_id}_summary.mp4")
 
     temp_files = []
     
     try:
         job_title = "Assessment"
-        if hasattr(assessment, 'platform_job_title') and assessment.platform_job_title:
+        if assessment.platform_job_title:
             job_title = assessment.platform_job_title.title
-        elif hasattr(assessment, 'job_title') and assessment.job_title:
-            job_title = assessment.job_title
 
         slides_data = []
 
@@ -147,13 +147,13 @@ def generate_summary_video(assessment):
             
             d.multiline_text((x, y), text, fill=(255, 255, 255), font=font, align="center")
             
-            img_path = os.path.join(output_dir, f"temp_{session_id}_{idx}.png")
+            img_path = os.path.join(output_dir, f"temp_{record_id}_{idx}.png")
             img.save(img_path)
             temp_files.append(img_path)
 
             # gTTS audio
             tts = gTTS(text=narration, lang='en', slow=False)
-            audio_path = os.path.join(output_dir, f"temp_{session_id}_{idx}.mp3")
+            audio_path = os.path.join(output_dir, f"temp_{record_id}_{idx}.mp3")
             tts.save(audio_path)
             temp_files.append(audio_path)
 

@@ -113,7 +113,7 @@ def generate_summary_video_task(video_id):
         video_record.status = 'processing'
         video_record.save(update_fields=['status'])
 
-        video_file_path = generate_summary_video(video_record.assessment)
+        video_file_path = generate_summary_video(video_record.assessment, video_record.id)
         relative_path = video_file_path.replace('\\', '/')
         if relative_path.startswith('media/'):
             relative_path = relative_path[len('media/'):]

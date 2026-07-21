@@ -820,10 +820,10 @@ def individual_dashboard(request):
         messages.error(request, "Access denied. This section is for individual users only.")
         return redirect('analysis:business_dashboard')
     
-    # Get user's recent assessments
+    # Get user's 3 most recent assessments for the dashboard history panel
     recent_assessments = IndividualAssessment.objects.filter(
         user=request.user
-    ).order_by('-created_at')[:5]
+    ).order_by('-created_at')[:3]
     
     # Get available job titles with per-session question count.
     # session_question_count mirrors select_questions(): all mandatory active
@@ -1134,8 +1134,12 @@ def individual_assessment_question(request, session_id):
         if not current_question:
             # No more questions, complete the assessment
             return redirect('analysis:complete_individual_assessment', session_id=session_id)
+            
+    from .tts_utils import get_or_create_question_audio
+    audio_url = get_or_create_question_audio(current_question.question_text, session_id) if current_question else None
     
     context = {
+        'audio_url': audio_url,
         'assessment': assessment,
         'question': current_question,
         'is_follow_up': is_follow_up,
@@ -1207,6 +1211,9 @@ def submit_assessment_response(request, session_id):
                         next_q_type_display = next_q.get_question_type_display() if next_q else ""
                         next_q_is_mandatory = next_q.is_mandatory if next_q else False
                         
+                    from .tts_utils import get_or_create_question_audio
+                    audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                        
                     response_data['next_question'] = {
                         'is_follow_up': is_follow_up,
                         'question_text': next_q_text,
@@ -1215,6 +1222,7 @@ def submit_assessment_response(request, session_id):
                         'difficulty_level': assessment.current_difficulty,
                         'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                        'audio_url': audio_url,
                     }
                 return JsonResponse(response_data)
             question_text_for_analysis = current_question.question_text
@@ -1315,6 +1323,9 @@ def submit_assessment_response(request, session_id):
                     next_q_type_display = next_q.get_question_type_display() if next_q else ""
                     next_q_is_mandatory = next_q.is_mandatory if next_q else False
                     
+                from .tts_utils import get_or_create_question_audio
+                audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                    
                 response_data['next_question'] = {
                     'is_follow_up': is_follow_up,
                     'question_text': next_q_text,
@@ -1323,6 +1334,7 @@ def submit_assessment_response(request, session_id):
                     'difficulty_level': assessment.current_difficulty,
                     'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                     'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                    'audio_url': audio_url,
                 }
             return JsonResponse(response_data)
 
@@ -1562,6 +1574,9 @@ def submit_assessment_response(request, session_id):
                 next_q_type_display = next_q.get_question_type_display() if next_q else ""
                 next_q_is_mandatory = next_q.is_mandatory if next_q else False
                 
+            from .tts_utils import get_or_create_question_audio
+            audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                
             response_data['next_question'] = {
                 'is_follow_up': is_follow_up,
                 'question_text': next_q_text,
@@ -1570,6 +1585,7 @@ def submit_assessment_response(request, session_id):
                 'difficulty_level': assessment.current_difficulty,
                 'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                 'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                'audio_url': audio_url,
             }
         return JsonResponse(response_data)
         
@@ -3465,6 +3481,16 @@ def interview_summary_video_generate(request):
         user=request.user,
     )
 
+    # Guard: if a pending or processing record already exists, reuse it
+    # instead of spawning a duplicate worker that would race the first.
+    existing = InterviewSummaryVideo.objects.filter(
+        assessment=assessment,
+        user=request.user,
+        status__in=['pending', 'processing'],
+    ).order_by('-created_at').first()
+    if existing:
+        return redirect('analysis:interview_summary_video_result', video_id=existing.id)
+
     # Create InterviewSummaryVideo record
     video_record = InterviewSummaryVideo.objects.create(
         assessment=assessment,
@@ -3476,7 +3502,11 @@ def interview_summary_video_generate(request):
     from .tasks import generate_summary_video_task
     try:
         from django_q.tasks import async_task
-        async_task(generate_summary_video_task, video_record.id)
+        async_task(
+            generate_summary_video_task,
+            video_record.id,
+            timeout=300,  # per-task timeout: 5 min, overrides Q_CLUSTER global of 60 s
+        )
     except Exception as e:
         print(f"django-q enqueue failed ({e}), using thread fallback")
         import threading

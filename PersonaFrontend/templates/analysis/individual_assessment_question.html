@@ -449,6 +449,15 @@
                 {% endif %}
             </div>
 
+            <div class="question-audio-controls flex items-center justify-between mb-2">
+                <audio id="question-audio" src="{{ audio_url|default:'' }}" preload="auto" style="display: none;"></audio>
+                <div class="flex items-center space-x-2">
+                    <button id="replay-audio-btn" class="text-gray-400 hover:text-indigo-500 transition-colors" title="Replay Question" style="display: none;">
+                        <i class="fas fa-volume-up text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
             <div class="question-text">
                 {{ question.question_text }}
             </div>
@@ -585,6 +594,17 @@
         document.getElementById('record-button').addEventListener('click', toggleRecording);
         document.getElementById('next-button').addEventListener('click', nextQuestion);
 
+        const replayBtn = document.getElementById('replay-audio-btn');
+        if (replayBtn) {
+            replayBtn.addEventListener('click', function() {
+                const audioEl = document.getElementById('question-audio');
+                if (audioEl && audioEl.src) {
+                    audioEl.currentTime = 0;
+                    audioEl.play().catch(e => console.warn('Replay failed:', e));
+                }
+            });
+        }
+
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -628,6 +648,15 @@
             assessmentActive = true;
             startBtn.disabled = true;
             document.getElementById('assessment-start-gate').style.display = 'none';
+
+            // Auto-play the first question audio now that we have user interaction
+            const audioEl = document.getElementById('question-audio');
+            const replayBtn = document.getElementById('replay-audio-btn');
+            if (audioEl && audioEl.src && !audioEl.src.endsWith('/None')) {
+                replayBtn.style.display = 'block';
+                audioEl.play().catch(e => console.warn('Auto-play blocked:', e));
+            }
+
             questionStartTime = Date.now();
             startPreparationTimer();
             startBackgroundAnalysis();
@@ -1364,6 +1393,20 @@ function updateQuestionUI(next_question) {
     const questionText = document.querySelector('.question-text');
     if (questionText) {
         questionText.textContent = next_question.question_text;
+    }
+
+    // Update and play audio for the next question
+    const audioEl = document.getElementById('question-audio');
+    const replayBtn = document.getElementById('replay-audio-btn');
+    if (audioEl) {
+        if (next_question.audio_url) {
+            audioEl.src = next_question.audio_url;
+            replayBtn.style.display = 'block';
+            audioEl.play().catch(e => console.warn('Next question auto-play blocked:', e));
+        } else {
+            audioEl.src = '';
+            replayBtn.style.display = 'none';
+        }
     }
 
     // 4. Reset Timers & Variables
