@@ -75,4 +75,9 @@ urlpatterns = [
     path('cover-letter/generate/', views.cover_letter_generate, name='cover_letter_generate'),
     path('cover-letter/result/<int:letter_id>/', views.cover_letter_result, name='cover_letter_result'),
     path('cover-letter/history/', views.cover_letter_history, name='cover_letter_history'),
+    
+    # LinkedIn Post Generator
+    path('linkedin-post/generate/', views.linkedin_post_generate, name='linkedin_post_generate'),
+    path('linkedin-post/result/<int:post_id>/', views.linkedin_post_result, name='linkedin_post_result'),
+    path('linkedin-post/history/', views.linkedin_post_history, name='linkedin_post_history'),
 ]

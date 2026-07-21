@@ -660,3 +660,29 @@ class CoverLetter(models.Model):
 
     def __str__(self):
         return f"Cover Letter for {self.job_title} - {self.user.email}"
+
+
+class LinkedInPost(models.Model):
+    """AI-generated LinkedIn posts — standalone feature."""
+    user = models.ForeignKey(
+        'UserAPI.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='linkedin_posts'
+    )
+    topic = models.CharField(max_length=255)
+    tone = models.CharField(max_length=50, default='professional')
+    resume_review = models.ForeignKey(
+        'ResumeReview',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='linkedin_posts'
+    )
+    generated_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"LinkedIn Post: {self.topic} - {self.user.email}"

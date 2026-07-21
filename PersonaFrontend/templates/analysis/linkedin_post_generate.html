@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}LinkedIn Post Generator{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">LinkedIn Post Generator</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Generate an engaging, professional LinkedIn post tailored to your background and topic.</p>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'analysis:linkedin_post_generate' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="topic" class="form-label fw-bold">Topic / What do you want to post about? *</label>
+                            <textarea class="form-control" id="topic" name="topic" rows="3" required placeholder="e.g. My thoughts on the future of AI in software engineering, or announcing a new certification I just completed..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tone" class="form-label fw-bold">Tone</label>
+                            <select class="form-select" id="tone" name="tone">
+                                <option value="professional" selected>Professional</option>
+                                <option value="casual">Casual / Conversational</option>
+                                <option value="celebratory">Celebratory / Announcement</option>
+                                <option value="thought-leadership">Thought Leadership</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="resume_review_id" class="form-label fw-bold">Base on your Resume (Optional)</label>
+                            <select class="form-select" id="resume_review_id" name="resume_review_id">
+                                <option value="">Do not use resume context</option>
+                                {% for review in resume_reviews %}
+                                    <option value="{{ review.id }}">{{ review.resume_file.name }} (Analyzed: {{ review.created_at|date:"M d, Y" }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Incorporate your unique professional experience into the post by linking a past resume review.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Generate Post</button>
+                            <a href="{% url 'analysis:linkedin_post_history' %}" class="btn btn-outline-secondary">View Past Posts</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -83,10 +83,10 @@ Dashboard{% endblock %} {% block extra_css %}
   <!-- Resume Reviewer -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume & Cover Letter Tools</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume, Cover Letter & LinkedIn Tools</h2>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Resume Reviewer Card -->
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Resume Analyzer</h3>
@@ -102,6 +102,15 @@ Dashboard{% endblock %} {% block extra_css %}
         <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Generate a highly tailored cover letter based on a job description and your resume context.</p>
         <a href="{% url 'analysis:cover_letter_generate' %}" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium inline-block w-full text-center">
           Generate Letter
+        </a>
+      </div>
+
+      <!-- LinkedIn Post Generator Card -->
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">LinkedIn Post Generator</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Create engaging, professional LinkedIn posts to build your personal brand and network.</p>
+        <a href="{% url 'analysis:linkedin_post_generate' %}" class="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium inline-block w-full text-center">
+          Generate Post
         </a>
       </div>
     </div>
