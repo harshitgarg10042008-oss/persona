@@ -3248,3 +3248,103 @@ def resume_reviewer_history(request):
     return render(request, 'analysis/resume_reviewer_history.html', {
         'annotated_reviews': annotated,
     })
+
+
+# =====================================
+# COVER LETTER GENERATOR VIEWS
+# =====================================
+from .models import CoverLetter
+
+@login_required
+def cover_letter_generate(request):
+    if request.method == 'POST':
+        job_title = request.POST.get('job_title')
+        company_name = request.POST.get('company_name', '')
+        job_description = request.POST.get('job_description', '')
+        resume_review_id = request.POST.get('resume_review_id')
+
+        if not job_title:
+            messages.error(request, 'Job title is required.')
+            return redirect('analysis:cover_letter_generate')
+
+        resume_context = ""
+        resume_review = None
+        if resume_review_id:
+            try:
+                resume_review = ResumeReview.objects.get(id=resume_review_id, user=request.user)
+                resume_context = _extract_resume_text(resume_review.resume_file)
+            except ResumeReview.DoesNotExist:
+                messages.error(request, 'Selected resume review not found.')
+                return redirect('analysis:cover_letter_generate')
+            except Exception as e:
+                messages.error(request, f'Failed to extract resume text: {str(e)}')
+                return redirect('analysis:cover_letter_generate')
+
+        prompt = (
+            "You are an expert career coach and professional copywriter. "
+            "Write a compelling, professional cover letter for the following job.\n\n"
+            f"Job Title: {job_title}\n"
+        )
+        if company_name:
+            prompt += f"Company Name: {company_name}\n"
+        if job_description:
+            prompt += f"Job Description:\n{job_description}\n"
+        if resume_context:
+            prompt += f"\nApplicant's Resume Context:\n{resume_context}\n"
+        
+        prompt += (
+            "\nOutput ONLY the cover letter text. Do not include markdown formatting like ``` or introductory/concluding remarks."
+        )
+
+        try:
+            generated_text = _call_groq(prompt, timeout=45)
+            if not generated_text:
+                raise ValueError("Empty response from Groq")
+            
+            # Clean up potential markdown formatting
+            generated_text = generated_text.strip()
+            if generated_text.startswith('```'):
+                lines = generated_text.split('\n')
+                if lines[0].startswith('```'):
+                    lines = lines[1:]
+                if lines[-1].startswith('```'):
+                    lines = lines[:-1]
+                generated_text = '\n'.join(lines).strip()
+
+            cover_letter = CoverLetter.objects.create(
+                user=request.user,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_description,
+                resume_review=resume_review,
+                generated_text=generated_text
+            )
+            return redirect('analysis:cover_letter_result', letter_id=cover_letter.id)
+            
+        except Exception as e:
+            messages.error(request, 'Failed to generate cover letter. Please try again.')
+            return redirect('analysis:cover_letter_generate')
+
+    # GET request
+    resume_reviews = ResumeReview.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'analysis/cover_letter_generate.html', {
+        'resume_reviews': resume_reviews
+    })
+
+@login_required
+def cover_letter_result(request, letter_id):
+    from django.http import Http404
+    cover_letter = get_object_or_404(CoverLetter, id=letter_id)
+    if cover_letter.user != request.user:
+        raise Http404("Not found")
+
+    return render(request, 'analysis/cover_letter_result.html', {
+        'cover_letter': cover_letter,
+    })
+
+@login_required
+def cover_letter_history(request):
+    cover_letters = CoverLetter.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'analysis/cover_letter_history.html', {
+        'cover_letters': cover_letters,
+    })

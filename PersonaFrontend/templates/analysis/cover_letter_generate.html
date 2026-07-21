@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cover Letter Generator{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Cover Letter Generator</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Generate a professional, AI-crafted cover letter tailored to the job description and your resume.</p>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'analysis:cover_letter_generate' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="job_title" class="form-label fw-bold">Job Title *</label>
+                            <input class="form-control form-control-lg" type="text" id="job_title" name="job_title" required placeholder="e.g. Senior Software Engineer">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="company_name" class="form-label fw-bold">Company Name (Optional)</label>
+                            <input class="form-control" type="text" id="company_name" name="company_name" placeholder="e.g. Acme Corp">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="job_description" class="form-label fw-bold">Job Description (Optional)</label>
+                            <textarea class="form-control" id="job_description" name="job_description" rows="4" placeholder="Paste the job requirements or description here for a highly tailored letter..."></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="resume_review_id" class="form-label fw-bold">Base on your Resume (Optional)</label>
+                            <select class="form-select" id="resume_review_id" name="resume_review_id">
+                                <option value="">Do not use resume context</option>
+                                {% for review in resume_reviews %}
+                                    <option value="{{ review.id }}">{{ review.resume_file.name }} (Analyzed: {{ review.created_at|date:"M d, Y" }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Select a previously uploaded resume to incorporate your experience.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Generate Cover Letter</button>
+                            <a href="{% url 'analysis:cover_letter_history' %}" class="btn btn-outline-secondary">View Past Cover Letters</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

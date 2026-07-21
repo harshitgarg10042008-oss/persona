@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Your Cover Letter{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Your Generated Cover Letter</h2>
+                <a href="{% url 'analysis:cover_letter_generate' %}" class="btn btn-outline-primary">Generate Another</a>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h5 class="mb-0 fw-bold">{{ cover_letter.job_title }}</h5>
+                        {% if cover_letter.company_name %}
+                        <p class="text-muted mb-0 small"><i class="fas fa-building me-1"></i>{{ cover_letter.company_name }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" onclick="copyToClipboard()">
+                            <i class="fas fa-copy me-1"></i>Copy text
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="downloadTxt()">
+                            <i class="fas fa-download me-1"></i>Download .txt
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body bg-light">
+                    <!-- Preserve line breaks using pre-wrap -->
+                    <div class="bg-white p-4 rounded border shadow-sm text-dark font-monospace" style="white-space: pre-wrap; font-size: 1.05rem; line-height: 1.6;" id="coverLetterText">{{ cover_letter.generated_text }}</div>
+                </div>
+                <div class="card-footer text-muted small py-3">
+                    Generated on {{ cover_letter.created_at|date:"M d, Y h:i A" }}
+                    {% if cover_letter.resume_review %}
+                        <span class="ms-3 border-start ps-3"><i class="fas fa-file-alt me-1"></i>Based on resume version {{ cover_letter.resume_review.version_number }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'analysis:cover_letter_history' %}" class="btn btn-secondary btn-lg">Back to History</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard() {
+        const text = document.getElementById('coverLetterText').innerText;
+        navigator.clipboard.writeText(text).then(function() {
+            alert('Cover letter copied to clipboard!');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            alert('Failed to copy. Please copy manually.');
+        });
+    }
+
+    function downloadTxt() {
+        const text = document.getElementById('coverLetterText').innerText;
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        
+        // Clean filename
+        let jobTitle = "{{ cover_letter.job_title|escapejs }}".replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        let company = "{{ cover_letter.company_name|escapejs }}".replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        let filename = `cover_letter_${jobTitle}`;
+        if (company) {
+            filename += `_${company}`;
+        }
+        filename += ".txt";
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+{% endblock %}

@@ -70,4 +70,9 @@ urlpatterns = [
     path('resume-reviewer/upload/', views.resume_reviewer_upload, name='resume_reviewer_upload'),
     path('resume-reviewer/result/<int:review_id>/', views.resume_reviewer_result, name='resume_reviewer_result'),
     path('resume-reviewer/history/', views.resume_reviewer_history, name='resume_reviewer_history'),
+    
+    # Cover Letter Generator
+    path('cover-letter/generate/', views.cover_letter_generate, name='cover_letter_generate'),
+    path('cover-letter/result/<int:letter_id>/', views.cover_letter_result, name='cover_letter_result'),
+    path('cover-letter/history/', views.cover_letter_history, name='cover_letter_history'),
 ]

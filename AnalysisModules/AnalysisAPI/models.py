@@ -633,3 +633,30 @@ class ResumeReview(models.Model):
 
     def __str__(self):
         return f"Resume Review for {self.user.email} at {self.created_at}"
+
+
+class CoverLetter(models.Model):
+    """AI-generated cover letters — standalone feature separate from ResumeReview."""
+    user = models.ForeignKey(
+        'UserAPI.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='cover_letters',
+    )
+    job_title = models.CharField(max_length=255)
+    company_name = models.CharField(max_length=255, blank=True)
+    job_description = models.TextField(blank=True)
+    resume_review = models.ForeignKey(
+        'ResumeReview',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cover_letters',
+    )
+    generated_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Cover Letter for {self.job_title} - {self.user.email}"

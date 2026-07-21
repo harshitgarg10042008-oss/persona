@@ -83,19 +83,26 @@ Dashboard{% endblock %} {% block extra_css %}
   <!-- Resume Reviewer -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume Reviewer</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume & Cover Letter Tools</h2>
     </div>
-    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-      <div class="flex flex-col md:flex-row md:items-center justify-between">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">AI Resume Analysis</h3>
-          <p class="text-gray-600 dark:text-gray-400 mt-1">Upload your resume for instant ATS and recruiter feedback.</p>
-        </div>
-        <div class="mt-4 md:mt-0">
-          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-block text-center">
-            Upload Resume
-          </a>
-        </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Resume Reviewer Card -->
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Resume Analyzer</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Upload your resume for instant ATS and recruiter feedback with detailed actionable suggestions.</p>
+        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-block w-full text-center">
+          Analyze Resume
+        </a>
+      </div>
+      
+      <!-- Cover Letter Generator Card -->
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Cover Letter Generator</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Generate a highly tailored cover letter based on a job description and your resume context.</p>
+        <a href="{% url 'analysis:cover_letter_generate' %}" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium inline-block w-full text-center">
+          Generate Letter
+        </a>
       </div>
     </div>
   </div>
