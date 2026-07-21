@@ -80,6 +80,26 @@ Dashboard{% endblock %} {% block extra_css %}
     </div>
   </div>
 
+  <!-- Resume Reviewer -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume Reviewer</h2>
+    </div>
+    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">AI Resume Analysis</h3>
+          <p class="text-gray-600 dark:text-gray-400 mt-1">Upload your resume for instant ATS and recruiter feedback.</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-block text-center">
+            Upload Resume
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Available Job Titles -->
   <div class="mb-8">
     <h2 class="text-lg font-semibold mb-6 text-gray-900 dark:text-gray-50">Start New Assessment</h2>

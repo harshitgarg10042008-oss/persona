@@ -65,4 +65,9 @@ urlpatterns = [
     
     # Institution Management
     path('export-institution-members/', views.export_institution_members_csv, name='export_institution_members_csv'),
+    
+    # Resume Reviewer
+    path('resume-reviewer/upload/', views.resume_reviewer_upload, name='resume_reviewer_upload'),
+    path('resume-reviewer/result/<int:review_id>/', views.resume_reviewer_result, name='resume_reviewer_result'),
+    path('resume-reviewer/history/', views.resume_reviewer_history, name='resume_reviewer_history'),
 ]

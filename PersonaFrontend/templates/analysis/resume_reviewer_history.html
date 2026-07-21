@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Review History{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Your Resume Reviews</h2>
+        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="btn btn-primary">New Review</a>
+    </div>
+
+    {% if reviews %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for review in reviews %}
+            <div class="col">
+                <div class="card h-100 shadow-sm hover-shadow transition">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-primary mb-3">{{ review.overall_score }}</div>
+                        <h5 class="card-title text-truncate" title="{{ review.resume_file.name }}">
+                            {{ review.resume_file.name|default:"Unknown File" }}
+                        </h5>
+                        <p class="text-muted small mb-4">
+                            {{ review.created_at|date:"M d, Y h:i A" }}
+                        </p>
+                        <a href="{% url 'analysis:resume_reviewer_result' review.id %}" class="btn btn-outline-primary w-100">View Details</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 bg-light rounded shadow-sm">
+            <h4 class="text-muted mb-3">No reviews yet</h4>
+            <p class="mb-4">Upload your first resume to get AI-powered feedback.</p>
+            <a href="{% url 'analysis:resume_reviewer_upload' %}" class="btn btn-primary btn-lg">Start Review</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .transition {
+        transition: all .3s ease;
+    }
+</style>
+{% endblock %}

@@ -616,3 +616,17 @@ class BusinessAssessmentSnapshot(models.Model):
     
     def __str__(self):
         return f"{self.assessment} - {self.analysis_type} at {self.timestamp}"
+
+
+class ResumeReview(models.Model):
+    resume_file = models.FileField(upload_to='resumes/')
+    overall_score = models.FloatField()
+    feedback = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey('UserAPI.CustomUser', on_delete=models.CASCADE, related_name='resume_reviews')
+
+    class Meta:
+        db_table = 'AnalysisAPI_resumereview'
+
+    def __str__(self):
+        return f"Resume Review for {self.user.email} at {self.created_at}"

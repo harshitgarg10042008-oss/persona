@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Reviewer{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Resume Reviewer</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Upload your resume to get instant AI-powered feedback on how to improve it for ATS and recruiters.</p>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data" action="{% url 'analysis:resume_reviewer_upload' %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="resume_file" class="form-label fw-bold">Upload Resume (PDF or TXT)</label>
+                            <input class="form-control form-control-lg" type="file" id="resume_file" name="resume_file" accept=".pdf,.txt" required>
+                            <div class="form-text">Maximum file size: 5MB. Ensure text is extractable.</div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Analyze Resume</button>
+                            <a href="{% url 'analysis:resume_reviewer_history' %}" class="btn btn-outline-secondary">View Past Reviews</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

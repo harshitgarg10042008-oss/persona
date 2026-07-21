@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Review Result{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Resume Review Results</h2>
+                <a href="{% url 'analysis:resume_reviewer_upload' %}" class="btn btn-outline-primary">New Review</a>
+            </div>
+
+            {% if review.feedback.error %}
+                <div class="alert alert-danger shadow-sm">
+                    <h4 class="alert-heading">Analysis Error</h4>
+                    <p class="mb-0">{{ review.feedback.error }}</p>
+                </div>
+            {% else %}
+                <!-- Overall Score Card -->
+                <div class="card shadow-sm mb-4 border-0 bg-light">
+                    <div class="card-body text-center py-5">
+                        <h5 class="text-muted mb-3">Overall Score</h5>
+                        <div class="display-1 fw-bold text-primary mb-2">{{ review.overall_score }}<span class="fs-4 text-muted">/10</span></div>
+                        <p class="text-muted">Analyzed on {{ review.created_at|date:"M d, Y" }}</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Strengths -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100 border-success border-top border-4">
+                            <div class="card-body">
+                                <h4 class="card-title text-success mb-4"><i class="fas fa-check-circle me-2"></i>Strengths</h4>
+                                {% if review.feedback.strengths %}
+                                    <ul class="list-group list-group-flush">
+                                    {% for item in review.feedback.strengths %}
+                                        <li class="list-group-item bg-transparent px-0 border-0 mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>{{ item }}
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No specific strengths identified.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weaknesses -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100 border-danger border-top border-4">
+                            <div class="card-body">
+                                <h4 class="card-title text-danger mb-4"><i class="fas fa-exclamation-triangle me-2"></i>Areas for Improvement</h4>
+                                {% if review.feedback.weaknesses %}
+                                    <ul class="list-group list-group-flush">
+                                    {% for item in review.feedback.weaknesses %}
+                                        <li class="list-group-item bg-transparent px-0 border-0 mb-2">
+                                            <i class="fas fa-times text-danger me-2"></i>{{ item }}
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No specific weaknesses identified.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestions -->
+                <div class="card shadow-sm mt-4 border-info border-top border-4">
+                    <div class="card-body">
+                        <h4 class="card-title text-info mb-4"><i class="fas fa-lightbulb me-2"></i>Actionable Suggestions</h4>
+                        {% if review.feedback.suggestions %}
+                            <ul class="list-group list-group-flush">
+                            {% for item in review.feedback.suggestions %}
+                                <li class="list-group-item bg-transparent px-0 border-0 mb-2">
+                                    <i class="fas fa-arrow-right text-info me-2"></i>{{ item }}
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No specific suggestions provided.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="mt-5 text-center">
+                <a href="{% url 'analysis:resume_reviewer_history' %}" class="btn btn-secondary btn-lg">Back to History</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

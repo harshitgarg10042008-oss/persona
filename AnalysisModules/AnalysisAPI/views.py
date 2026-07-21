@@ -3082,3 +3082,100 @@ def export_institution_members_csv(request):
         ])
     
     return response
+
+
+# =====================================
+# RESUME REVIEWER VIEWS
+# =====================================
+from .models import ResumeReview
+from AnalysisModules.feedback_generator import _call_groq
+import json
+
+@login_required
+def resume_reviewer_upload(request):
+    if request.method == 'POST':
+        resume_file = request.FILES.get('resume_file')
+        if not resume_file:
+            messages.error(request, 'Please upload a resume file.')
+            return redirect('analysis:resume_reviewer_upload')
+            
+        is_valid, error_msg = _validate_resume_upload(resume_file)
+        if not is_valid:
+            messages.error(request, error_msg)
+            return redirect('analysis:resume_reviewer_upload')
+            
+        # Save placeholder row
+        review = ResumeReview.objects.create(
+            user=request.user,
+            resume_file=resume_file,
+            overall_score=0,
+            feedback={}
+        )
+        
+        # Extract text
+        try:
+            resume_text = _extract_resume_text(resume_file)
+        except Exception as e:
+            review.feedback = {"error": f"Failed to extract text from resume: {str(e)}"}
+            review.save()
+            return redirect('analysis:resume_reviewer_result', review_id=review.id)
+            
+        if not resume_text or not resume_text.strip():
+            review.feedback = {"error": "No text could be extracted from the file."}
+            review.save()
+            return redirect('analysis:resume_reviewer_result', review_id=review.id)
+            
+        # Call Groq
+        prompt = (
+            "You are an expert ATS and recruiter. Review the following resume and provide feedback. "
+            "Respond ONLY with a valid JSON object matching exactly this structure, no markdown formatting or extra text:\n"
+            "{\n"
+            '  "overall_score": float (0-10),\n'
+            '  "feedback": {\n'
+            '    "strengths": ["list of strings"],\n'
+            '    "weaknesses": ["list of strings"],\n'
+            '    "suggestions": ["list of strings"]\n'
+            "  }\n"
+            "}\n\n"
+            f"RESUME TEXT:\n{resume_text}"
+        )
+        
+        try:
+            response_text = _call_groq(prompt, timeout=45)
+            if not response_text:
+                raise ValueError("Empty response from Groq")
+            
+            # Parse JSON. Strip markdown if Groq hallucinates it
+            response_text = response_text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+                
+            data = json.loads(response_text.strip())
+            
+            review.overall_score = float(data.get('overall_score', 0))
+            review.feedback = data.get('feedback', {})
+        except Exception as e:
+            review.feedback = {"error": "Analysis failed, please try again"}
+            
+        review.save()
+        return redirect('analysis:resume_reviewer_result', review_id=review.id)
+        
+    return render(request, 'analysis/resume_reviewer_upload.html')
+
+@login_required
+def resume_reviewer_result(request, review_id):
+    from django.http import Http404
+    review = get_object_or_404(ResumeReview, id=review_id)
+    if review.user != request.user:
+        raise Http404("Not found")
+        
+    return render(request, 'analysis/resume_reviewer_result.html', {'review': review})
+
+@login_required
+def resume_reviewer_history(request):
+    reviews = ResumeReview.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'analysis/resume_reviewer_history.html', {'reviews': reviews})
