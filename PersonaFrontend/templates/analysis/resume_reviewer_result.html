@@ -23,7 +23,12 @@
                     <div class="card-body text-center py-5">
                         <h5 class="text-muted mb-3">Overall Score</h5>
                         <div class="display-1 fw-bold text-primary mb-2">{{ review.overall_score }}<span class="fs-4 text-muted">/10</span></div>
-                        <p class="text-muted">Analyzed on {{ review.created_at|date:"M d, Y" }}</p>
+                        <p class="text-muted mb-1">Analyzed on {{ review.created_at|date:"M d, Y" }}</p>
+                        {% if total_reviews %}
+                        <p class="text-muted small mb-0">
+                            <span class="badge bg-secondary">Version {{ review.version_number }} of {{ total_reviews }}</span>
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -86,7 +91,133 @@
                         {% endif %}
                     </div>
                 </div>
-            {% endif %}
+
+                <!-- ===== ATS SCORE SECTION — only shown when ats_score was populated ===== -->
+                {% if review.ats_score is not None %}
+                <div class="card shadow-sm mt-4 border-0">
+                    <div class="card-header bg-dark text-white d-flex align-items-center gap-2 py-3">
+                        <i class="fas fa-robot fs-5"></i>
+                        <h4 class="mb-0 fs-5 fw-semibold">ATS Compatibility Score</h4>
+                    </div>
+                    <div class="card-body">
+
+                        {% if review.ats_feedback.error %}
+                            <!-- ATS call succeeded enough to set a score but feedback had issues -->
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-circle me-2"></i>{{ review.ats_feedback.error }}
+                            </div>
+                        {% else %}
+
+                            <!-- Score gauge row -->
+                            <div class="row align-items-center mb-4">
+                                <div class="col-auto">
+                                    {% with score=review.ats_score %}
+                                    {% if score >= 75 %}
+                                        <span class="display-4 fw-bold text-success">{{ score|floatformat:1 }}</span>
+                                    {% elif score >= 50 %}
+                                        <span class="display-4 fw-bold text-warning">{{ score|floatformat:1 }}</span>
+                                    {% else %}
+                                        <span class="display-4 fw-bold text-danger">{{ score|floatformat:1 }}</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                    <span class="fs-5 text-muted">&nbsp;/ 100</span>
+                                </div>
+                                <div class="col">
+                                    <div class="progress" style="height: 14px; border-radius: 7px;">
+                                        {% with score=review.ats_score %}
+                                        {% if score >= 75 %}
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                 style="width: {{ score }}%;"
+                                                 aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        {% elif score >= 50 %}
+                                            <div class="progress-bar bg-warning" role="progressbar"
+                                                 style="width: {{ score }}%;"
+                                                 aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        {% else %}
+                                            <div class="progress-bar bg-danger" role="progressbar"
+                                                 style="width: {{ score }}%;"
+                                                 aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">
+                                        {% if review.ats_score >= 75 %}Good ATS compatibility
+                                        {% elif review.ats_score >= 50 %}Moderate ATS compatibility — improvements recommended
+                                        {% else %}Low ATS compatibility — significant changes needed
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <!-- Keyword Gaps -->
+                                {% if review.ats_feedback.keyword_gaps %}
+                                <div class="col-md-4">
+                                    <div class="card border-danger border-top border-3 h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-danger mb-3">
+                                                <i class="fas fa-key me-1"></i> Keyword Gaps
+                                            </h6>
+                                            <ul class="list-group list-group-flush">
+                                                {% for item in review.ats_feedback.keyword_gaps %}
+                                                <li class="list-group-item bg-transparent px-0 border-0 py-1 small">
+                                                    <i class="fas fa-minus-circle text-danger me-1"></i>{{ item }}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Formatting Issues -->
+                                {% if review.ats_feedback.formatting_issues %}
+                                <div class="col-md-4">
+                                    <div class="card border-warning border-top border-3 h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-warning mb-3">
+                                                <i class="fas fa-align-left me-1"></i> Formatting Issues
+                                            </h6>
+                                            <ul class="list-group list-group-flush">
+                                                {% for item in review.ats_feedback.formatting_issues %}
+                                                <li class="list-group-item bg-transparent px-0 border-0 py-1 small">
+                                                    <i class="fas fa-exclamation text-warning me-1"></i>{{ item }}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Recommendations -->
+                                {% if review.ats_feedback.recommendations %}
+                                <div class="col-md-4">
+                                    <div class="card border-success border-top border-3 h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-success mb-3">
+                                                <i class="fas fa-tasks me-1"></i> Recommendations
+                                            </h6>
+                                            <ul class="list-group list-group-flush">
+                                                {% for item in review.ats_feedback.recommendations %}
+                                                <li class="list-group-item bg-transparent px-0 border-0 py-1 small">
+                                                    <i class="fas fa-check-circle text-success me-1"></i>{{ item }}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                        {% endif %}{# end ats_feedback.error check #}
+
+                    </div>{# end card-body #}
+                </div>{# end ATS card #}
+                {% endif %}{# end review.ats_score is not None #}
+
+            {% endif %}{# end review.feedback.error check #}
             
             <div class="mt-5 text-center">
                 <a href="{% url 'analysis:resume_reviewer_history' %}" class="btn btn-secondary btn-lg">Back to History</a>
@@ -95,3 +226,4 @@
     </div>
 </div>
 {% endblock %}
+

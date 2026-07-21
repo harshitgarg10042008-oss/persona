@@ -3104,12 +3104,20 @@ def resume_reviewer_upload(request):
             messages.error(request, error_msg)
             return redirect('analysis:resume_reviewer_upload')
             
+        # --- Determine version number for this upload ---
+        from django.db.models import Max
+        max_version = ResumeReview.objects.filter(user=request.user).aggregate(
+            Max('version_number')
+        )['version_number__max']
+        next_version = (max_version or 0) + 1
+
         # Save placeholder row
         review = ResumeReview.objects.create(
             user=request.user,
             resume_file=resume_file,
             overall_score=0,
-            feedback={}
+            feedback={},
+            version_number=next_version,
         )
         
         # Extract text
@@ -3125,7 +3133,7 @@ def resume_reviewer_upload(request):
             review.save()
             return redirect('analysis:resume_reviewer_result', review_id=review.id)
             
-        # Call Groq
+        # --- Call 1: Overall score & feedback ---
         prompt = (
             "You are an expert ATS and recruiter. Review the following resume and provide feedback. "
             "Respond ONLY with a valid JSON object matching exactly this structure, no markdown formatting or extra text:\n"
@@ -3160,7 +3168,45 @@ def resume_reviewer_upload(request):
             review.feedback = data.get('feedback', {})
         except Exception as e:
             review.feedback = {"error": "Analysis failed, please try again"}
-            
+
+        # --- Call 2: ATS Score & feedback (isolated — failure here does NOT affect Call 1) ---
+        ats_prompt = (
+            "You are an expert Applicant Tracking System (ATS) specialist. "
+            "Analyse the following resume strictly from an ATS perspective. "
+            "Respond ONLY with a valid JSON object matching exactly this structure, no markdown or extra text:\n"
+            "{\n"
+            '  "ats_score": float (0-100, how well the resume would pass an ATS scan),\n'
+            '  "ats_feedback": {\n'
+            '    "keyword_gaps": ["list of important keywords missing from the resume"],\n'
+            '    "formatting_issues": ["list of formatting problems that hurt ATS parsing"],\n'
+            '    "recommendations": ["list of concrete steps to improve the ATS score"]\n'
+            "  }\n"
+            "}\n\n"
+            f"RESUME TEXT:\n{resume_text}"
+        )
+
+        try:
+            ats_response_text = _call_groq(ats_prompt, timeout=45)
+            if not ats_response_text:
+                raise ValueError("Empty ATS response from Groq")
+
+            ats_response_text = ats_response_text.strip()
+            if ats_response_text.startswith('```json'):
+                ats_response_text = ats_response_text[7:]
+            if ats_response_text.startswith('```'):
+                ats_response_text = ats_response_text[3:]
+            if ats_response_text.endswith('```'):
+                ats_response_text = ats_response_text[:-3]
+
+            ats_data = json.loads(ats_response_text.strip())
+
+            review.ats_score = float(ats_data.get('ats_score', 0))
+            review.ats_feedback = ats_data.get('ats_feedback', {})
+        except Exception:
+            # Graceful degradation: ATS failure never blocks overall review
+            review.ats_score = None
+            review.ats_feedback = {"error": "ATS analysis unavailable"}
+
         review.save()
         return redirect('analysis:resume_reviewer_result', review_id=review.id)
         
@@ -3172,10 +3218,33 @@ def resume_reviewer_result(request, review_id):
     review = get_object_or_404(ResumeReview, id=review_id)
     if review.user != request.user:
         raise Http404("Not found")
-        
-    return render(request, 'analysis/resume_reviewer_result.html', {'review': review})
+
+    total_reviews = ResumeReview.objects.filter(user=request.user).count()
+    return render(request, 'analysis/resume_reviewer_result.html', {
+        'review': review,
+        'total_reviews': total_reviews,
+    })
 
 @login_required
 def resume_reviewer_history(request):
-    reviews = ResumeReview.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'analysis/resume_reviewer_history.html', {'reviews': reviews})
+    # Fetch all reviews ordered newest-first for display
+    reviews_qs = list(
+        ResumeReview.objects.filter(user=request.user).order_by('-version_number')
+    )
+
+    # Build a version_number → overall_score lookup for delta computation
+    score_by_version = {r.version_number: r.overall_score for r in reviews_qs}
+
+    # Annotate each review with its score delta vs the previous version
+    annotated = []
+    for review in reviews_qs:
+        prev_score = score_by_version.get(review.version_number - 1)
+        if prev_score is not None:
+            delta = round(review.overall_score - prev_score, 2)
+        else:
+            delta = None  # first version — no comparison
+        annotated.append({'review': review, 'delta': delta})
+
+    return render(request, 'analysis/resume_reviewer_history.html', {
+        'annotated_reviews': annotated,
+    })

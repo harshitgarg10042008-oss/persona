@@ -622,6 +622,9 @@ class ResumeReview(models.Model):
     resume_file = models.FileField(upload_to='resumes/')
     overall_score = models.FloatField()
     feedback = models.JSONField()
+    ats_score = models.FloatField(null=True, blank=True)
+    ats_feedback = models.JSONField(default=dict, blank=True)
+    version_number = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey('UserAPI.CustomUser', on_delete=models.CASCADE, related_name='resume_reviews')
 

@@ -10,14 +10,48 @@
         <a href="{% url 'analysis:resume_reviewer_upload' %}" class="btn btn-primary">New Review</a>
     </div>
 
-    {% if reviews %}
+    {% if annotated_reviews %}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for review in reviews %}
+        {% for entry in annotated_reviews %}
+            {% with review=entry.review delta=entry.delta %}
             <div class="col">
                 <div class="card h-100 shadow-sm hover-shadow transition">
                     <div class="card-body text-center">
-                        <div class="display-4 text-primary mb-3">{{ review.overall_score }}</div>
-                        <h5 class="card-title text-truncate" title="{{ review.resume_file.name }}">
+
+                        <!-- Version badge -->
+                        <span class="badge bg-secondary mb-2">Version {{ review.version_number }}</span>
+
+                        <!-- Score -->
+                        <div class="display-4 text-primary mb-1">{{ review.overall_score }}</div>
+
+                        <!-- Score delta vs previous version -->
+                        {% if delta is not None %}
+                            {% if delta > 0 %}
+                                <div class="mb-2">
+                                    <span class="badge bg-success fs-6">
+                                        <i class="fas fa-arrow-up me-1"></i>+{{ delta }} from last version
+                                    </span>
+                                </div>
+                            {% elif delta < 0 %}
+                                <div class="mb-2">
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="fas fa-arrow-down me-1"></i>{{ delta }} from last version
+                                    </span>
+                                </div>
+                            {% else %}
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary fs-6">
+                                        <i class="fas fa-minus me-1"></i>No change from last version
+                                    </span>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="mb-2">
+                                <span class="badge bg-light text-muted border fs-6">First submission</span>
+                            </div>
+                        {% endif %}
+
+                        <h5 class="card-title text-truncate mt-2" title="{{ review.resume_file.name }}">
                             {{ review.resume_file.name|default:"Unknown File" }}
                         </h5>
                         <p class="text-muted small mb-4">
@@ -27,6 +61,7 @@
                     </div>
                 </div>
             </div>
+            {% endwith %}
         {% endfor %}
         </div>
     {% else %}
