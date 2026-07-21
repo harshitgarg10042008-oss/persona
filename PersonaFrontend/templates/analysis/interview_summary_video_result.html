@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Summary Video - {{ assessment.platform_job_title.title|default:assessment.job_title|default:"Assessment" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-page {
+        min-height: calc(100vh - 4rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background:
+            radial-gradient(ellipse at top, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 55%),
+            var(--color-bg-secondary);
+    }
+
+    .video-panel {
+        width: 100%;
+        max-width: 48rem;
+        text-align: center;
+        padding: 2.5rem 2rem;
+        background: var(--color-bg-primary);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--color-border);
+    }
+
+    .video-spinner {
+        width: 3.5rem;
+        height: 3.5rem;
+        margin: 0 auto 1.5rem;
+        border-radius: 9999px;
+        border: 3px solid var(--color-spinner-border);
+        border-top-color: var(--color-primary);
+        animation: video-spin 0.85s linear infinite;
+    }
+
+    @keyframes video-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .video-title {
+        font-family: var(--font-heading);
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-text-primary);
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .video-subtitle {
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        line-height: var(--leading-relaxed);
+        margin: 0 0 1.75rem;
+    }
+
+    .video-status {
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+        color: var(--color-primary);
+        min-height: 1.25rem;
+        margin: 0 0 1rem;
+    }
+
+    .video-track {
+        width: 100%;
+        height: 0.375rem;
+        border-radius: 9999px;
+        background: var(--color-bg-tertiary);
+        overflow: hidden;
+        border: 1px solid var(--color-border-light);
+    }
+
+    .video-fill {
+        height: 100%;
+        width: 8%;
+        border-radius: 9999px;
+        background: var(--color-primary);
+        transition: width 0.6s ease;
+    }
+
+    .video-note {
+        margin-top: 1.25rem;
+        font-family: var(--font-body);
+        font-size: var(--text-xs);
+        color: var(--color-text-tertiary);
+        line-height: var(--leading-relaxed);
+    }
+
+    .video-player-container {
+        width: 100%;
+        margin: 1.5rem 0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .video-player-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .error-message {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+
+    .success-message {
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+
+    .back-button {
+        display: inline-block;
+        margin-top: 1.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--color-primary);
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+    .back-button:hover {
+        background: color-mix(in srgb, var(--color-primary) 80%, black);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="video-page">
+    <div class="video-panel">
+        {% if video_record.status == 'completed' %}
+            <h1 class="video-title">Your Summary Video</h1>
+            <p class="video-subtitle">
+                Interview summary for {{ assessment.platform_job_title.title|default:assessment.job_title|default:"Assessment" }}
+            </p>
+
+            <div class="success-message">
+                <strong>✓ Video generated successfully!</strong>
+            </div>
+
+            {% if video_record.video_file %}
+                <div class="video-player-container">
+                    <video controls preload="metadata">
+                        <source src="{{ video_record.video_file.url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            {% endif %}
+
+            <a href="{% url 'analysis:complete_individual_assessment' assessment.session_id %}" class="back-button">
+                Back to Assessment Results
+            </a>
+
+        {% elif video_record.status == 'pending' or video_record.status == 'processing' %}
+            <div class="video-spinner" aria-hidden="true"></div>
+            <h1 class="video-title">Generating Your Summary Video</h1>
+            <p class="video-subtitle">Creating a personalized video summary of your interview. This may take a minute or two.</p>
+            <p class="video-status" id="status-text">Generating video...</p>
+            <div class="video-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
+                <div class="video-fill" id="progress-fill"></div>
+            </div>
+            <p class="video-note">Please keep this tab open. The video will appear automatically when ready.</p>
+
+        {% elif video_record.status == 'failed' %}
+            <h1 class="video-title">Video Generation Failed</h1>
+            <p class="video-subtitle">We encountered an error while generating your summary video.</p>
+
+            <div class="error-message">
+                <strong>Error:</strong> {{ video_record.error_message|default:"Unknown error occurred" }}
+            </div>
+
+            <p class="video-note">You can try generating the video again, or contact support if the problem persists.</p>
+
+            <form method="post" action="{% url 'analysis:interview_summary_video_generate' %}" style="display: inline; margin-right: 0.5rem;">
+                {% csrf_token %}
+                <input type="hidden" name="assessment_id" value="{{ assessment.id }}">
+                <button type="submit" class="back-button" style="border: none; cursor: pointer;">Try Again</button>
+            </form>
+            <a href="{% url 'analysis:complete_individual_assessment' assessment.session_id %}" class="back-button" style="background: #6b7280;">
+                Back to Assessment Results
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if video_record.status == 'pending' or video_record.status == 'processing' %}
+<script>
+(function () {
+    const videoId = {{ video_record.id }};
+    const statusUrl = "{% url 'analysis:interview_summary_video_status' video_id=video_record.id %}";
+    const resultUrl = "{% url 'analysis:interview_summary_video_result' video_id=video_record.id %}";
+    const statusText = document.getElementById('status-text');
+    const progressFill = document.getElementById('progress-fill');
+    const progressTrack = document.getElementById('progress-track');
+
+    const POLL_MS = 3000;
+    const MAX_WAIT_MS = 300000; // 5 minutes
+    let redirected = false;
+    let pollTimer = null;
+
+    function setProgress(pct) {
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        progressFill.style.width = clamped + '%';
+        progressTrack.setAttribute('aria-valuenow', String(clamped));
+    }
+
+    function goToResult(message) {
+        if (redirected) return;
+        redirected = true;
+        if (pollTimer) clearInterval(pollTimer);
+        if (message) statusText.textContent = message;
+        setProgress(100);
+        window.location.href = resultUrl;
+    }
+
+    function checkStatus() {
+        fetch(statusUrl, { credentials: 'same-origin' })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (!data || data.success === false) return;
+
+                if (data.status === 'completed') {
+                    goToResult('Video ready — loading player...');
+                } else if (data.status === 'failed') {
+                    goToResult('Generation failed — showing error...');
+                } else if (data.status === 'processing') {
+                    statusText.textContent = 'Processing video...';
+                    setProgress(50);
+                } else {
+                    statusText.textContent = 'Queued for generation...';
+                    setProgress(20);
+                }
+            })
+            .catch(function () {
+                // Silently retry on the next interval
+            });
+    }
+
+    checkStatus();
+    pollTimer = setInterval(checkStatus, POLL_MS);
+
+    // Max-wait safeguard
+    setTimeout(function () {
+        goToResult('Taking longer than expected — checking status...');
+    }, MAX_WAIT_MS);
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -715,6 +715,14 @@
     class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
     Download Report
   </a>
+  <form method="post" action="{% url 'analysis:interview_summary_video_generate' %}" style="display: inline;">
+    {% csrf_token %}
+    <input type="hidden" name="assessment_id" value="{{ assessment.id }}">
+    <button type="submit"
+      class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+      Generate Summary Video
+    </button>
+  </form>
   <button onclick="window.print()"
     class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
     Print Results

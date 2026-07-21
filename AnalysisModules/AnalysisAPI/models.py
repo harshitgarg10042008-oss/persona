@@ -686,3 +686,20 @@ class LinkedInPost(models.Model):
 
     def __str__(self):
         return f"LinkedIn Post: {self.topic} - {self.user.email}"
+
+
+class InterviewSummaryVideo(models.Model):
+    assessment = models.ForeignKey('IndividualAssessment', on_delete=models.CASCADE,
+                                    related_name='summary_videos')
+    user = models.ForeignKey('UserAPI.CustomUser', on_delete=models.CASCADE,
+                              related_name='summary_videos')
+    video_file = models.FileField(upload_to='summary_videos/', null=True, blank=True)
+    status = models.CharField(max_length=20, default='pending')
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Summary Video for {self.assessment.session_id} - {self.status}"

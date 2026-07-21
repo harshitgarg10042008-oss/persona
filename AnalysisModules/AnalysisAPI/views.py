@@ -3443,3 +3443,92 @@ def linkedin_post_history(request):
     return render(request, 'analysis/linkedin_post_history.html', {
         'posts': posts,
     })
+
+
+# =====================================
+# INTERVIEW SUMMARY VIDEO VIEWS
+# =====================================
+
+@login_required
+@require_http_methods(["POST"])
+def interview_summary_video_generate(request):
+    """Generate a summary video for an assessment via POST."""
+    from .models import InterviewSummaryVideo
+
+    assessment_id = request.POST.get('assessment_id')
+    if not assessment_id:
+        return JsonResponse({'error': 'assessment_id is required'}, status=400)
+
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        id=assessment_id,
+        user=request.user,
+    )
+
+    # Create InterviewSummaryVideo record
+    video_record = InterviewSummaryVideo.objects.create(
+        assessment=assessment,
+        user=request.user,
+        status='pending'
+    )
+
+    # Enqueue background task using django-q pattern
+    from .tasks import generate_summary_video_task
+    try:
+        from django_q.tasks import async_task
+        async_task(generate_summary_video_task, video_record.id)
+    except Exception as e:
+        print(f"django-q enqueue failed ({e}), using thread fallback")
+        import threading
+        thread = threading.Thread(
+            target=generate_summary_video_task,
+            args=(video_record.id,),
+            daemon=True,
+        )
+        thread.start()
+
+    return redirect('analysis:interview_summary_video_result', video_id=video_record.id)
+
+
+@login_required
+@require_http_methods(["GET"])
+def interview_summary_video_status(request, video_id):
+    """Check the status of a summary video generation. Returns JSON."""
+    from .models import InterviewSummaryVideo
+
+    video_record = get_object_or_404(
+        InterviewSummaryVideo,
+        id=video_id,
+        user=request.user,
+    )
+
+    response_data = {
+        'success': True,
+        'status': video_record.status,
+    }
+
+    if video_record.status == 'completed' and video_record.video_file:
+        response_data['video_url'] = video_record.video_file.url
+    elif video_record.status == 'failed':
+        response_data['error_message'] = video_record.error_message
+
+    return JsonResponse(response_data)
+
+
+@login_required
+@require_http_methods(["GET"])
+def interview_summary_video_result(request, video_id):
+    """Render the video result page with player or loading state."""
+    from .models import InterviewSummaryVideo
+
+    video_record = get_object_or_404(
+        InterviewSummaryVideo,
+        id=video_id,
+        user=request.user
+    )
+
+    context = {
+        'video_record': video_record,
+        'assessment': video_record.assessment,
+    }
+    return render(request, 'analysis/interview_summary_video_result.html', context)

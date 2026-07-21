@@ -97,3 +97,38 @@ def run_speech_analysis_task(response_id, audio_data, question_text):
         analysis_data['speech_analysis_status'] = 'failed'
         response.analysis_data = analysis_data
         response.save()
+
+
+def generate_summary_video_task(video_id):
+    """
+    Background task to generate an interview summary video.
+    Takes an InterviewSummaryVideo id, generates the video, and updates the record.
+    """
+    from .models import InterviewSummaryVideo
+    from .video_generator import generate_summary_video
+
+    video_record = None
+    try:
+        video_record = InterviewSummaryVideo.objects.get(id=video_id)
+        video_record.status = 'processing'
+        video_record.save(update_fields=['status'])
+
+        video_file_path = generate_summary_video(video_record.assessment)
+        relative_path = video_file_path.replace('\\', '/')
+        if relative_path.startswith('media/'):
+            relative_path = relative_path[len('media/'):]
+
+        video_record.video_file.name = relative_path
+        video_record.status = 'completed'
+        video_record.error_message = ''
+        video_record.save(update_fields=['video_file', 'status', 'error_message'])
+        print(f"Summary video generation for video_record {video_id} completed successfully.")
+
+    except InterviewSummaryVideo.DoesNotExist:
+        print(f"Task failed: InterviewSummaryVideo {video_id} not found.")
+    except Exception as e:
+        print(f"Summary video generation for video_record {video_id} failed: {e}")
+        if video_record is not None:
+            video_record.status = 'failed'
+            video_record.error_message = str(e)
+            video_record.save(update_fields=['status', 'error_message'])
