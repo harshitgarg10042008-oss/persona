@@ -304,6 +304,26 @@
     </p>
   </div>
 
+  <!-- Practice Mode Toggle -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8 border-l-4 border-yellow-400">
+    <h2 class="text-xl font-semibold mb-4 text-yellow-600 dark:text-yellow-500 flex items-center">
+      <span class="mr-2">🎯</span> Practice Mode (Real-Time Hints)
+    </h2>
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      Enable practice mode to receive small, on-screen text hints while answering questions. 
+      <strong>Note:</strong> Practice sessions are for learning and will not be scored as official assessments in your history.
+    </p>
+    <div class="flex items-center space-x-4">
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="practice-mode-toggle" class="sr-only peer">
+        <div
+          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500">
+        </div>
+        <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Enable Practice Mode</span>
+      </label>
+    </div>
+  </div>
+
   <!-- Resume Upload -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
     <h2 class="text-xl font-semibold mb-4">Optional Resume Upload</h2>
@@ -317,6 +337,7 @@
       enctype="multipart/form-data">
       {% csrf_token %}
       <input type="hidden" name="adaptive_mode" id="adaptive-mode-input" value="true">
+      <input type="hidden" name="practice_mode" id="practice-mode-input" value="false">
       <div class="mb-4 text-left">
         <label for="resume"
           class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Resume (PDF or
@@ -574,6 +595,12 @@
   document.getElementById("adaptive-mode-toggle").addEventListener("change", function () {
     const adaptiveInput = document.getElementById("adaptive-mode-input");
     adaptiveInput.value = this.checked ? "true" : "false";
+  });
+
+  // Handle practice mode toggle
+  document.getElementById("practice-mode-toggle").addEventListener("change", function () {
+    const practiceInput = document.getElementById("practice-mode-input");
+    practiceInput.value = this.checked ? "true" : "false";
   });
 
   // Cleanup media stream when leaving page

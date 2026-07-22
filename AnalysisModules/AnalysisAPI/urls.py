@@ -40,6 +40,7 @@ urlpatterns = [
     path('individual/<uuid:session_id>/setup/', views.individual_assessment_setup, name='individual_assessment_setup'),
     path('individual/<uuid:session_id>/start-session/', views.start_individual_assessment_session, name='start_individual_assessment_session'),
     path('individual/<uuid:session_id>/question/', views.individual_assessment_question, name='individual_assessment_question'),
+    path('individual/<uuid:session_id>/hint/', views.get_question_hint, name='get_question_hint'),
     path('individual/<uuid:session_id>/submit/', views.submit_assessment_response, name='submit_assessment_response'),
     path('individual/<uuid:session_id>/snapshot/', views.capture_assessment_snapshot, name='capture_assessment_snapshot'),
     path('individual/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),

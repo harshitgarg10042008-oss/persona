@@ -239,6 +239,36 @@ When evaluating performance and generating follow-ups:
     return mode_text
 
 
+def generate_question_hint(question_text: str, interview_mode: str = 'hr', company_notes: str = None) -> str:
+    """Generate a single short hint for a question during Practice Mode."""
+    if not question_text:
+        return "Think about the STAR method (Situation, Task, Action, Result)."
+
+    mode_instruction = get_interview_context_instruction(interview_mode, company_notes, is_evaluation=False)
+
+    prompt = f"""
+You are an expert interview coach assisting a candidate during a Practice Mode session.
+The candidate is struggling to answer the following interview question:
+"{question_text}"
+
+{mode_instruction}
+
+Your task: Provide ONE short, helpful hint (1-2 sentences maximum).
+The hint MUST NOT give away the answer. Instead, nudge the candidate toward a good structure or approach.
+For example, suggest using a specific framework (like STAR), or ask a leading rhetorical question about what metric they could focus on.
+Return ONLY the hint text. No quotes, no preamble.
+"""
+    try:
+        text = _call_groq(prompt, max_tokens=100)
+        if text:
+            # Clean any random quotes
+            return text.strip().strip('"').strip("'")
+    except Exception as exc:
+        logger.warning('generate_question_hint failed: %s', exc)
+        
+    return "Consider structuring your answer using the STAR format: Situation, Task, Action, and Result."
+
+
 def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5, interview_mode: str = 'hr', company_notes: str = None) -> list[str]:
     """Generate a small set of tailored interview questions from resume text."""
     if not resume_text or not job_role:

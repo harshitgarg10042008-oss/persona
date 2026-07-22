@@ -1052,9 +1052,11 @@ def start_individual_assessment_session(request, session_id):
 
     resume_text = None
     if request.method == 'POST':
-        # Handle adaptive mode toggle
+        # Handle adaptive mode and practice mode toggles
         adaptive_mode = request.POST.get('adaptive_mode', 'true') == 'true'
+        practice_mode = request.POST.get('practice_mode', 'false') == 'true'
         assessment.adaptive_mode = adaptive_mode
+        assessment.is_practice_mode = practice_mode
         assessment.save()
 
         resume_file = request.FILES.get('resume')
@@ -1123,6 +1125,54 @@ def start_individual_assessment_session(request, session_id):
     assessment.save()
 
     return redirect('analysis:individual_assessment_question', session_id=session_id)
+
+
+from AnalysisModules.feedback_generator import generate_question_hint
+import json
+
+@require_http_methods(["POST"])
+@login_required
+def get_question_hint(request, session_id):
+    """API endpoint to get a hint for a question in practice mode."""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='in_progress'
+    )
+
+    if not assessment.is_practice_mode:
+        return JsonResponse({'error': 'Hints are only available in Practice Mode.'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        question_order = str(data.get('question_order', '1'))
+        question_text = data.get('question_text', '')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data.'}, status=400)
+        
+    if not question_text:
+        return JsonResponse({'error': 'Question text is required.'}, status=400)
+
+    hints_used = assessment.hints_used_per_question.get(question_order, 0)
+    
+    if hints_used >= 1:
+        return JsonResponse({'error': 'Hint limit reached for this question.'}, status=429)
+
+    company_notes = assessment.target_company.interview_style_notes if assessment.target_company else None
+    
+    # Generate hint
+    hint_text = generate_question_hint(
+        question_text=question_text, 
+        interview_mode=assessment.interview_mode,
+        company_notes=company_notes
+    )
+    
+    # Increment hint count
+    assessment.hints_used_per_question[question_order] = hints_used + 1
+    assessment.save(update_fields=['hints_used_per_question'])
+    
+    return JsonResponse({'hint': hint_text})
 
 
 @csrf_exempt

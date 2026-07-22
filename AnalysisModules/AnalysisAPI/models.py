@@ -369,6 +369,17 @@ class IndividualAssessment(models.Model):
         help_text="Optional target company selected for tailored questions"
     )
 
+    # Practice Mode
+    is_practice_mode = models.BooleanField(
+        default=False, 
+        help_text="Practice mode with hints enabled, not scored for real."
+    )
+    hints_used_per_question = models.JSONField(
+        default=dict, 
+        blank=True, 
+        help_text="Tracks number of hints requested per question order"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
