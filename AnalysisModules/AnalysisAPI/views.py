@@ -904,13 +904,53 @@ def start_individual_assessment(request):
             )
             
             messages.success(request, f"Assessment for {job_title.title} has been created!")
-            return redirect('analysis:individual_assessment_setup', session_id=assessment.session_id)
+            return redirect('analysis:individual_assessment_mode_select', session_id=assessment.session_id)
             
         except PlatformJobTitle.DoesNotExist:
             messages.error(request, "Invalid job title selected.")
             return redirect('analysis:individual_dashboard')
     
     return redirect('analysis:individual_dashboard')
+
+
+@login_required
+def individual_assessment_mode_select(request, session_id):
+    """Mode selection page for individual assessment"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+
+    context = {
+        'assessment': assessment,
+        'job_title': assessment.platform_job_title,
+    }
+    return render(request, 'analysis/individual_assessment_mode_select.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def individual_assessment_mode_submit(request, session_id):
+    """Handle mode selection submission"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+
+    interview_mode = request.POST.get('interview_mode')
+    if interview_mode not in ['hr', 'technical']:
+        messages.error(request, "Invalid interview mode selected.")
+        return redirect('analysis:individual_assessment_mode_select', session_id=session_id)
+
+    # Save the selected mode
+    assessment.interview_mode = interview_mode
+    assessment.save(update_fields=['interview_mode'])
+
+    return redirect('analysis:individual_assessment_setup', session_id=session_id)
 
 
 @login_required
@@ -993,6 +1033,7 @@ def start_individual_assessment_session(request, session_id):
                 resume_text=stored_resume_text,
                 job_role=assessment.platform_job_title.title,
                 num_questions=5,
+                interview_mode=assessment.interview_mode,
             )
             if tailored_questions:
                 created_question_ids = []
@@ -1460,7 +1501,8 @@ def submit_assessment_response(request, session_id):
                     voice_confidence_score=voice_score,
                     body_language_score=body_score,
                     is_behavioral=_is_behavioral,
-                    max_follow_ups=2
+                    max_follow_ups=2,
+                    interview_mode=assessment.interview_mode
                 )
                 
                 if adaptive_result:
@@ -3502,12 +3544,15 @@ def interview_summary_video_generate(request):
     from .tasks import generate_summary_video_task
     try:
         from django_q.tasks import async_task
-        async_task(
+        logger.info(f"[SUMMARY VIDEO] Attempting to enqueue task for video_record {video_record.id}")
+        task_id = async_task(
             generate_summary_video_task,
             video_record.id,
             timeout=300,  # per-task timeout: 5 min, overrides Q_CLUSTER global of 60 s
         )
+        logger.info(f"[SUMMARY VIDEO] Task enqueued successfully with task_id: {task_id}")
     except Exception as e:
+        logger.error(f"[SUMMARY VIDEO] django-q enqueue failed ({e}), using thread fallback")
         print(f"django-q enqueue failed ({e}), using thread fallback")
         import threading
         thread = threading.Thread(
@@ -3516,6 +3561,7 @@ def interview_summary_video_generate(request):
             daemon=True,
         )
         thread.start()
+        logger.info(f"[SUMMARY VIDEO] Thread fallback started for video_record {video_record.id}")
 
     return redirect('analysis:interview_summary_video_result', video_id=video_record.id)
 

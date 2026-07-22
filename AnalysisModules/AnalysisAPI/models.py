@@ -330,6 +330,17 @@ class IndividualAssessment(models.Model):
     pending_follow_up_reason = models.TextField(null=True, blank=True, help_text="Reason for generating the follow-up")
     session_follow_up_count = models.PositiveIntegerField(default=0, help_text="Number of follow-ups asked in this session")
 
+    # Interview Mode field
+    interview_mode = models.CharField(
+        max_length=20,
+        choices=[
+            ('hr', 'HR'),
+            ('technical', 'Technical'),
+        ],
+        default='hr',
+        help_text='Interview style/mode for this assessment'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

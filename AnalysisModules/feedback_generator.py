@@ -127,15 +127,41 @@ Return ONLY valid JSON with two keys:
         }
 
 
-def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5) -> list[str]:
+def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5, interview_mode: str = 'hr') -> list[str]:
     """Generate a small set of tailored interview questions from resume text."""
     if not resume_text or not job_role:
         return []
+
+    # Mode-specific instructions
+    if interview_mode == 'technical':
+        mode_instruction = """
+INTERVIEW MODE: TECHNICAL
+Focus heavily on technical knowledge, skills, and role-specific expertise.
+Prioritize questions about:
+- Technical skills and technologies mentioned in the resume
+- Problem-solving approaches and technical decisions
+- System design, architecture, and implementation details
+- Industry-specific technical challenges
+- Tools, frameworks, and methodologies used
+"""
+    else:  # hr mode (default)
+        mode_instruction = """
+INTERVIEW MODE: HR
+Focus on behavioral, cultural-fit, and soft skills.
+Prioritize questions about:
+- Teamwork and collaboration
+- Leadership and communication
+- Problem-solving in workplace scenarios
+- Adaptability and learning
+- Cultural fit and values alignment
+"""
 
     prompt = f"""
 You are an expert interview question generator.
 The resume text below describes a candidate's background, experience, projects, and skills.
 The target role is: {job_role}
+
+{mode_instruction}
 
 Resume text:
 {resume_text}
@@ -813,7 +839,8 @@ def analyze_answer_and_determine_next_step(
     voice_confidence_score: float = None,
     body_language_score: float = None,
     is_behavioral: bool = False,
-    max_follow_ups: int = 2
+    max_follow_ups: int = 2,
+    interview_mode: str = 'hr'
 ) -> Optional[dict]:
     """
     Analyze a candidate's answer to determine the next difficulty level.
@@ -826,6 +853,7 @@ def analyze_answer_and_determine_next_step(
         content_score: Optional content correctness score (0-10)
         voice_confidence_score: Optional voice confidence score (0-10)
         body_language_score: Optional body language score (0-10)
+        interview_mode: Interview mode ('hr' or 'technical')
 
     Returns:
         A dict with:
@@ -855,6 +883,24 @@ def analyze_answer_and_determine_next_step(
 
     metrics_text = "\n".join(metrics) if metrics else "No detailed metrics available"
 
+    # Mode-specific evaluation guidance
+    if interview_mode == 'technical':
+        mode_guidance = """
+INTERVIEW MODE: TECHNICAL
+When evaluating performance and generating follow-ups:
+- Prioritize technical accuracy, depth of technical knowledge, and problem-solving approach
+- Follow-ups should probe technical details, implementation decisions, or system design choices
+- Consider whether the candidate demonstrates role-specific technical expertise
+"""
+    else:  # hr mode (default)
+        mode_guidance = """
+INTERVIEW MODE: HR
+When evaluating performance and generating follow-ups:
+- Prioritize communication clarity, behavioral examples, and soft skills
+- Follow-ups should probe for specific examples, teamwork scenarios, or cultural-fit indicators
+- Consider whether the candidate demonstrates strong interpersonal and professional presence
+"""
+
     # For behavioral questions, append a STAR analysis block to the same prompt.
     # This avoids a second Groq call: the model evaluates both tasks on the same read.
     _star_prompt_addendum = ''
@@ -873,6 +919,8 @@ In addition to the adaptive difficulty fields, also evaluate whether the candida
     prompt = f"""You are an adaptive interview engine that adjusts question difficulty based on candidate performance.
 
 CURRENT DIFFICULTY: {current_difficulty}
+
+{mode_guidance}
 
 QUESTION:
 {question_text}

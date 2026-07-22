@@ -104,12 +104,16 @@ def generate_summary_video_task(video_id):
     Background task to generate an interview summary video.
     Takes an InterviewSummaryVideo id, generates the video, and updates the record.
     """
+    import logging
+    logger = logging.getLogger(__name__)
     from .models import InterviewSummaryVideo
     from .video_generator import generate_summary_video
 
+    logger.info(f"[SUMMARY VIDEO TASK] Starting task for video_record {video_id}")
     video_record = None
     try:
         video_record = InterviewSummaryVideo.objects.get(id=video_id)
+        logger.info(f"[SUMMARY VIDEO TASK] Found video_record {video_id}, setting status to 'processing'")
         video_record.status = 'processing'
         video_record.save(update_fields=['status'])
 

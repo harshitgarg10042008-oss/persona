@@ -33,6 +33,8 @@ urlpatterns = [
     # Individual Assessment System
     path('individual/', views.individual_dashboard, name='individual_dashboard'),
     path('individual/start/', views.start_individual_assessment, name='start_individual_assessment'),
+    path('individual/<uuid:session_id>/mode-select/', views.individual_assessment_mode_select, name='individual_assessment_mode_select'),
+    path('individual/<uuid:session_id>/mode-submit/', views.individual_assessment_mode_submit, name='individual_assessment_mode_submit'),
     path('individual/<uuid:session_id>/setup/', views.individual_assessment_setup, name='individual_assessment_setup'),
     path('individual/<uuid:session_id>/start-session/', views.start_individual_assessment_session, name='start_individual_assessment_session'),
     path('individual/<uuid:session_id>/question/', views.individual_assessment_question, name='individual_assessment_question'),
