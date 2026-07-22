@@ -46,7 +46,7 @@ from .models import (
     JobRole, InterviewQuestion, AssessmentLink, Assessment, AssessmentResult,
     PlatformJobTitle, PlatformQuestion, IndividualAssessment, 
     IndividualAssessmentResponse, FollowUpResponse, AssessmentSnapshot,
-    BusinessAssessmentResponse, BusinessAssessmentSnapshot
+    BusinessAssessmentResponse, BusinessAssessmentSnapshot, CompanyProfile
 )
 from UserAPI.models import BusinessUser
 from AnalysisModules.feedback_generator import (
@@ -950,7 +950,56 @@ def individual_assessment_mode_submit(request, session_id):
     assessment.interview_mode = interview_mode
     assessment.save(update_fields=['interview_mode'])
 
+    return redirect('analysis:individual_assessment_company_select', session_id=session_id)
+
+@login_required
+def individual_assessment_company_select(request, session_id):
+    """Company selection page for individual assessment"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+    
+    companies = CompanyProfile.objects.all()
+
+    context = {
+        'assessment': assessment,
+        'job_title': assessment.platform_job_title,
+        'companies': companies,
+    }
+    return render(request, 'analysis/individual_assessment_company_select.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def individual_assessment_company_submit(request, session_id):
+    """Handle company selection submission"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+
+    company_id = request.POST.get('company_id')
+    
+    if company_id:
+        try:
+            company = CompanyProfile.objects.get(id=company_id)
+            assessment.target_company = company
+        except CompanyProfile.DoesNotExist:
+            messages.error(request, "Invalid company selected.")
+            return redirect('analysis:individual_assessment_company_select', session_id=session_id)
+    else:
+        # User opted to skip (no company selected)
+        assessment.target_company = None
+
+    assessment.save(update_fields=['target_company'])
+
     return redirect('analysis:individual_assessment_setup', session_id=session_id)
+
 
 
 @login_required
@@ -1034,6 +1083,7 @@ def start_individual_assessment_session(request, session_id):
                 job_role=assessment.platform_job_title.title,
                 num_questions=5,
                 interview_mode=assessment.interview_mode,
+                company_notes=assessment.target_company.interview_style_notes if assessment.target_company else None
             )
             if tailored_questions:
                 created_question_ids = []
@@ -1509,7 +1559,8 @@ def submit_assessment_response(request, session_id):
                     body_language_score=body_score,
                     is_behavioral=_is_behavioral,
                     max_follow_ups=2,
-                    interview_mode=assessment.interview_mode
+                    interview_mode=assessment.interview_mode,
+                    company_notes=assessment.target_company.interview_style_notes if assessment.target_company else None
                 )
                 
                 if adaptive_result:

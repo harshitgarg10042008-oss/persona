@@ -127,14 +127,11 @@ Return ONLY valid JSON with two keys:
         }
 
 
-def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5, interview_mode: str = 'hr') -> list[str]:
-    """Generate a small set of tailored interview questions from resume text."""
-    if not resume_text or not job_role:
-        return []
-
-    # Mode-specific instructions
-    if interview_mode == 'technical':
-        mode_instruction = """
+def get_interview_context_instruction(interview_mode: str, company_notes: str = None, is_evaluation: bool = False) -> str:
+    """Shared helper for getting mode and company context instructions."""
+    if not is_evaluation:
+        if interview_mode == 'technical':
+            mode_text = """
 INTERVIEW MODE: TECHNICAL
 Focus heavily on technical knowledge, skills, and role-specific expertise.
 Prioritize questions about:
@@ -144,8 +141,8 @@ Prioritize questions about:
 - Industry-specific technical challenges
 - Tools, frameworks, and methodologies used
 """
-    elif interview_mode == 'managerial':
-        mode_instruction = """
+        elif interview_mode == 'managerial':
+            mode_text = """
 INTERVIEW MODE: MANAGERIAL
 Focus on leadership, team management, and decision-making scenarios.
 Prioritize questions about:
@@ -155,8 +152,8 @@ Prioritize questions about:
 - Cross-functional collaboration
 - Decision-making under uncertainty
 """
-    elif interview_mode == 'stress':
-        mode_instruction = """
+        elif interview_mode == 'stress':
+            mode_text = """
 INTERVIEW MODE: STRESS
 Focus on challenging scenarios that test composure and critical thinking.
 Prioritize questions about:
@@ -166,8 +163,8 @@ Prioritize questions about:
 - Making decisions with incomplete information
 - Maintaining professionalism under stress
 """
-    elif interview_mode == 'rapid_fire':
-        mode_instruction = """
+        elif interview_mode == 'rapid_fire':
+            mode_text = """
 INTERVIEW MODE: RAPID FIRE
 Focus on short, direct questions that can be answered quickly.
 Prioritize questions about:
@@ -178,8 +175,8 @@ Prioritize questions about:
 - Essential knowledge recall
 Keep questions brief and to the point - candidates have limited time to respond.
 """
-    else:  # hr mode (default)
-        mode_instruction = """
+        else:  # hr mode (default)
+            mode_text = """
 INTERVIEW MODE: HR
 Focus on behavioral, cultural-fit, and soft skills.
 Prioritize questions about:
@@ -189,6 +186,66 @@ Prioritize questions about:
 - Adaptability and learning
 - Cultural fit and values alignment
 """
+    else:
+        if interview_mode == 'technical':
+            mode_text = """
+INTERVIEW MODE: TECHNICAL
+When evaluating performance and generating follow-ups:
+- Prioritize technical accuracy, depth of technical knowledge, and problem-solving approach
+- Follow-ups should probe technical details, implementation decisions, or system design choices
+- Consider whether the candidate demonstrates role-specific technical expertise
+"""
+        elif interview_mode == 'managerial':
+            mode_text = """
+INTERVIEW MODE: MANAGERIAL
+When evaluating performance and generating follow-ups:
+- Prioritize leadership qualities, decision-making rationale, and people management skills
+- Follow-ups should probe for specific examples of team conflict resolution, ownership, or strategic thinking
+- Consider whether the candidate demonstrates effective delegation, mentorship, and organizational impact
+"""
+        elif interview_mode == 'stress':
+            mode_text = """
+INTERVIEW MODE: STRESS
+When evaluating performance and generating follow-ups:
+- Prioritize composure under pressure, critical thinking in difficult situations, and professional resilience
+- Follow-ups should be more challenging - probe deeper, ask "why" chains, or present hypothetical complications
+- Maintain a professional but firm tone - challenge the answer without being hostile or demeaning
+- Consider whether the candidate maintains clarity and professionalism when pushed
+"""
+        elif interview_mode == 'rapid_fire':
+            mode_text = """
+INTERVIEW MODE: RAPID FIRE
+When evaluating performance and generating follow-ups:
+- Prioritize conciseness, speed of response, and ability to hit key points quickly
+- Follow-ups should be brief and direct - candidates have limited time, so don't waste it
+- Consider whether the candidate communicates essential information efficiently
+- Evaluate if the answer addresses the core question without unnecessary elaboration
+"""
+        else:  # hr mode (default)
+            mode_text = """
+INTERVIEW MODE: HR
+When evaluating performance and generating follow-ups:
+- Prioritize communication clarity, behavioral examples, and soft skills
+- Follow-ups should probe for specific examples, teamwork scenarios, or cultural-fit indicators
+- Consider whether the candidate demonstrates strong interpersonal and professional presence
+"""
+    
+    if company_notes:
+        if is_evaluation:
+            mode_text += f"\nCOMPANY STYLE/CULTURE:\n{company_notes}\nEnsure your follow-ups and evaluation criteria heavily incorporate this company's culture and interview style."
+        else:
+            mode_text += f"\nCOMPANY STYLE/CULTURE:\n{company_notes}\nEnsure questions heavily incorporate this company's culture and interview style."
+            
+    return mode_text
+
+
+def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5, interview_mode: str = 'hr', company_notes: str = None) -> list[str]:
+    """Generate a small set of tailored interview questions from resume text."""
+    if not resume_text or not job_role:
+        return []
+
+    # Mode-specific instructions
+    mode_instruction = get_interview_context_instruction(interview_mode, company_notes, is_evaluation=False)
 
     prompt = f"""
 You are an expert interview question generator.
@@ -867,14 +924,15 @@ Schema:
 def analyze_answer_and_determine_next_step(
     question_text: str,
     transcript: str,
-    current_difficulty: str,
-    session_follow_up_count: int,
-    content_score: float = None,
-    voice_confidence_score: float = None,
-    body_language_score: float = None,
+    current_difficulty: str = 'intermediate',
+    session_follow_up_count: int = 0,
+    content_score: Optional[float] = None,
+    voice_confidence_score: Optional[float] = None,
+    body_language_score: Optional[float] = None,
     is_behavioral: bool = False,
     max_follow_ups: int = 2,
-    interview_mode: str = 'hr'
+    interview_mode: str = 'hr',
+    company_notes: str = None
 ) -> Optional[dict]:
     """
     Analyze a candidate's answer to determine the next difficulty level.
@@ -918,48 +976,7 @@ def analyze_answer_and_determine_next_step(
     metrics_text = "\n".join(metrics) if metrics else "No detailed metrics available"
 
     # Mode-specific evaluation guidance
-    if interview_mode == 'technical':
-        mode_guidance = """
-INTERVIEW MODE: TECHNICAL
-When evaluating performance and generating follow-ups:
-- Prioritize technical accuracy, depth of technical knowledge, and problem-solving approach
-- Follow-ups should probe technical details, implementation decisions, or system design choices
-- Consider whether the candidate demonstrates role-specific technical expertise
-"""
-    elif interview_mode == 'managerial':
-        mode_guidance = """
-INTERVIEW MODE: MANAGERIAL
-When evaluating performance and generating follow-ups:
-- Prioritize leadership qualities, decision-making rationale, and people management skills
-- Follow-ups should probe for specific examples of team conflict resolution, ownership, or strategic thinking
-- Consider whether the candidate demonstrates effective delegation, mentorship, and organizational impact
-"""
-    elif interview_mode == 'stress':
-        mode_guidance = """
-INTERVIEW MODE: STRESS
-When evaluating performance and generating follow-ups:
-- Prioritize composure under pressure, critical thinking in difficult situations, and professional resilience
-- Follow-ups should be more challenging - probe deeper, ask "why" chains, or present hypothetical complications
-- Maintain a professional but firm tone - challenge the answer without being hostile or demeaning
-- Consider whether the candidate maintains clarity and professionalism when pushed
-"""
-    elif interview_mode == 'rapid_fire':
-        mode_guidance = """
-INTERVIEW MODE: RAPID FIRE
-When evaluating performance and generating follow-ups:
-- Prioritize conciseness, speed of response, and ability to hit key points quickly
-- Follow-ups should be brief and direct - candidates have limited time, so don't waste it
-- Consider whether the candidate communicates essential information efficiently
-- Evaluate if the answer addresses the core question without unnecessary elaboration
-"""
-    else:  # hr mode (default)
-        mode_guidance = """
-INTERVIEW MODE: HR
-When evaluating performance and generating follow-ups:
-- Prioritize communication clarity, behavioral examples, and soft skills
-- Follow-ups should probe for specific examples, teamwork scenarios, or cultural-fit indicators
-- Consider whether the candidate demonstrates strong interpersonal and professional presence
-"""
+    mode_guidance = get_interview_context_instruction(interview_mode, company_notes, is_evaluation=True)
 
     # For behavioral questions, append a STAR analysis block to the same prompt.
     # This avoids a second Groq call: the model evaluates both tasks on the same read.

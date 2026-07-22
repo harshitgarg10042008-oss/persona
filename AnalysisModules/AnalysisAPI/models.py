@@ -215,6 +215,22 @@ class AssessmentResult(models.Model):
         return f"Result for {self.assessment}"
 
 
+class CompanyProfile(models.Model):
+    """Company profiles for tailored interview experiences"""
+    name = models.CharField(max_length=200, unique=True)
+    industry = models.CharField(max_length=100)
+    interview_style_notes = models.TextField(
+        help_text="Description of the company's interview culture and style used to guide AI question generation."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
 class IndividualAssessment(models.Model):
     """Individual practice assessments using platform job titles"""
     STATUS_CHOICES = [
@@ -342,6 +358,15 @@ class IndividualAssessment(models.Model):
         ],
         default='hr',
         help_text='Interview style/mode for this assessment'
+    )
+    
+    # Target Company field
+    target_company = models.ForeignKey(
+        CompanyProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Optional target company selected for tailored questions"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
