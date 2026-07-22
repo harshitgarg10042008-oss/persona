@@ -336,6 +336,9 @@ class IndividualAssessment(models.Model):
         choices=[
             ('hr', 'HR'),
             ('technical', 'Technical'),
+            ('managerial', 'Managerial'),
+            ('stress', 'Stress'),
+            ('rapid_fire', 'Rapid Fire'),
         ],
         default='hr',
         help_text='Interview style/mode for this assessment'

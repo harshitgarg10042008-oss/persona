@@ -942,7 +942,7 @@ def individual_assessment_mode_submit(request, session_id):
     )
 
     interview_mode = request.POST.get('interview_mode')
-    if interview_mode not in ['hr', 'technical']:
+    if interview_mode not in ['hr', 'technical', 'managerial', 'stress', 'rapid_fire']:
         messages.error(request, "Invalid interview mode selected.")
         return redirect('analysis:individual_assessment_mode_select', session_id=session_id)
 
@@ -1179,6 +1179,9 @@ def individual_assessment_question(request, session_id):
     from .tts_utils import get_or_create_question_audio
     audio_url = get_or_create_question_audio(current_question.question_text, session_id) if current_question else None
     
+    # Add time limit for Rapid Fire mode
+    time_limit_seconds = 12 if assessment.interview_mode == 'rapid_fire' else None
+    
     context = {
         'audio_url': audio_url,
         'assessment': assessment,
@@ -1190,6 +1193,7 @@ def individual_assessment_question(request, session_id):
         'session_id': session_id,
         'adaptive_mode': assessment.adaptive_mode,
         'current_difficulty': assessment.current_difficulty,
+        'time_limit_seconds': time_limit_seconds,
         'analysis_status': {
             'attire_available': ATTIRE_ANALYSIS_AVAILABLE,
             'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE,
@@ -1264,6 +1268,7 @@ def submit_assessment_response(request, session_id):
                         'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                         'audio_url': audio_url,
+                        'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                     }
                 return JsonResponse(response_data)
             question_text_for_analysis = current_question.question_text
@@ -1313,6 +1318,7 @@ def submit_assessment_response(request, session_id):
                         'difficulty_level': assessment.current_difficulty,
                         'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                        'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                     }
                 return JsonResponse(response_data)
         
@@ -1376,6 +1382,7 @@ def submit_assessment_response(request, session_id):
                     'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                     'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                     'audio_url': audio_url,
+                    'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                 }
             return JsonResponse(response_data)
 

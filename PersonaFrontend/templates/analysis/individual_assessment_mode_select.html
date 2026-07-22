@@ -42,6 +42,21 @@
     color: #92400e;
   }
 
+  .managerial-icon {
+    background-color: #e0e7ff;
+    color: #4338ca;
+  }
+
+  .stress-icon {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  .rapid-fire-icon {
+    background-color: #f3e8ff;
+    color: #7c3aed;
+  }
+
   .mode-title {
     font-size: 24px;
     font-weight: 600;
@@ -88,7 +103,7 @@
   </div>
 
   <!-- Mode Selection Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
     <!-- HR Mode -->
     <div class="mode-card relative" data-mode="hr" onclick="selectMode('hr')">
       <div class="selection-indicator">✓</div>
@@ -110,10 +125,44 @@
         problem-solving, and industry expertise relevant to your position.
       </p>
     </div>
+
+    <!-- Managerial Mode -->
+    <div class="mode-card relative" data-mode="managerial" onclick="selectMode('managerial')">
+      <div class="selection-indicator">✓</div>
+      <div class="mode-icon managerial-icon">👥</div>
+      <h2 class="mode-title">Managerial Interview</h2>
+      <p class="mode-description">
+        Leadership and decision-making scenarios. Focus on team conflict resolution,
+        ownership, strategic thinking, and people management.
+      </p>
+    </div>
+
+    <!-- Stress Mode -->
+    <div class="mode-card relative" data-mode="stress" onclick="selectMode('stress')">
+      <div class="selection-indicator">✓</div>
+      <div class="mode-icon stress-icon">⚡</div>
+      <h2 class="mode-title">Stress Interview</h2>
+      <p class="mode-description">
+        Challenging follow-ups that test composure. Simulates a tough interviewer
+        with probing questions while maintaining a professional tone.
+      </p>
+    </div>
+
+    <!-- Rapid Fire Mode -->
+    <div class="mode-card relative" data-mode="rapid_fire" onclick="selectMode('rapid_fire')">
+      <div class="selection-indicator">✓</div>
+      <div class="mode-icon rapid-fire-icon">🔥</div>
+      <h2 class="mode-title">Rapid Fire</h2>
+      <p class="mode-description">
+        Short, quick questions with a 12-second timer per question. Tests ability
+        to think and respond concisely under time pressure.
+      </p>
+    </div>
   </div>
 
   <!-- Continue Button -->
   <div class="text-center">
+    {% csrf_token %}
     <button id="continue-btn" disabled
       class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg opacity-50 cursor-not-allowed">
       Continue to Setup
@@ -146,13 +195,13 @@
       'Click "Continue to Setup" to proceed';
   }
 
-  document.getElementById('continue-btn').addEventListener('click', function() {
+  document.getElementById('continue-btn').addEventListener('click', function () {
     if (selectedMode) {
       // Submit the mode selection
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = '{% url "analysis:individual_assessment_mode_submit" session_id=assessment.session_id %}';
-      
+
       const csrfToken = document.createElement('input');
       csrfToken.type = 'hidden';
       csrfToken.name = 'csrfmiddlewaretoken';

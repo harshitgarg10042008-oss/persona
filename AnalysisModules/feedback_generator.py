@@ -144,6 +144,40 @@ Prioritize questions about:
 - Industry-specific technical challenges
 - Tools, frameworks, and methodologies used
 """
+    elif interview_mode == 'managerial':
+        mode_instruction = """
+INTERVIEW MODE: MANAGERIAL
+Focus on leadership, team management, and decision-making scenarios.
+Prioritize questions about:
+- Team conflict resolution and people management
+- Strategic thinking and ownership
+- Leadership challenges and how they were handled
+- Cross-functional collaboration
+- Decision-making under uncertainty
+"""
+    elif interview_mode == 'stress':
+        mode_instruction = """
+INTERVIEW MODE: STRESS
+Focus on challenging scenarios that test composure and critical thinking.
+Prioritize questions about:
+- Handling difficult situations or setbacks
+- Dealing with ambiguity or pressure
+- Responding to criticism or failure
+- Making decisions with incomplete information
+- Maintaining professionalism under stress
+"""
+    elif interview_mode == 'rapid_fire':
+        mode_instruction = """
+INTERVIEW MODE: RAPID FIRE
+Focus on short, direct questions that can be answered quickly.
+Prioritize questions about:
+- Quick decision-making under time pressure
+- Concise communication of key points
+- Rapid problem identification
+- High-level overview responses
+- Essential knowledge recall
+Keep questions brief and to the point - candidates have limited time to respond.
+"""
     else:  # hr mode (default)
         mode_instruction = """
 INTERVIEW MODE: HR
@@ -891,6 +925,32 @@ When evaluating performance and generating follow-ups:
 - Prioritize technical accuracy, depth of technical knowledge, and problem-solving approach
 - Follow-ups should probe technical details, implementation decisions, or system design choices
 - Consider whether the candidate demonstrates role-specific technical expertise
+"""
+    elif interview_mode == 'managerial':
+        mode_guidance = """
+INTERVIEW MODE: MANAGERIAL
+When evaluating performance and generating follow-ups:
+- Prioritize leadership qualities, decision-making rationale, and people management skills
+- Follow-ups should probe for specific examples of team conflict resolution, ownership, or strategic thinking
+- Consider whether the candidate demonstrates effective delegation, mentorship, and organizational impact
+"""
+    elif interview_mode == 'stress':
+        mode_guidance = """
+INTERVIEW MODE: STRESS
+When evaluating performance and generating follow-ups:
+- Prioritize composure under pressure, critical thinking in difficult situations, and professional resilience
+- Follow-ups should be more challenging - probe deeper, ask "why" chains, or present hypothetical complications
+- Maintain a professional but firm tone - challenge the answer without being hostile or demeaning
+- Consider whether the candidate maintains clarity and professionalism when pushed
+"""
+    elif interview_mode == 'rapid_fire':
+        mode_guidance = """
+INTERVIEW MODE: RAPID FIRE
+When evaluating performance and generating follow-ups:
+- Prioritize conciseness, speed of response, and ability to hit key points quickly
+- Follow-ups should be brief and direct - candidates have limited time, so don't waste it
+- Consider whether the candidate communicates essential information efficiently
+- Evaluate if the answer addresses the core question without unnecessary elaboration
 """
     else:  # hr mode (default)
         mode_guidance = """

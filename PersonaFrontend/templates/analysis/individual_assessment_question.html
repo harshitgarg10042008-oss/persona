@@ -469,6 +469,11 @@
                     </div>
                     <div id="response-timer" style="display: none;">
                         Response Time: <span id="response-time">0</span>s
+                        {% if time_limit_seconds %}
+                        <div id="time-limit-container" class="text-red-600 dark:text-red-400 text-sm mt-1" style="display: none;">
+                            Time Left: <span id="time-left">{{ time_limit_seconds }}</span>s
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -578,6 +583,9 @@
     let _proctorAbandonTriggered = false;
     let _proctorDebounceTimer = null;
     let _proctorSuppressed = false; // temporarily suppress proctor during native dialogs
+    let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
+    let timeLeft = 0;
+    let timeLimitInterval = null;
     const PROCTOR_DEBOUNCE_MS = 300;
     const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
     const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
@@ -963,10 +971,54 @@
     // Start response timer
     function startResponseTimer() {
         if (responseInterval) clearInterval(responseInterval);
+        
+        if (timeLimitSeconds) {
+            timeLeft = timeLimitSeconds;
+            const timeLeftSpan = document.getElementById('time-left');
+            const timeLimitContainer = document.getElementById('time-limit-container');
+            if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
+            if (timeLimitContainer) timeLimitContainer.style.display = 'block';
+            
+            const audioEl = document.getElementById('question-audio');
+            if (audioEl && !audioEl.paused && !audioEl.ended) {
+                audioEl.addEventListener('ended', startRapidFireCountdown, { once: true });
+                audioEl.addEventListener('error', startRapidFireCountdown, { once: true });
+            } else {
+                startRapidFireCountdown();
+            }
+        }
+        
         responseInterval = setInterval(() => {
             responseTime++;
             document.getElementById('response-time').textContent = responseTime;
         }, 1000);
+    }
+    
+    function startRapidFireCountdown() {
+        if (timeLimitInterval) clearInterval(timeLimitInterval);
+        timeLimitInterval = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                const timeLeftSpan = document.getElementById('time-left');
+                if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
+            }
+            if (timeLeft <= 0) {
+                clearInterval(timeLimitInterval);
+                timeLimitInterval = null;
+                handleTimeOut();
+            }
+        }, 1000);
+    }
+    
+    async function handleTimeOut() {
+        if (isRecording) {
+            await stopRecording();
+            await nextQuestion();
+        } else if (!submitPromise && !submissionInFlight) {
+            await forceSkipQuestion();
+        } else {
+            await nextQuestion();
+        }
     }
 
     // Toggle recording
@@ -1055,6 +1107,10 @@
             if (responseInterval) {
                 clearInterval(responseInterval);
                 responseInterval = null;
+            }
+            if (timeLimitInterval) {
+                clearInterval(timeLimitInterval);
+                timeLimitInterval = null;
             }
             
             if (videoStream) {
@@ -1352,6 +1408,77 @@
             await restoreFullscreenAndProctor();
         }
     }
+    
+    async function forceSkipQuestion() {
+        const skipButton = document.getElementById('skip-button');
+        if (skipButton) {
+            skipButton.disabled = true;
+            skipButton.textContent = 'Skipping…';
+        }
+
+        let skipReason = 'rapid_fire_timeout';
+        if (!videoStream) {
+            skipReason = 'camera_mic_unavailable';
+        } else {
+            const audioTracks = videoStream.getAudioTracks();
+            if (!audioTracks.length) skipReason = 'microphone_unavailable';
+        }
+
+        try {
+            const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    skipped: true,
+                    skip_reason: skipReason,
+                    response_duration: 0,
+                    time_to_start: 0,
+                    fullscreen_violations: fullscreenViolations
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (result.is_complete) {
+                    _assessmentEnded = true;
+                    if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                    if (attireInterval) clearInterval(attireInterval);
+                    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+                    
+                    const transitionText = document.getElementById('transition-text');
+                    if (transitionText) transitionText.textContent = 'Completing assessment...';
+                    const videoTransition = document.getElementById('video-transition');
+                    if (videoTransition) videoTransition.style.display = 'flex';
+                    const videoFeed = document.getElementById('video-feed');
+                    if (videoFeed) videoFeed.style.opacity = '0';
+                    
+                    window.location.href = result.complete_url;
+                    return;
+                } else if (result.next_question) {
+                    // Clear background analysis intervals before transitioning
+                    if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+                    if (attireInterval) clearInterval(attireInterval);
+                    updateQuestionUI(result.next_question);
+                }
+            } else {
+                showWarning('Could not auto-submit: ' + (result.error || 'Unknown error'));
+                if (skipButton) {
+                    skipButton.disabled = false;
+                    skipButton.textContent = 'Skip this question';
+                }
+            }
+        } catch (err) {
+            console.error('Auto-skip failed:', err);
+            showWarning('Auto-submit failed. Please check connection.');
+            if (skipButton) {
+                skipButton.disabled = false;
+                skipButton.textContent = 'Skip this question';
+            }
+        }
+    }
 
 
 function updateQuestionUI(next_question) {
@@ -1424,6 +1551,19 @@ function updateQuestionUI(next_question) {
     
     document.getElementById('prep-timer').style.display = 'block';
     document.getElementById('response-timer').style.display = 'none';
+    
+    timeLimitSeconds = next_question.time_limit_seconds || null;
+    const timeLimitContainer = document.getElementById('time-limit-container');
+    if (timeLimitContainer) {
+        if (!timeLimitSeconds) {
+            timeLimitContainer.style.display = 'none';
+            const timeLimitContainerUI = document.getElementById('time-left');
+            if(timeLimitContainerUI) timeLimitContainerUI.innerHTML = '';
+        } else {
+            const timeLimitContainerUI = document.getElementById('time-left');
+            if(timeLimitContainerUI) timeLimitContainerUI.innerHTML = timeLimitSeconds;
+        }
+    }
 
     // 5. Reset UI Controls
     const recordButton = document.getElementById('record-button');
