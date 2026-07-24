@@ -90,4 +90,8 @@ urlpatterns = [
     path('summary-video/generate/', views.interview_summary_video_generate, name='interview_summary_video_generate'),
     path('summary-video/status/<int:video_id>/', views.interview_summary_video_status, name='interview_summary_video_status'),
     path('summary-video/result/<int:video_id>/', views.interview_summary_video_result, name='interview_summary_video_result'),
-]
+
+    # Feature #18 — CV Interview Replay with Timeline Annotations
+    path('individual/<uuid:session_id>/replay/', views.cv_replay, name='cv_replay'),
+    path('individual/<uuid:session_id>/cv-events/', views.cv_events_api, name='cv_events_api'),
+]

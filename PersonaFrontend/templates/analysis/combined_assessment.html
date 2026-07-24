@@ -938,12 +938,11 @@
 
     let recordingPromise = null;
 
-    function getSupportedAudioMimeType() {
+    function getSupportedVideoMimeType() {
         const types = [
-            'audio/webm;codecs=opus',
-            'audio/webm',
             'video/webm;codecs=vp8,opus',
             'video/webm',
+            'video/mp4'
         ];
         for (const type of types) {
             if (MediaRecorder.isTypeSupported(type)) {
@@ -967,16 +966,10 @@
                 throw new Error('Camera/microphone stream not initialized');
             }
 
-            const audioTracks = videoStream.getAudioTracks();
-            if (!audioTracks.length) {
-                throw new Error('No audio track available on camera stream');
-            }
-
-            // Re-use the setup mic track — avoid a second getUserMedia call that can yield silent audio on Windows
-            const audioStream = new MediaStream(audioTracks);
-            const mimeType = getSupportedAudioMimeType();
+            // Record the full videoStream instead of audio-only
+            const mimeType = getSupportedVideoMimeType();
             const recorderOptions = mimeType ? { mimeType } : {};
-            mediaRecorder = new MediaRecorder(audioStream, recorderOptions);
+            mediaRecorder = new MediaRecorder(videoStream, recorderOptions);
 
             audioChunks = [];
 
@@ -1038,10 +1031,10 @@
     }
 
     function processRecording() {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        console.log('Recorded audio blob size:', audioBlob.size, 'bytes, chunks:', audioChunks.length);
+        const videoBlob = new Blob(audioChunks, { type: 'video/webm' });
+        console.log('Recorded video blob size:', videoBlob.size, 'bytes, chunks:', audioChunks.length);
 
-        if (audioBlob.size < 1024) {
+        if (videoBlob.size < 1024) {
             alert('Recording too short or empty. Please speak for at least 2 seconds and try again.');
             const button = document.getElementById('record-button');
             const status = document.getElementById('status-text');
@@ -1052,24 +1045,17 @@
             return;
         }
 
-        // Convert to base64
-        const reader = new FileReader();
-        reader.onloadend = function () {
-            const audioData = reader.result.split(',')[1];
-            submitResponse(audioData);
-        };
-        reader.readAsDataURL(audioBlob);
+        submitResponse(videoBlob);
     }
 
-    async function submitResponse(audioData) {
+    async function submitResponse(videoBlob) {
         console.log('Submitting response...');
 
-        const responseData = {
-            question_id: currentQuestion.id,
-            audio_data: audioData,
-            response_time: Math.floor((new Date() - currentQuestionStartTime) / 1000),
-            fullscreen_violations: fullscreenViolations
-        };
+        const formData = new FormData();
+        formData.append('video_file', videoBlob, 'response.webm');
+        formData.append('question_id', currentQuestion.id);
+        formData.append('response_time', Math.floor((new Date() - currentQuestionStartTime) / 1000));
+        formData.append('fullscreen_violations', fullscreenViolations);
 
         // Update UI immediately - don't wait for processing
         const button = document.getElementById('record-button');
@@ -1082,10 +1068,9 @@
             const response = await fetch(`/analysis/combined-response/{{ session_id }}/`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify(responseData)
+                body: formData
             });
 
             const result = await response.json();

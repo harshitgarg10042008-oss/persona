@@ -606,6 +606,8 @@
     const PROCTOR_DEBOUNCE_MS = 300;
     const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
     const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
+    // Track current question number for practice mode hints
+    let currentQuestionNumber = parseInt('{{ question_number }}');
 
     function isFullscreenActive() {
         return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
@@ -1050,12 +1052,11 @@
     // Start recording
     let recordingPromise = null;
 
-    function getSupportedAudioMimeType() {
+    function getSupportedVideoMimeType() {
         const types = [
-            'audio/webm;codecs=opus',
-            'audio/webm',
             'video/webm;codecs=vp8,opus',
             'video/webm',
+            'video/mp4'
         ];
         for (const type of types) {
             if (MediaRecorder.isTypeSupported(type)) {
@@ -1075,16 +1076,10 @@
                 return;
             }
 
-            const audioTracks = videoStream.getAudioTracks();
-            if (!audioTracks.length) {
-                showWarning('No microphone track available. Please refresh and allow mic access.');
-                return;
-            }
-
-            const audioStream = new MediaStream(audioTracks);
-            const mimeType = getSupportedAudioMimeType();
+            // Record the full videoStream instead of audio-only
+            const mimeType = getSupportedVideoMimeType();
             const recorderOptions = mimeType ? { mimeType } : {};
-            mediaRecorder = new MediaRecorder(audioStream, recorderOptions);
+            mediaRecorder = new MediaRecorder(videoStream, recorderOptions);
 
             mediaRecorder.ondataavailable = function (event) {
                 if (event.data.size > 0) {
@@ -1187,10 +1182,10 @@
             return;
         }
 
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        console.log('Recorded audio blob size:', audioBlob.size, 'bytes');
+        const videoBlob = new Blob(audioChunks, { type: 'video/webm' });
+        console.log('Recorded video blob size:', videoBlob.size, 'bytes');
 
-        if (audioBlob.size < 1024) {
+        if (videoBlob.size < 1024) {
             showWarning('Recording too short or empty. Please speak for at least 2 seconds.');
             const recordButton = document.getElementById('record-button');
             recordButton.style.display = 'block';
@@ -1203,35 +1198,26 @@
             return;
         }
 
-        const reader = new FileReader();
-
-        reader.onload = function () {
-            const audioData = reader.result;
-            submitPromise = submitResponse(audioData).finally(() => {
-                submissionInFlight = false;
-            });
-        };
-
-        reader.readAsDataURL(audioBlob);
+        submitPromise = submitResponse(videoBlob).finally(() => {
+            submissionInFlight = false;
+        });
     }
 
     // Submit response
-    async function submitResponse(audioData) {
-        const responseData = {
-            audio_data: audioData,
-            response_duration: responseTime,
-            time_to_start: responseStartTime ? (responseStartTime - questionStartTime) / 1000 : 0,
-            fullscreen_violations: fullscreenViolations
-        };
+    async function submitResponse(videoBlob) {
+        const formData = new FormData();
+        formData.append('video_file', videoBlob, 'response.webm');
+        formData.append('response_duration', responseTime);
+        formData.append('time_to_start', responseStartTime ? (responseStartTime - questionStartTime) / 1000 : 0);
+        formData.append('fullscreen_violations', fullscreenViolations);
 
         try {
             const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify(responseData)
+                body: formData
             });
 
             const result = await response.json();
@@ -1712,8 +1698,8 @@ function updateQuestionUI(next_question) {
         
         try {
             const questionText = document.getElementById('question-text-container').innerText;
-            const questionOrder = '{{ question_number }}'; // using template var since UI loads per question (via reload or next load)
-            // Wait, next load updates question-text-container, does it update questionOrder?
+            const questionOrder = currentQuestionNumber.toString(); // use dynamic current question number
+            // Using currentQuestionNumber ensures hint updates per question
             // Let's pass the text. The server will use the current question index.
             
             const response = await fetch("{% url 'analysis:get_question_hint' session_id=assessment.session_id %}", {

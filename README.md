@@ -35,6 +35,9 @@ This project integrates a comprehensive Machine Learning and AI pipeline:
 - **Body Language**: Uses **MediaPipe** to track posture, gestures, and facial landmarks for engagement and confidence metrics.
 - **Speech & Fluency**: Uses **OpenAI Whisper** and `librosa` for robust audio transcription and vocal delivery analysis.
 - **Content Correctness**: Utilizes **Groq (Llama 3.3)** to deeply evaluate the transcript against the interview question and provide an actionable Feedback Summary.
+- **Interview Modes**: Supports 5 distinct interview styles (HR, Technical, Managerial, Stress, Rapid Fire) that drastically alter AI follow-up tone and scoring criteria.
+- **Company-Specific Interviews**: Optional tailoring of the interview context for top companies, leveraging their specific company culture and interview formats.
+- **Practice Mode (Real-Time Hints)**: Candidates can toggle Practice Mode to receive AI-generated on-screen hints (focusing on structure, e.g. STAR method) during their assessment.
 - **Adaptive Difficulty Engine**: Adjusts the difficulty of upcoming questions on the fly based on the candidate's real-time performance.
 - **AI Follow-Up Questions**: Dynamically generates contextual follow-up questions during the interview to probe deeper into candidate answers.
 - **STAR Framework Analysis**: Strictly evaluates behavioral question responses against the Situation, Task, Action, Result methodology.

@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Interview Replay — {{ assessment.platform_job_title.title|default:"Assessment" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Page layout ───────────────────────────────────────────────────────── */
+    .replay-page {
+        min-height: calc(100vh - 4rem);
+        padding: 2rem 1rem 4rem;
+        background:
+            radial-gradient(ellipse at top, color-mix(in srgb, var(--color-primary) 10%, transparent) 0%, transparent 55%),
+            var(--color-bg-secondary);
+    }
+
+    .replay-container {
+        width: 100%;
+        max-width: 56rem;
+        margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    .replay-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .replay-title {
+        font-family: var(--font-heading);
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-text-primary);
+        margin: 0 0 0.25rem;
+        letter-spacing: -0.02em;
+    }
+
+    .replay-subtitle {
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: 0;
+    }
+
+    /* ── CV score badges ─────────────────────────────────────────────────────── */
+    .scores-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .score-badge {
+        flex: 1;
+        min-width: 8rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border);
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .score-badge .score-label {
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+    }
+
+    .score-badge .score-value {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-text-primary);
+    }
+
+    .score-badge .score-dot {
+        display: inline-block;
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        margin-right: 0.35rem;
+        vertical-align: middle;
+        margin-bottom: 0.1rem;
+    }
+
+    /* ── Video player ────────────────────────────────────────────────────────── */
+    .video-wrapper {
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+        box-shadow: 0 6px 28px rgba(0,0,0,0.28);
+        margin-bottom: 1.25rem;
+    }
+
+    .video-wrapper video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* ── Timeline bar ────────────────────────────────────────────────────────── */
+    .timeline-section {
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .timeline-heading {
+        font-size: var(--text-sm);
+        font-weight: var(--font-semibold);
+        color: var(--color-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 0.875rem;
+    }
+
+    .timeline-bar-wrap {
+        position: relative;
+        height: 1.25rem;
+        background: var(--color-bg-tertiary);
+        border-radius: 9999px;
+        border: 1px solid var(--color-border-light);
+        overflow: visible;
+        cursor: pointer;
+    }
+
+    /* Playhead progress line (updated via JS timeupdate) */
+    .timeline-progress {
+        height: 100%;
+        border-radius: 9999px;
+        background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+        pointer-events: none;
+        transition: width 0.25s linear;
+    }
+
+    /* Dot markers */
+    .timeline-marker {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 0.85rem;
+        height: 0.85rem;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        cursor: pointer;
+        z-index: 10;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .timeline-marker:hover,
+    .timeline-marker.active {
+        transform: translate(-50%, -50%) scale(1.5);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+
+    /* Floating tooltip */
+    .marker-tooltip {
+        position: absolute;
+        bottom: calc(100% + 0.6rem);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-bg-primary, #1e1e2e);
+        color: var(--color-text-primary, #f8f8f2);
+        font-size: 0.72rem;
+        font-weight: 500;
+        white-space: nowrap;
+        padding: 0.3rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 20;
+    }
+
+    .timeline-marker:hover .marker-tooltip,
+    .timeline-marker.active .marker-tooltip {
+        opacity: 1;
+    }
+
+    /* Legend row */
+    .timeline-legend {
+        display: flex;
+        gap: 1.25rem;
+        margin-top: 0.875rem;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+    }
+
+    .legend-dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 50%;
+        border: 1.5px solid white;
+        flex-shrink: 0;
+    }
+
+    /* No-events placeholder */
+    .no-events-msg {
+        font-size: var(--text-sm);
+        color: var(--color-text-tertiary);
+        text-align: center;
+        padding: 0.75rem 0;
+    }
+
+    /* ── Status banner (shown when CV analysis not yet run) ──────────────────── */
+    .status-banner {
+        padding: 1rem 1.25rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        font-size: var(--text-sm);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .status-banner.pending    { background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid #f59e0b; color: #92400e; }
+    .status-banner.processing { background: color-mix(in srgb, #3b82f6 12%, transparent); border: 1px solid #3b82f6; color: #1e40af; }
+    .status-banner.failed     { background: color-mix(in srgb, #ef4444 12%, transparent); border: 1px solid #ef4444; color: #991b1b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="replay-page">
+<div class="replay-container">
+
+    <!-- Header -->
+    <div class="replay-header">
+        <h1 class="replay-title">&#128249; Interview Replay</h1>
+        <p class="replay-subtitle">{{ assessment.platform_job_title.title|default:"Interview" }} &mdash; CV Analysis Timeline</p>
+    </div>
+
+    <!-- Status banners for non-completed CV analysis -->
+    {% if cv_analysis_status == 'pending' %}
+    <div class="status-banner pending">
+        &#9203; CV analysis has not been run yet for this session. Trigger it via Django shell using the verification steps provided.
+    </div>
+    {% elif cv_analysis_status == 'processing' %}
+    <div class="status-banner processing">
+        &#128260; CV analysis is currently processing. Refresh this page in a moment.
+    </div>
+    {% elif cv_analysis_status == 'failed' %}
+    <div class="status-banner failed">
+        &#10060; CV analysis failed. Scores and timeline may be incomplete.
+    </div>
+    {% endif %}
+
+    <!-- CV Score Badges -->
+    {% if result %}
+    <div class="scores-row">
+        <div class="score-badge">
+            <div class="score-label"><span class="score-dot" style="background:#f59e0b;"></span>Eye Contact</div>
+            <div class="score-value">
+                {% if result.eye_contact_score is not None %}{{ result.eye_contact_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
+            </div>
+        </div>
+        <div class="score-badge">
+            <div class="score-label"><span class="score-dot" style="background:#3b82f6;"></span>Posture</div>
+            <div class="score-value">
+                {% if result.posture_score is not None %}{{ result.posture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
+            </div>
+        </div>
+        <div class="score-badge">
+            <div class="score-label"><span class="score-dot" style="background:#ef4444;"></span>Distraction</div>
+            <div class="score-value">
+                {% if result.gesture_score is not None %}{{ result.gesture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Video Player -->
+    {% if assessment.video_file %}
+    <div class="video-wrapper">
+        <video id="replay-video" controls preload="metadata">
+            <source src="{{ assessment.video_file.url }}" type="video/webm">
+            <source src="{{ assessment.video_file.url }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    {% else %}
+    <div class="status-banner failed" style="margin-bottom:1.25rem;">
+        &#9888; No interview video file is attached to this assessment.
+    </div>
+    {% endif %}
+
+    <!-- Timeline Section -->
+    <div class="timeline-section">
+        <p class="timeline-heading">&#128336; CV Event Timeline</p>
+
+        {% if cv_analysis_status == 'completed' %}
+            <div id="timeline-bar-wrap" class="timeline-bar-wrap" title="Click to seek video">
+                <div id="timeline-progress" class="timeline-progress" style="width:0%"></div>
+                <!-- Dot markers injected by JavaScript below -->
+            </div>
+
+            <div class="timeline-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:#f59e0b;"></span> Eye contact dropped
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:#3b82f6;"></span> Posture slouched
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:#ef4444;"></span> Distraction detected
+                </div>
+            </div>
+
+            <div id="no-events-msg" class="no-events-msg" style="display:none;">
+                No CV events were recorded during this interview. &#127881;
+            </div>
+        {% else %}
+            <div class="no-events-msg">
+                Timeline will appear once CV analysis is complete.
+            </div>
+        {% endif %}
+    </div>
+
+</div><!-- /replay-container -->
+</div><!-- /replay-page -->
+
+{% if cv_analysis_status == 'completed' %}
+<script>
+(function () {
+    'use strict';
+
+    // ── Event data injected from Django context ──────────────────────────────
+    const EVENTS = {{ cv_events_json|safe }};
+
+    const EVENT_META = {
+        'eye_contact_drop': { colour: '#f59e0b', label: 'Eye contact dropped' },
+        'posture_drop':     { colour: '#3b82f6', label: 'Posture slouched'     },
+        'distraction':      { colour: '#ef4444', label: 'Distraction detected' },
+    };
+
+    // ── DOM refs ────────────────────────────────────────────────────────────
+    const video    = document.getElementById('replay-video');
+    const barWrap  = document.getElementById('timeline-bar-wrap');
+    const progress = document.getElementById('timeline-progress');
+    const noMsg    = document.getElementById('no-events-msg');
+
+    if (!video || !barWrap) return;
+
+    // ── Helper: format seconds as M:SS ──────────────────────────────────────
+    function fmtTime(sec) {
+        var m = Math.floor(sec / 60);
+        var s = Math.floor(sec % 60);
+        return m + ':' + (s < 10 ? '0' + s : String(s));
+    }
+
+    // ── Build marker dots once video duration is known ───────────────────────
+    function buildTimeline(duration) {
+        if (!EVENTS || EVENTS.length === 0) {
+            if (noMsg) noMsg.style.display = 'block';
+            return;
+        }
+
+        EVENTS.forEach(function (evt) {
+            var meta  = EVENT_META[evt.type] || { colour: '#9ca3af', label: evt.type };
+            var pct   = Math.min(100, (evt.timestamp_sec / duration) * 100);
+
+            var dot = document.createElement('div');
+            dot.className = 'timeline-marker';
+            dot.style.left       = pct + '%';
+            dot.style.background = meta.colour;
+            dot.dataset.ts       = evt.timestamp_sec;
+
+            // Tooltip
+            var tip = document.createElement('div');
+            tip.className   = 'marker-tooltip';
+            tip.textContent = meta.label + ' \u2014 ' + fmtTime(evt.timestamp_sec);
+            dot.appendChild(tip);
+
+            // Click: seek and mark active
+            dot.addEventListener('click', function (e) {
+                e.stopPropagation();
+                video.currentTime = evt.timestamp_sec;
+                video.play().catch(function () {});
+                document.querySelectorAll('.timeline-marker').forEach(function (m) {
+                    m.classList.remove('active');
+                });
+                dot.classList.add('active');
+            });
+
+            barWrap.appendChild(dot);
+        });
+    }
+
+    // ── Update progress bar as video plays ───────────────────────────────────
+    video.addEventListener('timeupdate', function () {
+        if (!video.duration) return;
+        var pct = (video.currentTime / video.duration) * 100;
+        progress.style.width = pct + '%';
+    });
+
+    // ── Click on the bar to seek ─────────────────────────────────────────────
+    barWrap.addEventListener('click', function (e) {
+        if (!video.duration) return;
+        var rect  = barWrap.getBoundingClientRect();
+        var ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        video.currentTime = ratio * video.duration;
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    if (video.readyState >= 1 && video.duration) {
+        buildTimeline(video.duration);
+    } else {
+        video.addEventListener('loadedmetadata', function () {
+            buildTimeline(video.duration);
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

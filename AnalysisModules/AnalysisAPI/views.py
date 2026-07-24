@@ -107,19 +107,19 @@ def _snapshot_score_from_data(snapshot):
     return None
 
 
-def _enqueue_speech_analysis(response_id, audio_data, question_text):
+def _enqueue_speech_analysis(response_id, question_text):
     """Run speech analysis via django-q, falling back to a daemon thread."""
     from .tasks import run_speech_analysis_task
 
     try:
         from django_q.tasks import async_task
-        async_task(run_speech_analysis_task, response_id, audio_data, question_text)
+        async_task(run_speech_analysis_task, response_id, question_text)
     except Exception as e:
         print(f"django-q enqueue failed ({e}), using thread fallback")
         import threading
         thread = threading.Thread(
             target=run_speech_analysis_task,
-            args=(response_id, audio_data, question_text),
+            args=(response_id, question_text),
             daemon=True,
         )
         thread.start()
@@ -1423,7 +1423,10 @@ def submit_assessment_response(request, session_id):
                 return JsonResponse(response_data)
         
         # Parse request data
-        data = json.loads(request.body)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST.dict()
         
         # Handle skip
         if data.get('skipped'):
@@ -1510,26 +1513,54 @@ def submit_assessment_response(request, session_id):
                 time_to_start=data.get('time_to_start', 0)
             )
         
-        # Process audio if provided
-        if 'audio_data' in data and data['audio_data']:
-            is_valid, error_msg = validate_audio_b64(data['audio_data'])
-            if not is_valid:
-                return JsonResponse({'error': error_msg}, status=400)
+        # Process video/audio if provided
+        video_file = request.FILES.get('video_file')
+        if video_file or ('audio_data' in data and data['audio_data']):
+            if not video_file:
+                is_valid, error_msg = validate_audio_b64(data['audio_data'])
+                if not is_valid:
+                    return JsonResponse({'error': error_msg}, status=400)
+            
             try:
-                # Decode base64 audio
-                audio_data = base64.b64decode(data['audio_data'].split(',')[1])
-                
-                # Save audio file
-                filename = f"response_{assessment.id}_{assessment.current_question_index + 1}_{uuid.uuid4().hex[:8]}.wav"
-                # In production, save to proper media storage
-                # For now, we'll process but not save
+                if video_file:
+                    filename = f"response_{assessment.id}_{assessment.current_question_index + 1}_{uuid.uuid4().hex[:8]}.webm"
+                    if is_answering_follow_up:
+                        follow_up_response.video_file.save(filename, video_file)
+                    else:
+                        response.video_file.save(filename, video_file)
+                        
+                    # Extract audio using moviepy
+                    import tempfile
+                    import os
+                    from moviepy.editor import VideoFileClip
+                    
+                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_video:
+                        for chunk in video_file.chunks():
+                            temp_video.write(chunk)
+                        temp_video_path = temp_video.name
+                        
+                    with VideoFileClip(temp_video_path) as video:
+                        audio = video.audio
+                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+                            temp_audio_path = temp_audio.name
+                        if audio:
+                            audio.write_audiofile(temp_audio_path, codec='pcm_s16le', logger=None)
+                            with open(temp_audio_path, 'rb') as f:
+                                audio_bytes = f.read()
+                        else:
+                            audio_bytes = b''
+                            
+                    os.remove(temp_video_path)
+                    os.remove(temp_audio_path)
+                else:
+                    audio_bytes = base64.b64decode(data['audio_data'].split(',')[1])
                 
                 # Analyze speech if available
-                if SPEECH_ANALYSIS_AVAILABLE:
+                if SPEECH_ANALYSIS_AVAILABLE and audio_bytes:
                     speech_analysis = analyze_speech(
-                        audio_data, 
+                        audio_bytes, 
                         question_text_for_analysis,
-                        data.get('response_duration', 0)
+                        int(data.get('response_duration', 0))
                     )
                     
                     if is_answering_follow_up:
@@ -2663,7 +2694,10 @@ def capture_snapshot_clean(request, session_id):
 def submit_response_clean(request, session_id):
     """Handle clean response submission with speech analysis"""
     try:
-        data = json.loads(request.body)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST.dict()
         
         assessment = get_object_or_404(
             IndividualAssessment,
@@ -2672,8 +2706,9 @@ def submit_response_clean(request, session_id):
         
         question_id = data.get('question_id')
         audio_data = data.get('audio_data', '')
-        response_time = data.get('response_time', 0)
-        fullscreen_violations = data.get('fullscreen_violations', 0)
+        video_file = request.FILES.get('video_file')
+        response_time = int(data.get('response_time', 0))
+        fullscreen_violations = int(data.get('fullscreen_violations', 0))
         
         # Get question
         question = get_object_or_404(PlatformQuestion, id=question_id)
@@ -2690,47 +2725,30 @@ def submit_response_clean(request, session_id):
             time_to_start=0,
             analysis_data={
                 'fullscreen_violations': fullscreen_violations,
-                'speech_analysis_status': 'pending' if audio_data else 'not_applicable'
+                'speech_analysis_status': 'pending' if (audio_data or video_file) else 'not_applicable'
             }
         )
         
         # Perform speech analysis in background
-        if audio_data:
+        if video_file:
+            try:
+                filename = f"response_{assessment.id}_{assessment.current_question_index + 1}_{uuid.uuid4().hex[:8]}.webm"
+                response.video_file.save(filename, video_file)
+            except Exception as e:
+                print(f"Video storage failed: {e}")
+        elif audio_data:
             is_valid, error_msg = validate_audio_b64(audio_data)
             if not is_valid:
                 return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            
+            audio_len = len(audio_data)
+            est_bytes = int(audio_len * 3 / 4)
+            response.analysis_data['audio_b64_length'] = audio_len
+            response.analysis_data['audio_est_bytes'] = est_bytes
+            response.save(update_fields=['analysis_data'])
                 
-            if SPEECH_ANALYSIS_AVAILABLE:
-                try:
-                    # Decode audio data
-                    audio_bytes = base64.b64decode(audio_data)
-
-                    # Analyze speech
-                    speech_analysis = analyze_speech(audio_bytes, question.question_text)
-
-                    # Update response with analysis
-                    response.response_text = speech_analysis.get('transcription', '')
-                    response.fluency_score = speech_analysis.get('fluency_score', 0)
-                    response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
-                    response.relevance_score = speech_analysis.get('content_score', 0)
-                    response.confidence_score = speech_analysis.get('confidence_score', 0)
-                    response.analysis_data['speech_analysis'] = speech_analysis
-                    response.analysis_data['speech_analysis_status'] = 'completed'
-                    response.analysis_data = _sanitize_for_json(response.analysis_data)
-                    
-                    # Sanitize explicit score fields to ensure they are native Python types
-                    response.fluency_score = _sanitize_for_json(response.fluency_score)
-                    response.pronunciation_score = _sanitize_for_json(response.pronunciation_score)
-                    response.relevance_score = _sanitize_for_json(response.relevance_score)
-                    response.confidence_score = _sanitize_for_json(response.confidence_score)
-                    
-                    response.save()
-
-                except Exception as e:
-                    print(f"Speech analysis failed: {e}")
-                    response.analysis_data['speech_analysis'] = {"error": str(e)}
-                    response.analysis_data['speech_analysis_status'] = 'error'
-                    response.save()
+        if (video_file or audio_data) and SPEECH_ANALYSIS_AVAILABLE:
+            _enqueue_speech_analysis(response.id, question.question_text)
         
         # Check if assessment is complete
         answered_questions = IndividualAssessmentResponse.objects.filter(
@@ -2862,7 +2880,10 @@ def capture_snapshot_combined(request, session_id):
 def submit_response_combined(request, session_id):
     """Handle combined assessment response submission with speech analysis"""
     try:
-        data = json.loads(request.body)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST.dict()
         
         assessment = get_object_or_404(
             IndividualAssessment,
@@ -2871,8 +2892,9 @@ def submit_response_combined(request, session_id):
         
         question_id = data.get('question_id')
         audio_data = data.get('audio_data', '')
-        response_time = data.get('response_time', 0)
-        fullscreen_violations = data.get('fullscreen_violations', 0)
+        video_file = request.FILES.get('video_file')
+        response_time = int(data.get('response_time', 0))
+        fullscreen_violations = int(data.get('fullscreen_violations', 0))
         
         # Get question
         question = get_object_or_404(PlatformQuestion, id=question_id)
@@ -2889,11 +2911,11 @@ def submit_response_combined(request, session_id):
         # Save response with initial status
         initial_analysis_data = {
             'fullscreen_violations': fullscreen_violations, 
-            'has_audio_data': bool(audio_data)
+            'has_audio_data': bool(audio_data) or bool(video_file)
         }
         
-        # Set speech analysis status if we have audio
-        if audio_data and SPEECH_ANALYSIS_AVAILABLE:
+        # Set speech analysis status if we have audio/video
+        if (audio_data or video_file) and SPEECH_ANALYSIS_AVAILABLE:
             initial_analysis_data['speech_analysis_status'] = 'pending'
         else:
             initial_analysis_data['speech_analysis_status'] = 'not_applicable'
@@ -2910,28 +2932,29 @@ def submit_response_combined(request, session_id):
             analysis_data=initial_analysis_data
         )
         
-        # Handle audio data if provided
-        if audio_data:
+        # Handle audio/video data if provided
+        if video_file:
+            try:
+                filename = f"response_{assessment.id}_{assessment.current_question_index + 1}_{uuid.uuid4().hex[:8]}.webm"
+                response.video_file.save(filename, video_file)
+            except Exception as e:
+                print(f"Video storage failed: {e}")
+        elif audio_data:
             is_valid, error_msg = validate_audio_b64(audio_data)
             if not is_valid:
                 return JsonResponse({'success': False, 'error': error_msg}, status=400)
             try:
                 audio_len = len(audio_data)
                 est_bytes = int(audio_len * 3 / 4)
-                print(f"[Audio] Response Q{IndividualAssessmentResponse.objects.filter(assessment=assessment).count()+1}: "
-                      f"base64_len={audio_len} chars, est_decoded={est_bytes} bytes ({est_bytes/1024:.1f} KB)")
-                # Store truncated preview only — full data goes to background task
-                response.analysis_data['audio_base64_preview'] = audio_data[:60] + '...' if len(audio_data) > 60 else audio_data
                 response.analysis_data['audio_b64_length'] = audio_len
                 response.analysis_data['audio_est_bytes'] = est_bytes
-                response.analysis_data['speech_analysis_status'] = 'pending'
-                response.save()
+                response.save(update_fields=['analysis_data'])
             except Exception as e:
                 print(f"Audio storage failed: {e}")
         
         # Start speech analysis in background (don't wait for it)
-        if audio_data and SPEECH_ANALYSIS_AVAILABLE:
-            _enqueue_speech_analysis(response.id, audio_data, question.question_text)
+        if (video_file or audio_data) and SPEECH_ANALYSIS_AVAILABLE:
+            _enqueue_speech_analysis(response.id, question.question_text)
         
         # Check if assessment is complete
         # BUG FIX: Use assessment.total_questions (the selected subset for THIS session),
@@ -3716,3 +3739,115 @@ def interview_summary_video_result(request, video_id):
         'assessment': video_record.assessment,
     }
     return render(request, 'analysis/interview_summary_video_result.html', context)
+
+
+# =============================================================================
+# Feature #18: CV Interview Replay with AI Timeline Annotations
+# =============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def cv_replay(request, session_id):
+    """
+    Render the CV interview replay page.
+
+    Shows the candidate's recorded interview video alongside a clickable
+    CV-event timeline built from AssessmentResult.cv_analysis_events.
+
+    The timeline JS fetches events from cv_events_api and positions colour-coded
+    dot-markers on a horizontal bar proportional to the video duration.
+    """
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+    )
+
+    # Try to get CV scores — they may not exist if the task hasn't run yet
+    try:
+        result = assessment.assessments.result   # OneToOne via Assessment FK
+    except Exception:
+        result = None
+
+    # Fallback: look up by Assessment if available
+    if result is None:
+        try:
+            from .models import AssessmentResult
+            assessment_obj = Assessment.objects.filter(
+                user=request.user,
+                status='completed',
+            ).order_by('-completed_at').first()
+            if assessment_obj:
+                result = AssessmentResult.objects.filter(assessment=assessment_obj).first()
+        except Exception:
+            result = None
+
+    context = {
+        'assessment': assessment,
+        'result': result,
+        # Pre-serialise events so the template can embed them as inline JSON
+        'cv_events_json': json.dumps(
+            result.cv_analysis_events if result and result.cv_analysis_events else []
+        ),
+        'cv_analysis_status': result.cv_analysis_status if result else 'pending',
+    }
+    return render(request, 'analysis/cv_replay.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def cv_events_api(request, session_id):
+    """
+    Lightweight JSON endpoint — returns cv_analysis_events for a given session.
+
+    Response schema:
+        {
+            "status": "completed" | "pending" | "processing" | "failed",
+            "events": [{"timestamp_sec": int, "type": str}, ...],
+            "scores": {
+                "eye_contact": float | null,
+                "posture": float | null,
+                "distraction": float | null
+            },
+            "video_url": str | null
+        }
+    """
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+    )
+
+    # Find the associated Assessment with a video file
+    # (IndividualAssessment relates to AssessmentResult via Assessment FK)
+    from .models import AssessmentResult
+    result = None
+    video_url = None
+
+    assessment_obj = Assessment.objects.filter(
+        user=request.user,
+        status='completed',
+    ).order_by('-completed_at').first()
+
+    if assessment_obj:
+        try:
+            result = AssessmentResult.objects.get(assessment=assessment_obj)
+        except AssessmentResult.DoesNotExist:
+            pass
+        if assessment_obj.video_file:
+            try:
+                video_url = assessment_obj.video_file.url
+            except Exception:
+                pass
+
+    return JsonResponse({
+        'status': result.cv_analysis_status if result else 'pending',
+        'events': result.cv_analysis_events if result and result.cv_analysis_events else [],
+        'scores': {
+            'eye_contact': result.eye_contact_score if result else None,
+            'posture': result.posture_score if result else None,
+            'distraction': result.gesture_score if result else None,  # gesture_score = distraction proxy
+        },
+        'video_url': video_url,
+    })
+

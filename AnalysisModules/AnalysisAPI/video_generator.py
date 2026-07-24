@@ -1,5 +1,6 @@
 import os
 import textwrap
+import uuid
 from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 
@@ -26,7 +27,10 @@ def generate_summary_video(assessment, video_record_id):
     record_id = str(video_record_id)
     output_dir = os.path.join("media", "summary_videos")
     os.makedirs(output_dir, exist_ok=True)
-    output_filepath = os.path.join(output_dir, f"{record_id}_summary.mp4")
+    # Unique temporary file to avoid collisions across concurrent workers
+    _run_token = uuid.uuid4().hex[:8]
+    temp_output_path = os.path.join(output_dir, f"{record_id}_{_run_token}_summary_temp.mp4")
+    final_output_path = os.path.join(output_dir, f"{record_id}_summary.mp4")
 
     temp_files = []
     
@@ -176,19 +180,25 @@ def generate_summary_video(assessment, video_record_id):
 
         # Write final video
         final_video = concatenate_videoclips(clips, method="compose")
+        # Write to a unique temporary file first to avoid race conditions
         final_video.write_videofile(
-            output_filepath, 
-            fps=24, 
-            codec="libx264", 
+            temp_output_path,
+            fps=24,
+            codec="libx264",
             audio_codec="aac"
         )
-        
+        # Move the completed file to the deterministic final path
+        try:
+            os.replace(temp_output_path, final_output_path)
+        except Exception as move_err:
+            # If rename fails, log but still attempt to return the temp path
+            print(f"Failed to rename temp video file: {move_err}")
         # Free resources
         final_video.close()
         for c in clips:
             c.close()
 
-        return output_filepath
+        return final_output_path
 
     finally:
         # Cleanup temporary files safely

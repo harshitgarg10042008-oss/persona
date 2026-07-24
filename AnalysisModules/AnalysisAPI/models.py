@@ -210,6 +210,25 @@ class AssessmentResult(models.Model):
     
     # Analysis metadata
     analyzed_at = models.DateTimeField(auto_now_add=True)
+    # CV analysis status for eye contact / posture / distraction processing
+    CV_ANALYSIS_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    cv_analysis_status = models.CharField(max_length=20, choices=CV_ANALYSIS_STATUS_CHOICES, default='pending', help_text='CV analysis processing state')
+    # Feature #18 — timestamped CV events for interview replay timeline
+    cv_analysis_events = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "List of CV-event dicts logged during analysis: "
+            '{"timestamp_sec": int, "type": "eye_contact_drop"|"posture_drop"|"distraction"}. '
+            "Events are only recorded on good→bad state transitions, not every sampled second."
+        ),
+    )
+
     
     def __str__(self):
         return f"Result for {self.assessment}"

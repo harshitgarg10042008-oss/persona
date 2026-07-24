@@ -212,13 +212,14 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Django-Q2 Configuration
 Q_CLUSTER = {
-    'name': 'persona_cluster',
-    'workers': 4,
-    'recycle': 500,
-    'timeout': 60,
-    'catch_up': False,
-    'orm': 'default'
-}
+        'name': 'persona_cluster',
+        'workers': 4,
+        'recycle': 500,
+        'timeout': 300,
+        'retry': 360,
+        'catch_up': False,
+        'orm': 'default'
+    }
 
 # Caching for Rate Limiting
 CACHES = {

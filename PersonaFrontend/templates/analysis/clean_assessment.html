@@ -607,8 +607,21 @@ async function startRecording() {
             }
         });
         
+        let mimeType = 'video/webm';
+        const types = [
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+            'video/mp4'
+        ];
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                break;
+            }
+        }
+        
         mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'audio/webm;codecs=opus'
+            mimeType: mimeType
         });
         
         audioChunks = [];
@@ -674,35 +687,26 @@ async function stopRecording() {
 }
 
 function processRecording() {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-    
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = function() {
-        const audioData = reader.result.split(',')[1]; // Remove data:audio/webm;base64, prefix
-        submitResponse(audioData);
-    };
-    reader.readAsDataURL(audioBlob);
+    const videoBlob = new Blob(audioChunks, { type: 'video/webm' });
+    submitResponse(videoBlob);
 }
 
-async function submitResponse(audioData) {
+async function submitResponse(videoBlob) {
     console.log('Submitting response...');
     
-    const responseData = {
-        question_id: "{{ current_question.id }}",
-        audio_data: audioData,
-        response_time: Math.floor((new Date() - currentQuestionStartTime) / 1000),
-        fullscreen_violations: fullscreenViolations
-    };
+    const formData = new FormData();
+    formData.append('video_file', videoBlob, 'response.webm');
+    formData.append('question_id', "{{ current_question.id }}");
+    formData.append('response_time', Math.floor((new Date() - currentQuestionStartTime) / 1000));
+    formData.append('fullscreen_violations', fullscreenViolations);
     
     try {
         const response = await fetch(`/analysis/submit-response/{{ session_id }}/`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify(responseData)
+            body: formData
         });
         
         const result = await response.json();
