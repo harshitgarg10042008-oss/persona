@@ -33,7 +33,7 @@ def _get_model_name() -> str:
     return os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
 
 
-def _call_groq(prompt: str, timeout: int = 30) -> Optional[str]:
+def _call_groq(prompt: str, timeout: int = 30, max_tokens: int = None) -> Optional[str]:
     """
     Send *prompt* to the Groq chat completions API and return the response
     text, or None on any failure (missing key, import error, API error, etc.).
@@ -46,13 +46,15 @@ def _call_groq(prompt: str, timeout: int = 30) -> Optional[str]:
         client = Groq(api_key=api_key)
         model_name = _get_model_name().strip() or 'llama-3.3-70b-versatile'
 
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "user", "content": prompt},
-            ],
-            model=model_name,
-            timeout=timeout,
-        )
+        kwargs = {
+            "messages": [{"role": "user", "content": prompt}],
+            "model": model_name,
+            "timeout": timeout,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+
+        chat_completion = client.chat.completions.create(**kwargs)
         return chat_completion.choices[0].message.content or ''
     except Exception as exc:  # pragma: no cover - defensive fallback
         logger.warning('Groq request failed: %s', exc)
@@ -242,7 +244,7 @@ When evaluating performance and generating follow-ups:
 def generate_question_hint(question_text: str, interview_mode: str = 'hr', company_notes: str = None) -> str:
     """Generate a single short hint for a question during Practice Mode."""
     if not question_text:
-        return "Think about the STAR method (Situation, Task, Action, Result)."
+        return "Take a moment to structure your thoughts before answering."
 
     mode_instruction = get_interview_context_instruction(interview_mode, company_notes, is_evaluation=False)
 
@@ -254,8 +256,11 @@ The candidate is struggling to answer the following interview question:
 {mode_instruction}
 
 Your task: Provide ONE short, helpful hint (1-2 sentences maximum).
-The hint MUST NOT give away the answer. Instead, nudge the candidate toward a good structure or approach.
-For example, suggest using a specific framework (like STAR), or ask a leading rhetorical question about what metric they could focus on.
+The hint MUST NOT give away the answer. Instead, nudge the candidate toward a good structure or approach appropriate for this specific interview mode.
+For example:
+- If this is a technical question, suggest thinking about edge cases, trade-offs, or time/space complexity.
+- If this is a behavioral question, suggest using a specific framework (like STAR) or focusing on the impact.
+- If this is a managerial question, prompt them to think about team dynamics or strategic outcomes.
 Return ONLY the hint text. No quotes, no preamble.
 """
     try:
@@ -266,7 +271,16 @@ Return ONLY the hint text. No quotes, no preamble.
     except Exception as exc:
         logger.warning('generate_question_hint failed: %s', exc)
         
-    return "Consider structuring your answer using the STAR format: Situation, Task, Action, and Result."
+    if interview_mode == 'technical':
+        return "Hint: Think about edge cases, trade-offs, or how you would optimize your solution."
+    elif interview_mode == 'managerial':
+        return "Hint: Focus on the strategic outcome and how you guided the team to success."
+    elif interview_mode == 'stress':
+        return "Hint: Take a breath. Focus on maintaining a calm, objective approach to the problem."
+    elif interview_mode == 'rapid_fire':
+        return "Hint: Keep it brief. State your main point directly without over-explaining."
+    else:
+        return "Consider structuring your answer using the STAR format: Situation, Task, Action, and Result."
 
 
 def generate_tailored_questions(resume_text: str, job_role: str, num_questions: int = 5, interview_mode: str = 'hr', company_notes: str = None) -> list[str]:

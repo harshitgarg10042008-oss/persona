@@ -1509,8 +1509,10 @@ def submit_assessment_response(request, session_id):
                 question_started_at=timezone.now(),
                 response_started_at=timezone.now(),
                 response_ended_at=timezone.now(),
-                response_duration=data.get('response_duration', 0),
-                time_to_start=data.get('time_to_start', 0)
+                # FormData sends all values as strings (e.g. "10.482"); parse through
+                # float() first so fractional-second values don't crash the PositiveIntegerField.
+                response_duration=int(float(data.get('response_duration', 0) or 0)),
+                time_to_start=int(float(data.get('time_to_start', 0) or 0))
             )
         
         # Process video/audio if provided
@@ -1528,41 +1530,127 @@ def submit_assessment_response(request, session_id):
                         follow_up_response.video_file.save(filename, video_file)
                     else:
                         response.video_file.save(filename, video_file)
-                        
-                    # Extract audio using moviepy
+
+                    # ----------------------------------------------------------------
+                    # Audio extraction from the saved video.
+                    #
+                    # IMPORTANT: FieldFile.save() above fully reads the upload stream,
+                    # leaving the file pointer at EOF.  We must seek(0) before calling
+                    # video_file.chunks() so the temp file receives the actual content
+                    # instead of 0 bytes — which was the root cause of empty audio_bytes
+                    # and silent speech-analysis failures.
+                    # ----------------------------------------------------------------
                     import tempfile
                     import os
-                    from moviepy.editor import VideoFileClip
-                    
+                    import subprocess
+                    from django.core.files.base import ContentFile
+
+                    video_file.seek(0)  # reset stream after FieldFile.save() consumed it
                     with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_video:
                         for chunk in video_file.chunks():
                             temp_video.write(chunk)
                         temp_video_path = temp_video.name
-                        
-                    with VideoFileClip(temp_video_path) as video:
-                        audio = video.audio
-                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                            temp_audio_path = temp_audio.name
-                        if audio:
-                            audio.write_audiofile(temp_audio_path, codec='pcm_s16le', logger=None)
-                            with open(temp_audio_path, 'rb') as f:
-                                audio_bytes = f.read()
+
+                    # ----------------------------------------------------------------
+                    # Extract audio via raw ffmpeg instead of moviepy's VideoFileClip.
+                    #
+                    # Chrome's MediaRecorder writes .webm files as a live stream —
+                    # the header has no duration/seek metadata.  MoviePy's VideoFileClip
+                    # asks ffmpeg for that duration upfront and raises:
+                    #   OSError: MoviePy error: failed to read the duration of …
+                    # Raw ffmpeg (invoked directly) handles this fine because it just
+                    # reads packets without needing the header duration field.
+                    #
+                    # imageio_ffmpeg is a moviepy dependency that ships a bundled ffmpeg
+                    # binary, so we use it to locate the binary reliably instead of
+                    # relying on ffmpeg being on PATH.
+                    # ----------------------------------------------------------------
+                    try:
+                        from imageio_ffmpeg import get_ffmpeg_exe
+                        ffmpeg_bin = get_ffmpeg_exe()
+                    except Exception:
+                        ffmpeg_bin = "ffmpeg"  # fall back to PATH
+
+                    temp_audio_path = None
+                    audio_bytes = b''
+
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+                        temp_audio_path = temp_audio.name
+
+                    try:
+                        ffmpeg_result = subprocess.run(
+                            [
+                                ffmpeg_bin,
+                                "-y",               # overwrite output without prompting
+                                "-i", temp_video_path,
+                                "-vn",              # strip video stream
+                                "-acodec", "pcm_s16le",
+                                "-ar", "16000",     # Whisper expects 16kHz
+                                "-ac", "1",         # Whisper expects mono
+                                temp_audio_path,
+                            ],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                        )
+                    except FileNotFoundError:
+                        ffmpeg_result = None
+                        logger.warning(
+                            "[DIAG] submit_assessment_response: ffmpeg binary not found — "
+                            "audio extraction skipped for session %s",
+                            session_id,
+                        )
+
+                    if ffmpeg_result is not None and ffmpeg_result.returncode == 0 \
+                            and os.path.exists(temp_audio_path) \
+                            and os.path.getsize(temp_audio_path) > 0:
+                        with open(temp_audio_path, 'rb') as f:
+                            audio_bytes = f.read()
+
+                        # Persist extracted audio to audio_file so it is stored
+                        # independently of the video (enables offline re-analysis).
+                        audio_filename = (
+                            f"response_{assessment.id}_"
+                            f"{assessment.current_question_index + 1}_"
+                            f"{uuid.uuid4().hex[:8]}.wav"
+                        )
+                        if is_answering_follow_up:
+                            follow_up_response.audio_file.save(
+                                audio_filename, ContentFile(audio_bytes), save=False
+                            )
                         else:
-                            audio_bytes = b''
-                            
+                            response.audio_file.save(
+                                audio_filename, ContentFile(audio_bytes), save=False
+                            )
+                    else:
+                        if ffmpeg_result is not None and ffmpeg_result.returncode != 0:
+                            stderr_text = ffmpeg_result.stderr.decode(errors="replace")
+                            logger.warning(
+                                "[DIAG] submit_assessment_response: ffmpeg exited %d for session %s — "
+                                "video may have no audio track.\n%s",
+                                ffmpeg_result.returncode, session_id, stderr_text,
+                            )
+                        else:
+                            logger.warning(
+                                "[DIAG] submit_assessment_response: ffmpeg produced no audio output "
+                                "for session %s — video may have no audio track.",
+                                session_id,
+                            )
+
                     os.remove(temp_video_path)
-                    os.remove(temp_audio_path)
+                    if temp_audio_path and os.path.exists(temp_audio_path):
+                        os.remove(temp_audio_path)
+
                 else:
                     audio_bytes = base64.b64decode(data['audio_data'].split(',')[1])
-                
+
                 # Analyze speech if available
                 if SPEECH_ANALYSIS_AVAILABLE and audio_bytes:
                     speech_analysis = analyze_speech(
-                        audio_bytes, 
+                        audio_bytes,
                         question_text_for_analysis,
-                        int(data.get('response_duration', 0))
+                        int(float(data.get('response_duration', 0) or 0))
                     )
-                    
+
                     if is_answering_follow_up:
                         follow_up_response.answer_text = speech_analysis.get('transcription', '') or data.get('response_text', '')
                         follow_up_response.save()
@@ -1572,7 +1660,7 @@ def submit_assessment_response(request, session_id):
                         response.pronunciation_score = speech_analysis.get('pronunciation_score', 0)
                         response.relevance_score = speech_analysis.get('content_score', 0)
                         response.confidence_score = speech_analysis.get('confidence_score', 0)
-                        
+
                         ideal_pts = current_question.ideal_answer_points if current_question else None
                         raw_analysis_data = {
                             'speech_analysis': speech_analysis,
@@ -1583,15 +1671,14 @@ def submit_assessment_response(request, session_id):
                             ),
                         }
                         response.analysis_data = _sanitize_for_json(raw_analysis_data)
-                        
+
                         response.fluency_score = _sanitize_for_json(response.fluency_score)
                         response.pronunciation_score = _sanitize_for_json(response.pronunciation_score)
                         response.relevance_score = _sanitize_for_json(response.relevance_score)
                         response.confidence_score = _sanitize_for_json(response.confidence_score)
-                    
 
             except Exception as e:
-                logger.exception("[DIAG] submit_assessment_response: Audio processing error — full traceback:")  # DIAG
+                logger.exception("[DIAG] submit_assessment_response: Audio processing error — full traceback:")
                 print(f"Audio processing error: {e}")
         
         if not is_answering_follow_up:
