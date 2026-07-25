@@ -10,3 +10,9 @@ uv.lock
 postman/
 .postman/
 node_modules/
+media/
+media/question_audio/
+*.mp4
+*.webm
+*.mp3
+*.wav
