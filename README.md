@@ -43,6 +43,7 @@ This project integrates a comprehensive Machine Learning and AI pipeline:
 - **STAR Framework Analysis**: Strictly evaluates behavioral question responses against the Situation, Task, Action, Result methodology.
 - **Anti-Cheating Proctoring**: Enforces fullscreen mode and detects tab-switching to maintain assessment integrity.
 - **Resume Upload & Tailored Questions**: Extracts text from candidate resumes (PDF/TXT) to generate highly personalized interview questions.
+- **AI Career Tools**: Includes an integrated **Resume Analyzer**, **Cover Letter Generator**, and **LinkedIn Post Creator** to help candidates optimize their professional brand.
 - **Asynchronous Task Queue**: Leverages **Django-Q2** (via ORM broker) to process heavy ML operations in the background without blocking the main server threads.
 - **PDF Reports & Tracking**: Generates downloadable PDF reports with detailed performance breakdowns and tracks progress via interactive charts (Chart.js) over time.
 - **Gamification & Badges**: Users earn dynamic achievement badges for reaching milestones or completing specific role assessments.
