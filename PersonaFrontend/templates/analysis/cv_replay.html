@@ -1,11 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Interview Replay — {{ assessment.platform_job_title.title|default:"Assessment" }}{% endblock %}
+{% block title %}Interview Replay &mdash; {{ assessment.platform_job_title.title|default:"Assessment" }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ── Page layout ───────────────────────────────────────────────────────── */
     .replay-page {
         min-height: calc(100vh - 4rem);
         padding: 2rem 1rem 4rem;
@@ -20,7 +19,6 @@
         margin: 0 auto;
     }
 
-    /* ── Header ─────────────────────────────────────────────────────────────── */
     .replay-header {
         margin-bottom: 1.5rem;
     }
@@ -40,7 +38,6 @@
         margin: 0;
     }
 
-    /* ── CV score badges ─────────────────────────────────────────────────────── */
     .scores-row {
         display: flex;
         gap: 1rem;
@@ -56,7 +53,7 @@
         background: var(--color-bg-primary);
         border: 1px solid var(--color-border);
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
     .score-badge .score-label {
@@ -83,13 +80,12 @@
         margin-bottom: 0.1rem;
     }
 
-    /* ── Video player ────────────────────────────────────────────────────────── */
     .video-wrapper {
         width: 100%;
         border-radius: 12px;
         overflow: hidden;
         background: #000;
-        box-shadow: 0 6px 28px rgba(0,0,0,0.28);
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
         margin-bottom: 1.25rem;
     }
 
@@ -99,13 +95,12 @@
         display: block;
     }
 
-    /* ── Timeline bar ────────────────────────────────────────────────────────── */
     .timeline-section {
         background: var(--color-bg-primary);
         border: 1px solid var(--color-border);
         border-radius: 12px;
         padding: 1.25rem 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
     .timeline-heading {
@@ -127,7 +122,6 @@
         cursor: pointer;
     }
 
-    /* Playhead progress line (updated via JS timeupdate) */
     .timeline-progress {
         height: 100%;
         border-radius: 9999px;
@@ -136,7 +130,6 @@
         transition: width 0.25s linear;
     }
 
-    /* Dot markers */
     .timeline-marker {
         position: absolute;
         top: 50%;
@@ -145,7 +138,7 @@
         height: 0.85rem;
         border-radius: 50%;
         border: 2px solid white;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
         cursor: pointer;
         z-index: 10;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -154,10 +147,9 @@
     .timeline-marker:hover,
     .timeline-marker.active {
         transform: translate(-50%, -50%) scale(1.5);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
     }
 
-    /* Floating tooltip */
     .marker-tooltip {
         position: absolute;
         bottom: calc(100% + 0.6rem);
@@ -171,7 +163,7 @@
         padding: 0.3rem 0.65rem;
         border-radius: 6px;
         border: 1px solid var(--color-border);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.15s ease;
@@ -183,7 +175,6 @@
         opacity: 1;
     }
 
-    /* Legend row */
     .timeline-legend {
         display: flex;
         gap: 1.25rem;
@@ -207,7 +198,6 @@
         flex-shrink: 0;
     }
 
-    /* No-events placeholder */
     .no-events-msg {
         font-size: var(--text-sm);
         color: var(--color-text-tertiary);
@@ -215,7 +205,6 @@
         padding: 0.75rem 0;
     }
 
-    /* ── Status banner (shown when CV analysis not yet run) ──────────────────── */
     .status-banner {
         padding: 1rem 1.25rem;
         border-radius: 10px;
@@ -225,169 +214,174 @@
         align-items: center;
         gap: 0.6rem;
     }
-    .status-banner.pending    { background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid #f59e0b; color: #92400e; }
-    .status-banner.processing { background: color-mix(in srgb, #3b82f6 12%, transparent); border: 1px solid #3b82f6; color: #1e40af; }
-    .status-banner.failed     { background: color-mix(in srgb, #ef4444 12%, transparent); border: 1px solid #ef4444; color: #991b1b; }
+
+    .status-banner.pending {
+        background: color-mix(in srgb, #f59e0b 12%, transparent);
+        border: 1px solid #f59e0b;
+        color: #92400e;
+    }
+
+    .status-banner.processing {
+        background: color-mix(in srgb, #3b82f6 12%, transparent);
+        border: 1px solid #3b82f6;
+        color: #1e40af;
+    }
+
+    .status-banner.failed {
+        background: color-mix(in srgb, #ef4444 12%, transparent);
+        border: 1px solid #ef4444;
+        color: #991b1b;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="replay-page">
-<div class="replay-container">
+    <div class="replay-container">
 
-    <!-- Header -->
-    <div class="replay-header">
-        <h1 class="replay-title">&#128249; Interview Replay</h1>
-        <p class="replay-subtitle">{{ assessment.platform_job_title.title|default:"Interview" }} &mdash; CV Analysis Timeline</p>
-    </div>
-
-    <!-- Status banners for non-completed CV analysis -->
-    {% if cv_analysis_status == 'pending' %}
-    <div class="status-banner pending">
-        &#9203; CV analysis has not been run yet for this session. Trigger it via Django shell using the verification steps provided.
-    </div>
-    {% elif cv_analysis_status == 'processing' %}
-    <div class="status-banner processing">
-        &#128260; CV analysis is currently processing. Refresh this page in a moment.
-    </div>
-    {% elif cv_analysis_status == 'failed' %}
-    <div class="status-banner failed">
-        &#10060; CV analysis failed. Scores and timeline may be incomplete.
-    </div>
-    {% endif %}
-
-    <!-- CV Score Badges -->
-    {% if result %}
-    <div class="scores-row">
-        <div class="score-badge">
-            <div class="score-label"><span class="score-dot" style="background:#f59e0b;"></span>Eye Contact</div>
-            <div class="score-value">
-                {% if result.eye_contact_score is not None %}{{ result.eye_contact_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
-            </div>
+        <div class="replay-header">
+            <h1 class="replay-title">Interview Replay</h1>
+            <p class="replay-subtitle">{{ assessment.platform_job_title.title|default:"Interview" }} &mdash; CV Analysis
+                Timeline</p>
         </div>
-        <div class="score-badge">
-            <div class="score-label"><span class="score-dot" style="background:#3b82f6;"></span>Posture</div>
-            <div class="score-value">
-                {% if result.posture_score is not None %}{{ result.posture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
-            </div>
+
+        {% if cv_analysis_status == 'pending' %}
+        <div class="status-banner pending">
+            CV analysis has not been run yet for this session.
         </div>
-        <div class="score-badge">
-            <div class="score-label"><span class="score-dot" style="background:#ef4444;"></span>Distraction</div>
-            <div class="score-value">
-                {% if result.gesture_score is not None %}{{ result.gesture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}
-            </div>
+        {% elif cv_analysis_status == 'processing' %}
+        <div class="status-banner processing">
+            CV analysis is currently processing. Refresh this page in a moment.
         </div>
-    </div>
-    {% endif %}
-
-    <!-- Video Player -->
-    {% if assessment.video_file %}
-    <div class="video-wrapper">
-        <video id="replay-video" controls preload="metadata">
-            <source src="{{ assessment.video_file.url }}" type="video/webm">
-            <source src="{{ assessment.video_file.url }}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-    </div>
-    {% else %}
-    <div class="status-banner failed" style="margin-bottom:1.25rem;">
-        &#9888; No interview video file is attached to this assessment.
-    </div>
-    {% endif %}
-
-    <!-- Timeline Section -->
-    <div class="timeline-section">
-        <p class="timeline-heading">&#128336; CV Event Timeline</p>
-
-        {% if cv_analysis_status == 'completed' %}
-            <div id="timeline-bar-wrap" class="timeline-bar-wrap" title="Click to seek video">
-                <div id="timeline-progress" class="timeline-progress" style="width:0%"></div>
-                <!-- Dot markers injected by JavaScript below -->
-            </div>
-
-            <div class="timeline-legend">
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#f59e0b;"></span> Eye contact dropped
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#3b82f6;"></span> Posture slouched
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#ef4444;"></span> Distraction detected
-                </div>
-            </div>
-
-            <div id="no-events-msg" class="no-events-msg" style="display:none;">
-                No CV events were recorded during this interview. &#127881;
-            </div>
-        {% else %}
-            <div class="no-events-msg">
-                Timeline will appear once CV analysis is complete.
-            </div>
+        {% elif cv_analysis_status == 'failed' %}
+        <div class="status-banner failed">
+            CV analysis failed. Scores and timeline may be incomplete.
+        </div>
         {% endif %}
-    </div>
 
-</div><!-- /replay-container -->
-</div><!-- /replay-page -->
+        {% if eye_contact_score is not None or posture_score is not None or gesture_score is not None %}
+        <div class="scores-row">
+            <div class="score-badge">
+                <div class="score-label"><span class="score-dot" style="background:#f59e0b;"></span>Eye Contact</div>
+                <div class="score-value">{% if eye_contact_score is not None %}{{ eye_contact_score|floatformat:1 }}%{% else %}&mdash;{% endif %}</div>
+            </div>
+            <div class="score-badge">
+                <div class="score-label"><span class="score-dot" style="background:#3b82f6;"></span>Posture</div>
+                <div class="score-value">{% if posture_score is not None %}{{ posture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}</div>
+            </div>
+            <div class="score-badge">
+                <div class="score-label"><span class="score-dot" style="background:#ef4444;"></span>Distraction</div>
+                <div class="score-value">{% if gesture_score is not None %}{{ gesture_score|floatformat:1 }}%{% else %}&mdash;{% endif %}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if responses %}
+        {% for response in responses %}
+        <div class="question-section" style="margin-bottom: 2.5rem;">
+            <h3 class="question-title"
+                style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-text-primary); margin-bottom: 0.75rem;">
+                Question {{ response.question_order }}: {{ response.question.question_text|truncatewords:15 }}
+            </h3>
+
+            <div class="video-wrapper">
+                <video id="replay-video-{{ response.id }}" class="replay-video" controls preload="metadata"
+                    data-response-id="{{ response.id }}">
+                    <source src="{{ response.video_file.url }}" type="video/webm">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <div class="timeline-section">
+                <p class="timeline-heading">CV Event Timeline for Question {{ response.question_order }}</p>
+
+                {% if cv_analysis_status == 'completed' %}
+                <div id="timeline-bar-wrap-{{ response.id }}" class="timeline-bar-wrap"
+                    data-response-id="{{ response.id }}" title="Click to seek video">
+                    <div id="timeline-progress-{{ response.id }}" class="timeline-progress" style="width:0%"></div>
+                </div>
+
+                <div class="timeline-legend">
+                    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Eye contact
+                        dropped</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span> Posture
+                        slouched</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Distraction
+                        detected</div>
+                </div>
+
+                <div id="no-events-msg-{{ response.id }}" class="no-events-msg" style="display:none;">
+                    No CV events were recorded for this question.
+                </div>
+                {% else %}
+                <div class="no-events-msg">
+                    Timeline will appear once CV analysis is complete.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="status-banner failed" style="margin-bottom:1.25rem;">
+            No video responses found for this assessment.
+        </div>
+        {% endif %}
+
+    </div>
+</div>
 
 {% if cv_analysis_status == 'completed' %}
 <script>
-(function () {
-    'use strict';
+    (function () {
+        'use strict';
 
-    // ── Event data injected from Django context ──────────────────────────────
-    const EVENTS = {{ cv_events_json|safe }};
+        var EVENTS = {{ cv_events_json| safe
+    }};
 
-    const EVENT_META = {
+    var EVENT_META = {
         'eye_contact_drop': { colour: '#f59e0b', label: 'Eye contact dropped' },
-        'posture_drop':     { colour: '#3b82f6', label: 'Posture slouched'     },
-        'distraction':      { colour: '#ef4444', label: 'Distraction detected' },
+        'posture_drop': { colour: '#3b82f6', label: 'Posture slouched' },
+        'distraction': { colour: '#ef4444', label: 'Distraction detected' }
     };
 
-    // ── DOM refs ────────────────────────────────────────────────────────────
-    const video    = document.getElementById('replay-video');
-    const barWrap  = document.getElementById('timeline-bar-wrap');
-    const progress = document.getElementById('timeline-progress');
-    const noMsg    = document.getElementById('no-events-msg');
-
-    if (!video || !barWrap) return;
-
-    // ── Helper: format seconds as M:SS ──────────────────────────────────────
     function fmtTime(sec) {
         var m = Math.floor(sec / 60);
         var s = Math.floor(sec % 60);
         return m + ':' + (s < 10 ? '0' + s : String(s));
     }
 
-    // ── Build marker dots once video duration is known ───────────────────────
-    function buildTimeline(duration) {
-        if (!EVENTS || EVENTS.length === 0) {
-            if (noMsg) noMsg.style.display = 'block';
+    function buildTimelineForVideo(video, barWrap, progress, noMsg, responseId) {
+        var responseEvents = EVENTS.filter(function (evt) {
+            return evt.response_id === responseId;
+        });
+
+        console.log("DEBUG [Response " + responseId + "]: Found " + responseEvents.length + " events", responseEvents);
+
+        if (!responseEvents || responseEvents.length === 0) {
+            if (noMsg) { noMsg.style.display = 'block'; }
             return;
         }
 
-        EVENTS.forEach(function (evt) {
-            var meta  = EVENT_META[evt.type] || { colour: '#9ca3af', label: evt.type };
-            var pct   = Math.min(100, (evt.timestamp_sec / duration) * 100);
+        responseEvents.forEach(function (evt) {
+            var meta = EVENT_META[evt.type] || { colour: '#9ca3af', label: evt.type };
+            var pct = Math.min(100, (evt.timestamp_sec / video.duration) * 100);
 
             var dot = document.createElement('div');
             dot.className = 'timeline-marker';
-            dot.style.left       = pct + '%';
+            dot.style.left = pct + '%';
             dot.style.background = meta.colour;
-            dot.dataset.ts       = evt.timestamp_sec;
+            dot.dataset.ts = evt.timestamp_sec;
 
-            // Tooltip
             var tip = document.createElement('div');
-            tip.className   = 'marker-tooltip';
-            tip.textContent = meta.label + ' \u2014 ' + fmtTime(evt.timestamp_sec);
+            tip.className = 'marker-tooltip';
+            tip.textContent = meta.label + ' - ' + fmtTime(evt.timestamp_sec);
             dot.appendChild(tip);
 
-            // Click: seek and mark active
             dot.addEventListener('click', function (e) {
                 e.stopPropagation();
                 video.currentTime = evt.timestamp_sec;
-                video.play().catch(function () {});
-                document.querySelectorAll('.timeline-marker').forEach(function (m) {
+                video.play().catch(function () { });
+                barWrap.querySelectorAll('.timeline-marker').forEach(function (m) {
                     m.classList.remove('active');
                 });
                 dot.classList.add('active');
@@ -397,30 +391,43 @@
         });
     }
 
-    // ── Update progress bar as video plays ───────────────────────────────────
-    video.addEventListener('timeupdate', function () {
-        if (!video.duration) return;
-        var pct = (video.currentTime / video.duration) * 100;
-        progress.style.width = pct + '%';
-    });
+    function initVideoPlayer(video, responseId) {
+        var barWrap = document.getElementById('timeline-bar-wrap-' + responseId);
+        var progress = document.getElementById('timeline-progress-' + responseId);
+        var noMsg = document.getElementById('no-events-msg-' + responseId);
 
-    // ── Click on the bar to seek ─────────────────────────────────────────────
-    barWrap.addEventListener('click', function (e) {
-        if (!video.duration) return;
-        var rect  = barWrap.getBoundingClientRect();
-        var ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        video.currentTime = ratio * video.duration;
-    });
+        if (!video || !barWrap) { return; }
 
-    // ── Init ─────────────────────────────────────────────────────────────────
-    if (video.readyState >= 1 && video.duration) {
-        buildTimeline(video.duration);
-    } else {
-        video.addEventListener('loadedmetadata', function () {
-            buildTimeline(video.duration);
+        video.addEventListener('timeupdate', function () {
+            if (!video.duration) { return; }
+            var pct = (video.currentTime / video.duration) * 100;
+            progress.style.width = pct + '%';
         });
+
+        barWrap.addEventListener('click', function (e) {
+            if (!video.duration) { return; }
+            var rect = barWrap.getBoundingClientRect();
+            var ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            video.currentTime = ratio * video.duration;
+        });
+
+        if (video.readyState >= 1 && video.duration) {
+            buildTimelineForVideo(video, barWrap, progress, noMsg, responseId);
+        } else {
+            video.addEventListener('loadedmetadata', function () {
+                buildTimelineForVideo(video, barWrap, progress, noMsg, responseId);
+            });
+        }
     }
-})();
+
+    var videos = document.querySelectorAll('.replay-video');
+    videos.forEach(function (video) {
+        var responseId = parseInt(video.dataset.responseId, 10);
+        if (responseId) {
+            initVideoPlayer(video, responseId);
+        }
+    });
+}) ();
 </script>
 {% endif %}
 {% endblock %}

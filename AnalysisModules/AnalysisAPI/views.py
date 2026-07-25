@@ -2394,6 +2394,21 @@ def complete_individual_assessment(request, session_id):
                 pass
             # Must not block the completion page
 
+    # ── Trigger CV Analysis automatically ────────────────────────────────
+    if assessment.cv_analysis_status == 'pending' and not assessment.cv_analysis_events:
+        assessment.cv_analysis_status = 'pending'
+        assessment.save(update_fields=['cv_analysis_status'])
+        from .tasks import process_cv_analysis_task
+        try:
+            from django_q.tasks import async_task
+            async_task(process_cv_analysis_task, assessment.id, timeout=600)
+            logger.info(f"[CV Analysis] Queued task via django-q for assessment {assessment.session_id}")
+        except Exception as e:
+            logger.error(f"[CV Analysis] django-q enqueue failed ({e}), using thread fallback")
+            import threading
+            thread = threading.Thread(target=process_cv_analysis_task, args=(assessment.id,), daemon=True)
+            thread.start()
+
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py
     # from each response's analysis_data['speech_analysis'] dict.
@@ -3838,11 +3853,10 @@ def cv_replay(request, session_id):
     """
     Render the CV interview replay page.
 
-    Shows the candidate's recorded interview video alongside a clickable
-    CV-event timeline built from AssessmentResult.cv_analysis_events.
-
-    The timeline JS fetches events from cv_events_api and positions colour-coded
-    dot-markers on a horizontal bar proportional to the video duration.
+    Shows per-question video players with clickable CV-event timelines.
+    CV scores and events are now stored on IndividualAssessment (not AssessmentResult).
+    Each IndividualAssessmentResponse has its own video file, and events are tagged
+    with response_id/question_order to group them per question.
     """
     assessment = get_object_or_404(
         IndividualAssessment,
@@ -3850,33 +3864,33 @@ def cv_replay(request, session_id):
         user=request.user,
     )
 
-    # Try to get CV scores — they may not exist if the task hasn't run yet
-    try:
-        result = assessment.assessments.result   # OneToOne via Assessment FK
-    except Exception:
-        result = None
+    # Get all responses with video files, ordered by question_order
+    responses = assessment.responses.exclude(
+        video_file=''
+    ).exclude(
+        video_file__isnull=True
+    ).select_related('question').order_by('question_order')
 
-    # Fallback: look up by Assessment if available
-    if result is None:
-        try:
-            from .models import AssessmentResult
-            assessment_obj = Assessment.objects.filter(
-                user=request.user,
-                status='completed',
-            ).order_by('-completed_at').first()
-            if assessment_obj:
-                result = AssessmentResult.objects.filter(assessment=assessment_obj).first()
-        except Exception:
-            result = None
+    # Group events by response_id for template rendering
+    events_by_response = {}
+    if assessment.cv_analysis_events:
+        for event in assessment.cv_analysis_events:
+            response_id = event.get('response_id')
+            if response_id:
+                if response_id not in events_by_response:
+                    events_by_response[response_id] = []
+                events_by_response[response_id].append(event)
 
     context = {
         'assessment': assessment,
-        'result': result,
+        'responses': responses,
+        'events_by_response': events_by_response,
         # Pre-serialise events so the template can embed them as inline JSON
-        'cv_events_json': json.dumps(
-            result.cv_analysis_events if result and result.cv_analysis_events else []
-        ),
-        'cv_analysis_status': result.cv_analysis_status if result else 'pending',
+        'cv_events_json': json.dumps(assessment.cv_analysis_events or []),
+        'cv_analysis_status': assessment.cv_analysis_status,
+        'eye_contact_score': assessment.eye_contact_score,
+        'posture_score': assessment.posture_score,
+        'gesture_score': assessment.gesture_score,
     }
     return render(request, 'analysis/cv_replay.html', context)
 
@@ -3890,13 +3904,21 @@ def cv_events_api(request, session_id):
     Response schema:
         {
             "status": "completed" | "pending" | "processing" | "failed",
-            "events": [{"timestamp_sec": int, "type": str}, ...],
+            "events": [{"response_id": int, "question_order": int, "timestamp_sec": int, "type": str}, ...],
             "scores": {
                 "eye_contact": float | null,
                 "posture": float | null,
                 "distraction": float | null
             },
-            "video_url": str | null
+            "responses": [
+                {
+                    "id": int,
+                    "question_order": int,
+                    "question_text": str,
+                    "video_url": str
+                },
+                ...
+            ]
         }
     """
     assessment = get_object_or_404(
@@ -3905,36 +3927,35 @@ def cv_events_api(request, session_id):
         user=request.user,
     )
 
-    # Find the associated Assessment with a video file
-    # (IndividualAssessment relates to AssessmentResult via Assessment FK)
-    from .models import AssessmentResult
-    result = None
-    video_url = None
+    # Get all responses with video files
+    responses_data = []
+    responses = assessment.responses.exclude(
+        video_file=''
+    ).exclude(
+        video_file__isnull=True
+    ).select_related('question').order_by('question_order')
 
-    assessment_obj = Assessment.objects.filter(
-        user=request.user,
-        status='completed',
-    ).order_by('-completed_at').first()
-
-    if assessment_obj:
+    for response in responses:
         try:
-            result = AssessmentResult.objects.get(assessment=assessment_obj)
-        except AssessmentResult.DoesNotExist:
-            pass
-        if assessment_obj.video_file:
-            try:
-                video_url = assessment_obj.video_file.url
-            except Exception:
-                pass
+            video_url = response.video_file.url
+        except Exception:
+            video_url = None
+
+        responses_data.append({
+            'id': response.id,
+            'question_order': response.question_order,
+            'question_text': response.question.question_text,
+            'video_url': video_url,
+        })
 
     return JsonResponse({
-        'status': result.cv_analysis_status if result else 'pending',
-        'events': result.cv_analysis_events if result and result.cv_analysis_events else [],
+        'status': assessment.cv_analysis_status,
+        'events': assessment.cv_analysis_events or [],
         'scores': {
-            'eye_contact': result.eye_contact_score if result else None,
-            'posture': result.posture_score if result else None,
-            'distraction': result.gesture_score if result else None,  # gesture_score = distraction proxy
+            'eye_contact': assessment.eye_contact_score,
+            'posture': assessment.posture_score,
+            'distraction': assessment.gesture_score,
         },
-        'video_url': video_url,
+        'responses': responses_data,
     })
 
