@@ -17,3 +17,5 @@ media/question_audio/
 *.webm
 *.mp3
 *.wav
+.secret_key
+secret_key
