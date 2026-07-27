@@ -590,3 +590,116 @@ def process_cv_analysis_task(assessment_id):
         assessment.cv_analysis_status = 'failed'
         assessment.save(update_fields=['cv_analysis_status'])
 
+
+# =============================================================================
+# Media Retention Cleanup Task
+# =============================================================================
+
+def cleanup_old_media_task():
+    """
+    Django-Q background task for media retention cleanup.
+    
+    For each user, finds IndividualAssessmentResponse and Assessment records
+    where created_at is older than the user's media_retention_days setting,
+    and deletes only the video_file and audio_file fields (keeps DB records).
+    
+    Logs how many files were cleaned up per run.
+    """
+    import logging
+    from django.utils import timezone
+    from django.db import transaction
+    from django.contrib.auth import get_user_model
+    from .models import IndividualAssessmentResponse, Assessment
+    
+    logger = logging.getLogger(__name__)
+    logger.info("[MEDIA CLEANUP TASK] Starting media retention cleanup")
+    
+    User = get_user_model()
+    
+    total_video_files_deleted = 0
+    total_audio_files_deleted = 0
+    total_users_processed = 0
+    
+    try:
+        # Get all individual users
+        individual_users = User.objects.filter(individual_profile__isnull=False)
+        
+        for user in individual_users:
+            try:
+                profile = user.individual_profile
+                retention_days = profile.media_retention_days
+                cutoff_date = timezone.now() - timezone.timedelta(days=retention_days)
+                
+                user_video_deleted = 0
+                user_audio_deleted = 0
+                
+                # Clean up IndividualAssessmentResponse media files
+                old_responses = IndividualAssessmentResponse.objects.filter(
+                    assessment__user=user,
+                    created_at__lt=cutoff_date
+                )
+                
+                for response in old_responses:
+                    # Delete video file if exists
+                    if response.video_file and response.video_file.name:
+                        try:
+                            response.video_file.delete(save=False)
+                            user_video_deleted += 1
+                            logger.debug(f"[MEDIA CLEANUP] Deleted video file for response {response.id}")
+                        except Exception as e:
+                            logger.warning(f"[MEDIA CLEANUP] Failed to delete video file for response {response.id}: {e}")
+                    
+                    # Delete audio file if exists
+                    if response.audio_file and response.audio_file.name:
+                        try:
+                            response.audio_file.delete(save=False)
+                            user_audio_deleted += 1
+                            logger.debug(f"[MEDIA CLEANUP] Deleted audio file for response {response.id}")
+                        except Exception as e:
+                            logger.warning(f"[MEDIA CLEANUP] Failed to delete audio file for response {response.id}: {e}")
+                    
+                    # Save response to clear file fields
+                    response.save(update_fields=['video_file', 'audio_file'])
+                
+                # Clean up Assessment.video_file (old-style, future-proofing)
+                old_assessments = Assessment.objects.filter(
+                    user=user,
+                    assessment_type='individual',
+                    created_at__lt=cutoff_date,
+                    video_file__isnull=False
+                ).exclude(video_file='')
+                
+                for assessment in old_assessments:
+                    if assessment.video_file and assessment.video_file.name:
+                        try:
+                            assessment.video_file.delete(save=False)
+                            user_video_deleted += 1
+                            logger.debug(f"[MEDIA CLEANUP] Deleted video file for assessment {assessment.id}")
+                            assessment.save(update_fields=['video_file'])
+                        except Exception as e:
+                            logger.warning(f"[MEDIA CLEANUP] Failed to delete video file for assessment {assessment.id}: {e}")
+                
+                if user_video_deleted > 0 or user_audio_deleted > 0:
+                    total_users_processed += 1
+                    total_video_files_deleted += user_video_deleted
+                    total_audio_files_deleted += user_audio_deleted
+                    logger.info(
+                        f"[MEDIA CLEANUP] User {user.email}: "
+                        f"deleted {user_video_deleted} video files, {user_audio_deleted} audio files "
+                        f"(retention: {retention_days} days)"
+                    )
+                
+            except Exception as e:
+                logger.error(f"[MEDIA CLEANUP] Error processing user {user.email}: {e}")
+                continue
+        
+        logger.info(
+            f"[MEDIA CLEANUP TASK] Completed. "
+            f"Processed {total_users_processed} users, "
+            f"deleted {total_video_files_deleted} video files, "
+            f"{total_audio_files_deleted} audio files total"
+        )
+        
+    except Exception as e:
+        logger.exception(f"[MEDIA CLEANUP TASK] Failed: {e}")
+

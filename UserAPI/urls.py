@@ -29,4 +29,5 @@ urlpatterns = [
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('individual-dashboard/', views.individual_dashboard_view, name='individual_dashboard'),
     path('join-institution/', views.join_institution, name='join_institution'),
+    path('settings/', views.user_settings_view, name='user_settings'),
 ]

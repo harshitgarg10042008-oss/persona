@@ -234,3 +234,31 @@ def join_institution(request):
         return redirect('individual_dashboard')
     
     return redirect('individual_dashboard')
+
+@login_required
+def user_settings_view(request):
+    """User settings page for managing account preferences"""
+    # Check if user has individual profile
+    if not hasattr(request.user, 'individual_profile'):
+        messages.error(request, 'Individual profile required to access settings.')
+        return redirect('home')
+    
+    profile = request.user.individual_profile
+    
+    if request.method == 'POST':
+        media_retention_days = request.POST.get('media_retention_days')
+        
+        if media_retention_days in ['15', '30', '60']:
+            profile.media_retention_days = int(media_retention_days)
+            profile.save()
+            messages.success(request, 'Settings saved successfully.')
+        else:
+            messages.error(request, 'Invalid media retention setting.')
+        
+        return redirect('user_settings')
+    
+    context = {
+        'user': request.user,
+        'profile': profile,
+    }
+    return render(request, 'user/settings.html', context)

@@ -33,6 +33,7 @@ urlpatterns = [
     # Individual Assessment System
     path('individual/', views.individual_dashboard, name='individual_dashboard'),
     path('individual/start/', views.start_individual_assessment, name='start_individual_assessment'),
+    path('individual/<uuid:session_id>/video-consent/', views.video_consent_view, name='video_consent'),
     path('individual/<uuid:session_id>/mode-select/', views.individual_assessment_mode_select, name='individual_assessment_mode_select'),
     path('individual/<uuid:session_id>/mode-submit/', views.individual_assessment_mode_submit, name='individual_assessment_mode_submit'),
     path('individual/<uuid:session_id>/company-select/', views.individual_assessment_company_select, name='individual_assessment_company_select'),
@@ -94,4 +95,4 @@ urlpatterns = [
     # Feature #18 — CV Interview Replay with Timeline Annotations
     path('individual/<uuid:session_id>/replay/', views.cv_replay, name='cv_replay'),
     path('individual/<uuid:session_id>/cv-events/', views.cv_events_api, name='cv_events_api'),
-]
+]

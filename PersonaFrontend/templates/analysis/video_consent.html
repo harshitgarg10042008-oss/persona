@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Recording Consent - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+  <!-- Header -->
+  <div class="mb-8 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
+      <i class="fas fa-video text-blue-600 dark:text-blue-400 text-2xl"></i>
+    </div>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
+      Video Recording & Analysis Consent
+    </h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-2">
+      Please review and agree before starting your interview
+    </p>
+  </div>
+
+  <!-- Consent Card -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-6">
+    <div class="space-y-4 text-gray-700 dark:text-gray-300">
+      <div class="flex items-start">
+        <i class="fas fa-camera text-blue-600 dark:text-blue-400 mt-1 mr-3"></i>
+        <p>
+          <strong>Recording:</strong> Your camera and microphone will be recorded during interview sessions.
+        </p>
+      </div>
+      
+      <div class="flex items-start">
+        <i class="fas fa-brain text-blue-600 dark:text-blue-400 mt-1 mr-3"></i>
+        <p>
+          <strong>AI Analysis:</strong> The recording is analyzed (including AI-based analysis of posture, eye contact, and speech) to generate your feedback and scores.
+        </p>
+      </div>
+      
+      <div class="flex items-start">
+        <i class="fas fa-clock text-blue-600 dark:text-blue-400 mt-1 mr-3"></i>
+        <p>
+          <strong>Retention:</strong> Recordings are stored temporarily and automatically deleted based on your selected retention period (<strong>{{ user.individual_profile.media_retention_days }} days</strong>).
+        </p>
+      </div>
+      
+      <div class="flex items-start">
+        <i class="fas fa-cog text-blue-600 dark:text-blue-400 mt-1 mr-3"></i>
+        <p>
+          <strong>Settings:</strong> You can review or change your retention preference anytime in <a href="{% url 'user_settings' %}" class="text-blue-600 dark:text-blue-400 hover:underline">Settings</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consent Form -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+    <form method="post" action="{% url 'analysis:video_consent' session_id=session_id %}">
+      {% csrf_token %}
+      
+      <!-- Checkbox -->
+      <div class="mb-6">
+        <label class="flex items-start cursor-pointer">
+          <input 
+            type="checkbox" 
+            id="consent_checkbox" 
+            name="consent_given"
+            class="mt-1 mr-3 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            onchange="toggleContinueButton()"
+          >
+          <span class="text-gray-700 dark:text-gray-300">
+            I understand and agree to the video recording and analysis terms above.
+          </span>
+        </label>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4">
+        <button
+          type="submit"
+          id="continue_button"
+          disabled
+          class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+        >
+          Continue to Interview
+        </button>
+        
+        <a
+          href="{% url 'analysis:individual_dashboard' %}"
+          class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium text-center"
+        >
+          Decline
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Additional Info -->
+  <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+    <p>
+      Your consent is stored and you will not see this screen again for future interviews.
+      You can withdraw consent by deleting your account.
+    </p>
+  </div>
+</div>
+
+<script>
+function toggleContinueButton() {
+  const checkbox = document.getElementById('consent_checkbox');
+  const continueButton = document.getElementById('continue_button');
+  continueButton.disabled = !checkbox.checked;
+}
+</script>
+{% endblock %}

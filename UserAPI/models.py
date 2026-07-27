@@ -20,6 +20,20 @@ class IndividualUser(models.Model):
     longest_streak = models.PositiveIntegerField(default=0, help_text="Longest streak achieved")
     last_activity_date = models.DateField(null=True, blank=True, help_text="Date of last completed assessment")
     
+    # Media retention settings
+    media_retention_days = models.PositiveIntegerField(
+        default=30,
+        choices=[(15, '15 days'), (30, '30 days'), (60, '60 days')],
+        help_text="How long to keep interview recordings before automatic deletion"
+    )
+    
+    # Video recording consent
+    video_consent_given_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when user consented to video recording and analysis"
+    )
+    
     def update_streak(self):
         """Update streak based on assessment completion"""
         today = timezone.now().date()

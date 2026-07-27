@@ -1041,6 +1041,38 @@ def individual_assessment_setup(request, session_id):
 
 
 @login_required
+def video_consent_view(request, session_id):
+    """Video recording consent screen for first-time users"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+    
+    if request.method == 'POST':
+        consent_given = request.POST.get('consent_given') == 'on'
+        
+        if consent_given:
+            # Record consent timestamp
+            profile = request.user.individual_profile
+            profile.video_consent_given_at = timezone.now()
+            profile.save()
+            
+            messages.success(request, 'Consent recorded. Starting your interview.')
+            return redirect('analysis:start_individual_assessment_session', session_id=session_id)
+        else:
+            messages.info(request, 'Consent declined. You can change your mind later.')
+            return redirect('analysis:individual_dashboard')
+    
+    context = {
+        'user': request.user,
+        'session_id': session_id,
+    }
+    return render(request, 'analysis/video_consent.html', context)
+
+
+@login_required
 def start_individual_assessment_session(request, session_id):
     """Start the actual assessment session, optionally processing an uploaded resume."""
     assessment = get_object_or_404(
@@ -1049,6 +1081,10 @@ def start_individual_assessment_session(request, session_id):
         user=request.user,
         status='pending'
     )
+    
+    # Check if user has given video consent
+    if not request.user.individual_profile.video_consent_given_at:
+        return redirect('analysis:video_consent', session_id=session_id)
 
     resume_text = None
     if request.method == 'POST':
