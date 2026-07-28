@@ -719,6 +719,7 @@ class ResumeReview(models.Model):
     ats_score = models.FloatField(null=True, blank=True)
     ats_feedback = models.JSONField(default=dict, blank=True)
     version_number = models.PositiveIntegerField(default=1)
+    file_hash = models.CharField(max_length=64, null=True, blank=True, help_text='SHA-256 hash of resume file bytes for deduplication')
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey('UserAPI.CustomUser', on_delete=models.CASCADE, related_name='resume_reviews')
 

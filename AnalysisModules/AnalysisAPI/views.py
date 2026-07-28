@@ -3418,6 +3418,7 @@ def export_institution_members_csv(request):
 from .models import ResumeReview
 from AnalysisModules.feedback_generator import _call_groq
 import json
+import hashlib
 
 @login_required
 def resume_reviewer_upload(request):
@@ -3432,6 +3433,29 @@ def resume_reviewer_upload(request):
             messages.error(request, error_msg)
             return redirect('analysis:resume_reviewer_upload')
             
+        # --- Compute SHA-256 hash of file bytes for deduplication ---
+        resume_file.seek(0)
+        file_bytes = resume_file.read()
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
+        
+        # --- Check for duplicate upload by same user ---
+        existing_review = ResumeReview.objects.filter(
+            user=request.user,
+            file_hash=file_hash
+        ).first()
+        
+        if existing_review:
+            # Duplicate detected: redirect to existing result with friendly message
+            from django.utils import timezone
+            upload_date = existing_review.created_at.strftime('%B %d, %Y')
+            messages.info(
+                request,
+                f"You've already analyzed this exact resume on {upload_date}. "
+                "Showing your previous results below. Want a fresh analysis? "
+                "Delete this entry first, then re-upload."
+            )
+            return redirect('analysis:resume_reviewer_result', review_id=existing_review.id)
+            
         # --- Determine version number for this upload ---
         from django.db.models import Max
         max_version = ResumeReview.objects.filter(user=request.user).aggregate(
@@ -3439,13 +3463,14 @@ def resume_reviewer_upload(request):
         )['version_number__max']
         next_version = (max_version or 0) + 1
 
-        # Save placeholder row
+        # Save placeholder row with file hash
         review = ResumeReview.objects.create(
             user=request.user,
             resume_file=resume_file,
             overall_score=0,
             feedback={},
             version_number=next_version,
+            file_hash=file_hash,
         )
         
         # Extract text

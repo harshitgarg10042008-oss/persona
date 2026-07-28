@@ -47,8 +47,9 @@
       <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-blue-700">
         <span>
           <strong>Duration:</strong>
-          {% if duration_seconds < 60 %} {{ duration_seconds }} seconds {% else %} {{ duration_minutes }} minutes {% endif %} </span>
-          <span><strong>Questions:</strong> {{ responses.count }}</span>
+          {% if duration_seconds < 60 %} {{ duration_seconds }} seconds {% else %} {{ duration_minutes }} minutes {%
+            endif %} </span>
+            <span><strong>Questions:</strong> {{ responses.count }}</span>
             <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
       <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
@@ -520,8 +521,7 @@
       <!-- Summary -->
       <div class="rounded-lg p-5"
         style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);">
-        <p class="text-sm leading-relaxed" style="color: var(--color-text-primary);">{{
-          assessment.communication_analysis.summary }}</p>
+        <p class="text-sm leading-relaxed" style="color: var(--color-text-primary);">{{ assessment.communication_analysis.summary }}</p>
       </div>
 
       <!-- Traits -->
@@ -554,14 +554,12 @@
               Q{{ response.question_order }}. {{ response.question.question_text }}
             </h3>
             {% if response.analysis_data.speech_analysis.transcription %}
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{
-              response.analysis_data.speech_analysis.transcription|truncatechars:180 }}"</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.analysis_data.speech_analysis.transcription|truncatechars:180 }}"</p>
             {% elif response.response_text %}
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">"{{ response.response_text|truncatechars:180 }}"
             </p>
             {% elif response.analysis_data.speech_analysis_status == 'failed' %}
-            <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{
-              response.analysis_data.speech_analysis.error|default:"transcription unavailable" }}</p>
+            <p class="text-sm text-red-500 mt-2">⚠ Analysis failed — {{ response.analysis_data.speech_analysis.error|default:"transcription unavailable" }}</p>
             {% elif response.analysis_data.speech_analysis_status == 'pending' %}
             <p class="text-sm text-yellow-500 mt-2">⏳ Still processing...</p>
             {% else %}
@@ -652,8 +650,7 @@
             {% endif %}
           </div>
           {% if response.star_analysis.missing_explanation %}
-          <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{{
-            response.star_analysis.missing_explanation }}</p>
+          <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{{ response.star_analysis.missing_explanation }}</p>
           {% endif %}
         </div>
         {% endif %}
@@ -877,4 +874,5 @@
   }) ();
 </script>
 {% endif %}
+{% endblock %}
 {% endblock %}
