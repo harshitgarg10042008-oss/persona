@@ -95,4 +95,10 @@ urlpatterns = [
     # Feature #18 — CV Interview Replay with Timeline Annotations
     path('individual/<uuid:session_id>/replay/', views.cv_replay, name='cv_replay'),
     path('individual/<uuid:session_id>/cv-events/', views.cv_events_api, name='cv_events_api'),
+
+    # Delete endpoints
+    path('individual/<uuid:session_id>/delete/', views.delete_individual_assessment, name='delete_individual_assessment'),
+    path('linkedin-post/<int:post_id>/delete/', views.delete_linkedin_post, name='delete_linkedin_post'),
+    path('resume-reviewer/<int:review_id>/delete/', views.delete_resume_review, name='delete_resume_review'),
+    path('cover-letter/<int:letter_id>/delete/', views.delete_cover_letter, name='delete_cover_letter'),
 ]

@@ -46,7 +46,8 @@ from .models import (
     JobRole, InterviewQuestion, AssessmentLink, Assessment, AssessmentResult,
     PlatformJobTitle, PlatformQuestion, IndividualAssessment, 
     IndividualAssessmentResponse, FollowUpResponse, AssessmentSnapshot,
-    BusinessAssessmentResponse, BusinessAssessmentSnapshot, CompanyProfile
+    BusinessAssessmentResponse, BusinessAssessmentSnapshot, CompanyProfile,
+    ResumeReview, CoverLetter, LinkedInPost
 )
 from UserAPI.models import BusinessUser
 from AnalysisModules.feedback_generator import (
@@ -3994,4 +3995,60 @@ def cv_events_api(request, session_id):
         },
         'responses': responses_data,
     })
+
+
+# =====================================
+# DELETE VIEWS
+# =====================================
+
+@login_required
+@require_http_methods(["POST"])
+def delete_individual_assessment(request, session_id):
+    """Delete an individual assessment and all its associated files."""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+    assessment.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_linkedin_post(request, post_id):
+    """Delete a LinkedIn post."""
+    post = get_object_or_404(
+        LinkedInPost,
+        id=post_id,
+        user=request.user
+    )
+    post.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_resume_review(request, review_id):
+    """Delete a resume review and its associated resume file."""
+    review = get_object_or_404(
+        ResumeReview,
+        id=review_id,
+        user=request.user
+    )
+    review.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_cover_letter(request, letter_id):
+    """Delete a cover letter."""
+    letter = get_object_or_404(
+        CoverLetter,
+        id=letter_id,
+        user=request.user
+    )
+    letter.delete()
+    return JsonResponse({'success': True})
 

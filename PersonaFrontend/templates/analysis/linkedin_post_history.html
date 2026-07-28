@@ -11,53 +11,135 @@
     </div>
 
     {% if posts %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for post in posts %}
-            <div class="col">
-                <div class="card h-100 shadow-sm hover-shadow transition border-top border-primary border-4">
-                    <div class="card-body">
-                        <h5 class="card-title text-truncate fw-bold mb-1" title="{{ post.topic }}">
-                            {{ post.topic }}
-                        </h5>
-                        
-                        <p class="text-muted small mb-3 text-capitalize">
-                            <i class="fas fa-smile me-1"></i>Tone: {{ post.tone }}
-                        </p>
+        <div class="col">
+            <div class="card h-100 shadow-sm hover-shadow transition border-top border-primary border-4">
+                <div class="card-body">
+                    <h5 class="card-title text-truncate fw-bold mb-1" title="{{ post.topic }}">
+                        {{ post.topic }}
+                    </h5>
 
-                        {% if post.resume_review %}
-                        <div class="mb-3">
-                            <span class="badge bg-info text-dark">
-                                <i class="fas fa-paperclip me-1"></i>Resume Included
-                            </span>
-                        </div>
-                        {% endif %}
-                        
-                        <p class="text-muted small mb-4">
-                            <i class="fas fa-calendar-alt me-1"></i>{{ post.created_at|date:"M d, Y" }}
-                        </p>
-                        
-                        <a href="{% url 'analysis:linkedin_post_result' post.id %}" class="btn btn-outline-primary w-100 mt-auto">View Post</a>
+                    <p class="text-muted small mb-3 text-capitalize">
+                        <i class="fas fa-smile me-1"></i>Tone: {{ post.tone }}
+                    </p>
+
+                    {% if post.resume_review %}
+                    <div class="mb-3">
+                        <span class="badge bg-info text-dark">
+                            <i class="fas fa-paperclip me-1"></i>Resume Included
+                        </span>
                     </div>
+                    {% endif %}
+
+                    <p class="text-muted small mb-4">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ post.created_at|date:"M d, Y" }}
+                    </p>
+
+                    <a href="{% url 'analysis:linkedin_post_result' post.id %}"
+                        class="btn btn-outline-primary w-100 mt-auto">View Post</a>
+                    <button class="delete-btn text-muted hover:text-danger mt-2 text-sm"
+                        data-delete-url="{% url 'analysis:delete_linkedin_post' post.id %}" data-delete-type="other"
+                        title="Delete post">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
                 </div>
             </div>
+        </div>
         {% endfor %}
-        </div>
+    </div>
     {% else %}
-        <div class="text-center py-5 bg-light rounded shadow-sm border">
-            <h4 class="text-muted mb-3">No LinkedIn posts generated yet</h4>
-            <p class="mb-4">Use our AI to write an engaging LinkedIn post to build your personal brand.</p>
-            <a href="{% url 'analysis:linkedin_post_generate' %}" class="btn btn-primary btn-lg">Generate LinkedIn Post</a>
-        </div>
+    <div class="text-center py-5 bg-light rounded shadow-sm border">
+        <h4 class="text-muted mb-3">No LinkedIn posts generated yet</h4>
+        <p class="mb-4">Use our AI to write an engaging LinkedIn post to build your personal brand.</p>
+        <a href="{% url 'analysis:linkedin_post_generate' %}" class="btn btn-primary btn-lg">Generate LinkedIn Post</a>
+    </div>
     {% endif %}
 </div>
 
 <style>
     .hover-shadow:hover {
         transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
     }
+
     .transition {
         transition: all .3s ease;
     }
 </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const deleteUrl = this.dataset.deleteUrl;
+                const deleteType = this.dataset.deleteType;
+                const card = this.closest('.col');
+
+                const message = deleteType === 'assessment'
+                    ? 'This will permanently delete this assessment and all its recorded responses, snapshots, and videos. This cannot be undone.'
+                    : 'This will permanently delete this entry. This cannot be undone.';
+
+                if (confirm(message)) {
+                    fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                card.style.opacity = '0';
+                                card.style.transform = 'translateX(-20px)';
+                                setTimeout(() => card.remove(), 300);
+                                showToast('Deleted successfully');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('Error deleting', 'error');
+                        });
+                }
+            });
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 transition-all duration-300 transform translate-y-2 opacity-0 ${type === 'success' ? 'bg-success' : 'bg-danger'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(2)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    });
+</script>
 {% endblock %}

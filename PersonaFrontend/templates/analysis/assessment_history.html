@@ -11,24 +11,35 @@
     border-radius: 14px;
     padding: 20px 24px;
   }
-  .stats-card.green  { background: linear-gradient(135deg, var(--color-success-dark) 0%, var(--color-success) 100%); }
-  .stats-card.purple { background: linear-gradient(135deg, var(--color-purple-dark) 0%, var(--color-purple-light) 100%); }
-  .stats-card.amber  { background: linear-gradient(135deg, var(--color-amber-600) 0%, var(--color-amber-400) 100%); }
+
+  .stats-card.green {
+    background: linear-gradient(135deg, var(--color-success-dark) 0%, var(--color-success) 100%);
+  }
+
+  .stats-card.purple {
+    background: linear-gradient(135deg, var(--color-purple-dark) 0%, var(--color-purple-light) 100%);
+  }
+
+  .stats-card.amber {
+    background: linear-gradient(135deg, var(--color-amber-600) 0%, var(--color-amber-400) 100%);
+  }
 
   .assessment-card {
     background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
     border: 1px solid var(--color-border);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
+
   .assessment-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
+
   [data-theme="dark"] .assessment-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }
 
   .score-badge {
@@ -43,11 +54,26 @@
     font-size: 15px;
     flex-shrink: 0;
   }
-  .score-excellent { background: linear-gradient(135deg, var(--color-success), var(--color-success-dark)); }
-  .score-good      { background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700)); }
-  .score-average   { background: linear-gradient(135deg, var(--color-amber-500), var(--color-amber-600)); }
-  .score-poor      { background: linear-gradient(135deg, var(--color-error), var(--color-error-dark)); }
-  .score-pending   { background: linear-gradient(135deg, var(--color-gray-400), var(--color-gray-500)); }
+
+  .score-excellent {
+    background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+  }
+
+  .score-good {
+    background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
+  }
+
+  .score-average {
+    background: linear-gradient(135deg, var(--color-amber-500), var(--color-amber-600));
+  }
+
+  .score-poor {
+    background: linear-gradient(135deg, var(--color-error), var(--color-error-dark));
+  }
+
+  .score-pending {
+    background: linear-gradient(135deg, var(--color-gray-400), var(--color-gray-500));
+  }
 
   .filter-chip {
     display: inline-block;
@@ -60,8 +86,16 @@
     transition: all 0.18s ease;
     user-select: none;
   }
-  .filter-chip:hover { background: var(--color-gray-200); }
-  .filter-chip.active { background: var(--color-blue-600); color: var(--color-text-inverse); border-color: var(--color-blue-600); }
+
+  .filter-chip:hover {
+    background: var(--color-gray-200);
+  }
+
+  .filter-chip.active {
+    background: var(--color-blue-600);
+    color: var(--color-text-inverse);
+    border-color: var(--color-blue-600);
+  }
 
   .metric-dot {
     display: inline-block;
@@ -81,6 +115,7 @@
     font-size: 12px;
     font-weight: 600;
   }
+
   [data-theme="dark"] .role-pill {
     background: var(--color-blue-100);
     color: var(--color-blue-400);
@@ -100,22 +135,58 @@
     font-size: 12px;
     font-weight: 600;
   }
-  .trend-up      { background: var(--color-success-bg); color: var(--color-success-dark); }
-  .trend-down    { background: var(--color-error-bg); color: var(--color-error-dark); }
-  .trend-neutral { background: var(--color-gray-100); color: var(--color-gray-700); }
+
+  .trend-up {
+    background: var(--color-success-bg);
+    color: var(--color-success-dark);
+  }
+
+  .trend-down {
+    background: var(--color-error-bg);
+    color: var(--color-error-dark);
+  }
+
+  .trend-neutral {
+    background: var(--color-gray-100);
+    color: var(--color-gray-700);
+  }
+
   [data-theme="dark"] .trend-neutral {
     background: var(--color-gray-800);
     color: var(--color-gray-300);
   }
 
-  .metric-dot.overall { background: var(--color-blue-600); }
-  .metric-dot.speaking { background: var(--color-success); }
-  .metric-dot.body-language { background: var(--color-amber-500); }
-  .metric-dot.attire { background: var(--color-purple); }
-  [data-theme="dark"] .metric-dot.overall { background: var(--color-blue-500); }
-  [data-theme="dark"] .metric-dot.speaking { background: var(--color-success-light); }
-  [data-theme="dark"] .metric-dot.body-language { background: var(--color-amber-400); }
-  [data-theme="dark"] .metric-dot.attire { background: var(--color-purple-light); }
+  .metric-dot.overall {
+    background: var(--color-blue-600);
+  }
+
+  .metric-dot.speaking {
+    background: var(--color-success);
+  }
+
+  .metric-dot.body-language {
+    background: var(--color-amber-500);
+  }
+
+  .metric-dot.attire {
+    background: var(--color-purple);
+  }
+
+  [data-theme="dark"] .metric-dot.overall {
+    background: var(--color-blue-500);
+  }
+
+  [data-theme="dark"] .metric-dot.speaking {
+    background: var(--color-success-light);
+  }
+
+  [data-theme="dark"] .metric-dot.body-language {
+    background: var(--color-amber-400);
+  }
+
+  [data-theme="dark"] .metric-dot.attire {
+    background: var(--color-purple-light);
+  }
 </style>
 {% endblock %}
 
@@ -129,7 +200,7 @@
       <p class="text-gray-500 dark:text-gray-500 mt-1">Score trends and history across all your practice sessions</p>
     </div>
     <a href="{% url 'analysis:individual_dashboard' %}"
-       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+      class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
       + New Assessment
     </a>
   </div>
@@ -199,11 +270,13 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {% for role, data in role_stats.items %}
       <div class="border border-gray-100 rounded-xl p-4 bg-gray-50 dark:bg-gray-900">
-        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3 truncate" title="{{ role }}">{{ role }}</div>
+        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3 truncate" title="{{ role }}">{{ role }}
+        </div>
         <div class="flex items-end justify-between">
           <div>
             <div class="text-xs text-gray-500 dark:text-gray-500 mb-0.5">Avg score</div>
-            <div class="text-2xl font-bold text-blue-600">{{ data.avg }}<span class="text-sm font-normal text-gray-400 dark:text-gray-500">/10</span></div>
+            <div class="text-2xl font-bold text-blue-600">{{ data.avg }}<span
+                class="text-sm font-normal text-gray-400 dark:text-gray-500">/10</span></div>
           </div>
           <div class="text-right">
             <div class="text-xs text-gray-500 dark:text-gray-500 mb-0.5">Best</div>
@@ -237,9 +310,8 @@
   {% if page_obj %}
   <div class="space-y-4" id="assessments-container">
     {% for assessment in page_obj %}
-    <div class="assessment-card"
-         data-status="{{ assessment.status }}"
-         data-date="{{ assessment.created_at|date:'Y-m-d' }}">
+    <div class="assessment-card" data-status="{{ assessment.status }}"
+      data-date="{{ assessment.created_at|date:'Y-m-d' }}">
 
       <div class="flex items-start justify-between gap-4">
 
@@ -257,22 +329,25 @@
         <!-- Details -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{ assessment.platform_job_title.title }}</h3>
+            <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{
+              assessment.platform_job_title.title }}</h3>
             {% if assessment.status == 'completed' %}
-              <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Completed</span>
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Completed</span>
             {% elif assessment.status == 'in_progress' %}
-              <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">In Progress</span>
+            <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">In Progress</span>
             {% elif assessment.status == 'terminated' %}
-              <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Terminated</span>
+            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Terminated</span>
             {% else %}
-              <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full font-medium">{{ assessment.status|title }}</span>
+            <span
+              class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full font-medium">{{
+              assessment.status|title }}</span>
             {% endif %}
           </div>
 
           <div class="text-xs text-gray-500 dark:text-gray-500 mb-2">
             {{ assessment.created_at|date:"j M Y, H:i" }}
             {% if assessment.completed_at and assessment.started_at %}
-              &middot; {{ assessment.completed_at|timeuntil:assessment.started_at }} duration
+            &middot; {{ assessment.completed_at|timeuntil:assessment.started_at }} duration
             {% endif %}
           </div>
 
@@ -304,11 +379,11 @@
         <div class="flex flex-col gap-2 flex-shrink-0">
           {% if assessment.status == 'completed' %}
           <a href="{% url 'analysis:complete_individual_assessment' assessment.session_id %}"
-             class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors text-center whitespace-nowrap">
+            class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors text-center whitespace-nowrap">
             View Results
           </a>
           <a href="{% url 'analysis:download_assessment_report' assessment.session_id %}"
-             class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors text-center whitespace-nowrap">
+            class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors text-center whitespace-nowrap">
             Download PDF
           </a>
           {% if assessment.ai_coach_status == 'generated' %}
@@ -318,10 +393,21 @@
           {% endif %}
           {% elif assessment.status == 'in_progress' %}
           <a href="{% url 'analysis:individual_assessment_question' assessment.session_id %}"
-             class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors text-center whitespace-nowrap">
+            class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors text-center whitespace-nowrap">
             Continue
           </a>
           {% endif %}
+          <button
+            class="delete-btn text-gray-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+            data-delete-url="{% url 'analysis:delete_individual_assessment' assessment.session_id %}"
+            data-delete-type="assessment" title="Delete assessment">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
 
       </div>
@@ -334,12 +420,15 @@
   <div class="flex justify-center mt-8 gap-2">
     {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}"
-       class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">← Previous</a>
+      class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">←
+      Previous</a>
     {% endif %}
-    <span class="px-4 py-2 text-gray-600 dark:text-gray-400 text-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="px-4 py-2 text-gray-600 dark:text-gray-400 text-sm">Page {{ page_obj.number }} of {{
+      page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}"
-       class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">Next →</a>
+      class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-lg hover:bg-gray-200 text-sm">Next
+      →</a>
     {% endif %}
   </div>
   {% endif %}
@@ -350,13 +439,14 @@
     <div class="mx-auto w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-5">
       <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     </div>
     <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">No assessments yet</h3>
-    <p class="text-gray-500 dark:text-gray-500 text-sm mb-6">Complete your first assessment to start tracking your progress</p>
+    <p class="text-gray-500 dark:text-gray-500 text-sm mb-6">Complete your first assessment to start tracking your
+      progress</p>
     <a href="{% url 'analysis:individual_dashboard' %}"
-       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+      class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
       Take Your First Assessment
     </a>
   </div>
@@ -368,14 +458,15 @@
 {% if has_chart_data %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-(function () {
-  const raw = {{ chart_data_json|safe }};
+  (function () {
+    const raw = {{ chart_data_json| safe
+  }};
 
-  const labels    = raw.map(p => p.date + (raw.length <= 12 ? '\n' + p.role.slice(0, 18) : ''));
-  const overall   = raw.map(p => p.overall);
-  const speaking  = raw.map(p => p.speaking);
-  const bodyLang  = raw.map(p => p.body_language);
-  const attire    = raw.map(p => p.attire);
+  const labels = raw.map(p => p.date + (raw.length <= 12 ? '\n' + p.role.slice(0, 18) : ''));
+  const overall = raw.map(p => p.overall);
+  const speaking = raw.map(p => p.speaking);
+  const bodyLang = raw.map(p => p.body_language);
+  const attire = raw.map(p => p.attire);
 
   const makeDataset = (label, data, color) => ({
     label,
@@ -395,10 +486,10 @@
     data: {
       labels,
       datasets: [
-        makeDataset('Overall',       overall,  '#2563eb'),
-        makeDataset('Speaking',      speaking, '#10b981'),
+        makeDataset('Overall', overall, '#2563eb'),
+        makeDataset('Speaking', speaking, '#10b981'),
         makeDataset('Body Language', bodyLang, '#f59e0b'),
-        makeDataset('Attire',        attire,   '#8b5cf6'),
+        makeDataset('Attire', attire, '#8b5cf6'),
       ],
     },
     options: {
@@ -428,32 +519,105 @@
       }
     }
   });
-})();
+}) ();
 </script>
 {% endif %}
 
 <!-- ── FILTER SCRIPT ─────────────────────────────────────────────── -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const chips = document.querySelectorAll('.filter-chip');
-  const cards = document.querySelectorAll('.assessment-card');
+  document.addEventListener('DOMContentLoaded', function () {
+    const chips = document.querySelectorAll('.filter-chip');
+    const cards = document.querySelectorAll('.assessment-card');
 
-  chips.forEach(chip => {
-    chip.addEventListener('click', function () {
-      chips.forEach(c => c.classList.remove('active'));
-      this.classList.add('active');
-      const f = this.dataset.filter;
-      const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+    chips.forEach(chip => {
+      chip.addEventListener('click', function () {
+        chips.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        const f = this.dataset.filter;
+        const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
 
-      cards.forEach(card => {
-        let show = true;
-        if (f === 'completed')   show = card.dataset.status === 'completed';
-        else if (f === 'in_progress') show = card.dataset.status === 'in_progress';
-        else if (f === 'recent') show = new Date(card.dataset.date) >= cutoff;
-        card.style.display = show ? '' : 'none';
+        cards.forEach(card => {
+          let show = true;
+          if (f === 'completed') show = card.dataset.status === 'completed';
+          else if (f === 'in_progress') show = card.dataset.status === 'in_progress';
+          else if (f === 'recent') show = new Date(card.dataset.date) >= cutoff;
+          card.style.display = show ? '' : 'none';
+        });
       });
     });
+
+    // Delete functionality
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    deleteButtons.forEach(btn => {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const deleteUrl = this.dataset.deleteUrl;
+        const deleteType = this.dataset.deleteType;
+        const card = this.closest('.assessment-card');
+
+        const message = deleteType === 'assessment'
+          ? 'This will permanently delete this assessment and all its recorded responses, snapshots, and videos. This cannot be undone.'
+          : 'This will permanently delete this entry. This cannot be undone.';
+
+        if (confirm(message)) {
+          fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-20px)';
+                setTimeout(() => card.remove(), 300);
+                showToast('Deleted successfully');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              showToast('Error deleting', 'error');
+            });
+        }
+      });
+    });
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 transition-all duration-300 transform translate-y-2 opacity-0 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      }, 10);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(2)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
   });
-});
 </script>
 {% endblock %}
