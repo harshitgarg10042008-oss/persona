@@ -102,6 +102,6 @@ urlpatterns = [
     path('resume-reviewer/<int:review_id>/delete/', views.delete_resume_review, name='delete_resume_review'),
     path('cover-letter/<int:letter_id>/delete/', views.delete_cover_letter, name='delete_cover_letter'),
     path('job-matches/generate/', views.generate_job_matches_api, name='generate_job_matches'),
-
+    path('placement-readiness/', views.placement_readiness_api, name='placement_readiness_api'),
 
 ]

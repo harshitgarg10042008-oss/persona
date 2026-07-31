@@ -4196,3 +4196,101 @@ def generate_job_matches_api(request):
             'message': 'An unexpected error occurred. Please try again later.'
         }, status=500)
 
+
+@login_required
+def placement_readiness_api(request):
+    """Feature #20 — Placement Readiness Predictor API endpoint."""
+    import json as _json
+    from django.http import JsonResponse
+    from django.core.cache import cache
+    from AnalysisAPI.models import ResumeReview, IndividualAssessment
+    from AnalysisModules.readiness_predictor import calculate_placement_readiness
+    from AnalysisModules.feedback_generator import _call_groq
+    import re
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    user = request.user
+    force_refresh = request.GET.get('refresh', 'false').lower() == 'true'
+    
+    try:
+        # Calculate the deterministic score
+        readiness_data = calculate_placement_readiness(user)
+        
+        if not readiness_data.get('has_data'):
+            return JsonResponse({
+                'success': False,
+                'error': 'not_enough_data',
+                'message': 'Complete at least one assessment to see your placement readiness score.'
+            }, status=200)
+
+        # Build a deterministic hash from the assessments and resume used
+        latest_resume = ResumeReview.objects.filter(user=user).order_by('-created_at').first()
+        latest_assessments = list(
+            IndividualAssessment.objects.filter(user=user, status='completed').order_by('-completed_at')[:5]
+        )
+        data_hash = (
+            f"res_{latest_resume.id if latest_resume else 'none'}"
+            f"_ast_{'_'.join(str(a.id) for a in latest_assessments)}"
+        )
+        cache_key = f"user_{user.id}_placement_readiness_v1"
+        
+        if not force_refresh:
+            cached_data = cache.get(cache_key)
+            if cached_data and cached_data.get('data_hash') == data_hash:
+                return JsonResponse({
+                    'success': True,
+                    'readiness': cached_data['readiness'],
+                    'cached': True
+                })
+
+        # Generate Readiness Insight using Groq
+        prompt = (
+            "You are an expert career coach. Based on the candidate's placement readiness score "
+            "and breakdown, write a short 2-3 sentence personalized insight explaining their readiness "
+            "for real job interviews and what they should focus on next.\n\n"
+            f"Total Score: {readiness_data['total_score']}/100\n"
+            f"Tier: {readiness_data['tier']}\n"
+            f"Breakdown:\n"
+        )
+        for key, val in readiness_data['breakdown'].items():
+            prompt += f"- {key}: {val['score']}/{val['max']} ({val['description']})\n"
+            
+        prompt += (
+            "\nReturn ONLY a valid JSON object with a single key 'insight'. "
+            "Do not include markdown formatting or extra text.\n"
+            'Example: {"insight": "You have made great progress..."}'
+        )
+
+        insight_text = "Keep practicing to improve your readiness score."
+        try:
+            groq_response = _call_groq(prompt, timeout=30)
+            if groq_response:
+                cleaned = re.sub(r'^```(?:json)?\s*', '', groq_response.strip(), flags=re.IGNORECASE)
+                cleaned = re.sub(r'\s*```$', '', cleaned)
+                data = _json.loads(cleaned)
+                if isinstance(data, dict) and 'insight' in data:
+                    insight_text = data['insight']
+        except Exception as groq_err:
+            logger.warning(f"placement_readiness_api: Groq call failed: {groq_err}")
+            
+        readiness_data['insight'] = insight_text
+        result_data = {'data_hash': data_hash, 'readiness': readiness_data}
+        cache.set(cache_key, result_data, timeout=86400 * 7)
+        
+        return JsonResponse({
+            'success': True,
+            'readiness': readiness_data,
+            'cached': False
+        })
+        
+    except Exception as exc:
+        import traceback as _tb
+        logger.error(f"placement_readiness_api: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+

@@ -24,6 +24,27 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
+
+  /* Feature #20 – Placement Readiness */
+  .readiness-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .readiness-tier-interview-ready { background: #d1fae5; color: #065f46; }
+  .readiness-tier-getting-there   { background: #fef3c7; color: #78350f; }
+  .readiness-tier-needs-practice  { background: #fee2e2; color: #7f1d1d; }
+  .dark .readiness-tier-interview-ready { background: rgba(6,95,70,0.35); color: #6ee7b7; }
+  .dark .readiness-tier-getting-there   { background: rgba(120,53,15,0.35); color: #fde68a; }
+  .dark .readiness-tier-needs-practice  { background: rgba(127,29,29,0.35); color: #fca5a5; }
+  .readiness-bar-track { background-color: #e5e7eb; border-radius: 9999px; height: 6px; overflow: hidden; }
+  .dark .readiness-bar-track { background-color: #374151; }
 </style>
 {% endblock %} {% block content %}
 <div class="container mx-auto px-4 py-8">
@@ -244,6 +265,91 @@
     </div>
   </div>
 
+  <!-- Feature #20: Placement Readiness Predictor -->
+  <div id="readiness-card" class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Placement Readiness</h2>
+      </div>
+      <button id="readiness-refresh-btn" onclick="loadReadiness(true)" class="hidden text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium flex items-center gap-1 transition-colors" title="Refresh readiness score">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="readiness-loading" class="py-8">
+      <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
+        <svg class="animate-spin w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-sm">Calculating your placement readiness&hellip;</span>
+      </div>
+    </div>
+
+    <!-- Empty / not-enough-data state -->
+    <div id="readiness-empty" class="hidden py-8 text-center">
+      <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Complete at least one assessment to see your placement readiness score.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised readiness score will appear here once you have assessment data.</p>
+      <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        Start an Assessment
+      </a>
+    </div>
+
+    <!-- Error state -->
+    <div id="readiness-error" class="hidden py-6 text-center">
+      <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load readiness score</p>
+      <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the service. Please try again.</p>
+      <button onclick="loadReadiness(false)" class="text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium underline">Try again</button>
+    </div>
+
+    <!-- Results state -->
+    <div id="readiness-results" class="hidden">
+      <!-- Score hero row -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+        <div class="flex items-center gap-4">
+          <div class="relative w-20 h-20 flex-shrink-0">
+            <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+              <circle id="readiness-ring" cx="40" cy="40" r="34" fill="none" stroke="#10b981" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                style="transition: stroke-dashoffset 1s ease, stroke 0.4s ease"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span id="readiness-score-label" class="text-lg font-extrabold text-gray-800 dark:text-gray-100">--</span>
+            </div>
+          </div>
+          <div>
+            <div id="readiness-tier-badge" class="readiness-tier-badge readiness-tier-getting-there mb-2">Getting There</div>
+            <p id="readiness-insight" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-xs"></p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 self-end sm:self-auto" id="readiness-cache-note"></p>
+      </div>
+      <!-- Breakdown bars -->
+      <div id="readiness-breakdown" class="space-y-3"></div>
+    </div>
+  </div>
+
   <!-- Recent Assessments -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
     <div class="flex items-center justify-between mb-6">
@@ -341,6 +447,105 @@
     // Add selection style to clicked card
     event.currentTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
   }
+
+  /* Feature #20 – Placement Readiness Predictor */
+  function showReadinessState(state) {
+    ['loading', 'empty', 'error', 'results'].forEach(function(s) {
+      document.getElementById('readiness-' + s).classList.add('hidden');
+    });
+    document.getElementById('readiness-' + state).classList.remove('hidden');
+  }
+
+  var READINESS_LABELS = {
+    performance_base:  'Performance',
+    performance_trend: 'Trend',
+    resume_quality:    'Resume Quality',
+    practice_volume:   'Practice Volume',
+    practice_recency:  'Recency',
+    coach_gaps:        'Weaknesses'
+  };
+
+  function readinessBarColor(pct) {
+    if (pct >= 75) return '#10b981';
+    if (pct >= 45) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  function renderReadiness(readiness, cached) {
+    var score = Math.round(readiness.total_score || 0);
+    var tier  = readiness.tier || 'Needs Practice';
+
+    /* Animated SVG ring */
+    var circumference = 213.6;
+    var ring = document.getElementById('readiness-ring');
+    ring.style.strokeDashoffset = circumference;
+    ring.style.stroke = score >= 75 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
+    setTimeout(function() {
+      ring.style.strokeDashoffset = circumference - (score / 100) * circumference;
+    }, 60);
+    document.getElementById('readiness-score-label').textContent = score;
+
+    /* Tier badge */
+    var badge = document.getElementById('readiness-tier-badge');
+    badge.className = 'readiness-tier-badge';
+    if (tier === 'Interview Ready') badge.classList.add('readiness-tier-interview-ready');
+    else if (tier === 'Getting There') badge.classList.add('readiness-tier-getting-there');
+    else badge.classList.add('readiness-tier-needs-practice');
+    badge.textContent = tier;
+
+    /* AI insight */
+    document.getElementById('readiness-insight').textContent = readiness.insight || '';
+
+    /* Breakdown bars */
+    var bk   = readiness.breakdown || {};
+    var bkEl = document.getElementById('readiness-breakdown');
+    bkEl.innerHTML = '';
+    Object.keys(bk).forEach(function(key) {
+      var comp  = bk[key];
+      var pct   = comp.max > 0 ? Math.round((comp.score / comp.max) * 100) : 0;
+      var color = readinessBarColor(pct);
+      var label = READINESS_LABELS[key] || key;
+      bkEl.insertAdjacentHTML('beforeend',
+        '<div>'
+        + '<div class="flex justify-between items-center mb-1">'
+        + '<span class="text-xs font-medium text-gray-700 dark:text-gray-300">' + label + '</span>'
+        + '<span class="text-xs text-gray-500 dark:text-gray-400">' + comp.score + '/' + comp.max + '</span>'
+        + '</div>'
+        + '<div class="readiness-bar-track">'
+        + '<div style="width:' + pct + '%;background-color:' + color + ';height:6px;border-radius:9999px;transition:width 0.8s ease"></div>'
+        + '</div>'
+        + '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">' + (comp.description || '') + '</p>'
+        + '</div>'
+      );
+    });
+
+    document.getElementById('readiness-cache-note').textContent =
+      cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
+    document.getElementById('readiness-refresh-btn').classList.remove('hidden');
+    showReadinessState('results');
+  }
+
+  function loadReadiness(forceRefresh) {
+    showReadinessState('loading');
+    document.getElementById('readiness-refresh-btn').classList.add('hidden');
+    var url = "{% url 'analysis:placement_readiness_api' %}" + (forceRefresh ? '?refresh=true' : '');
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success) {
+          if (data.error === 'not_enough_data') { showReadinessState('empty'); }
+          else { showReadinessState('error'); }
+          return;
+        }
+        renderReadiness(data.readiness, data.cached === true);
+      })
+      .catch(function(err) {
+        console.error('Readiness fetch error:', err);
+        showReadinessState('error');
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() { loadReadiness(false); });
 
   /* Feature #19 – AI Job Matches */
   function showMatchesState(state) {
