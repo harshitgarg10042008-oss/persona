@@ -1342,6 +1342,7 @@ def individual_assessment_question(request, session_id):
 
 @require_http_methods(["POST"])
 @ratelimit(key='user', rate=settings.RATE_LIMIT_SUBMISSION, block=True)
+@login_required
 def submit_assessment_response(request, session_id):
     """Submit response for current question and move to next"""
     try:
@@ -1901,6 +1902,7 @@ def submit_assessment_response(request, session_id):
 
 @require_http_methods(["POST"])
 @ratelimit(key='user', rate=settings.RATE_LIMIT_SNAPSHOT, block=True)
+@login_required
 def capture_assessment_snapshot(request, session_id):
     """Capture and analyze webcam snapshot during assessment"""
     try:

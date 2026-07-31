@@ -853,7 +853,8 @@
                 analysis_type: analysisType,
                 question_id: currentQuestion ? currentQuestion.id : null,
                 timestamp: new Date().toISOString()
-            })
+            }),
+            credentials: 'same-origin'
         }).catch(error => {
             console.error(`${analysisType} analysis failed:`, error);
         });
@@ -1070,7 +1071,8 @@
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             });
 
             const result = await response.json();

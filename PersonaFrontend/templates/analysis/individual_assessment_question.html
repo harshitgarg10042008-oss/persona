@@ -1236,7 +1236,8 @@
         analysis_type: analysisType,
         question_id: "{{ question.id }}",
         timestamp: new Date().toISOString()
-      })
+      }),
+      credentials: 'same-origin'
     })
       .then(response => response.json())
       .then(data => {
@@ -1438,7 +1439,8 @@
         headers: {
           'X-CSRFToken': getCookie('csrftoken')
         },
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
       });
 
       const result = await response.json();
@@ -1585,7 +1587,8 @@
         response_duration: 0,
         time_to_start: 0,
         fullscreen_violations: fullscreenViolations
-      })
+      }),
+      credentials: 'same-origin'
     });
 
     const result = await response.json();
