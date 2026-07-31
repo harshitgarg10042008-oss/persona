@@ -104,4 +104,9 @@ urlpatterns = [
     path('job-matches/generate/', views.generate_job_matches_api, name='generate_job_matches'),
     path('placement-readiness/', views.placement_readiness_api, name='placement_readiness_api'),
 
+    # Feature #21 — AI Career Mentor
+    path('career-mentor/generate/', views.career_mentor_generate_api, name='career_mentor_generate'),
+    path('career-mentor/chat/', views.career_mentor_chat_api, name='career_mentor_chat'),
+    path('career-mentor/intake/', views.career_mentor_intake_api, name='career_mentor_intake'),
+
 ]

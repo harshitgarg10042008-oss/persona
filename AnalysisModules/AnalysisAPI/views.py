@@ -4294,3 +4294,159 @@ def placement_readiness_api(request):
         }, status=500)
 
 
+# ---------------------------------------------------------------------------
+# Feature #21 — AI Career Mentor API endpoints
+# ---------------------------------------------------------------------------
+
+@login_required
+def career_mentor_generate_api(request):
+    """Feature #21 — AI Career Mentor summary generation.
+    
+    Returns a cached or fresh career mentor summary (summary + focus_areas + next_steps).
+    Supports ?refresh=true to force regeneration.
+    Gracefully returns not_enough_data when the user has insufficient signals.
+    """
+    import json as _json
+    from django.http import JsonResponse
+    from AnalysisModules.career_mentor import generate_career_mentor_summary
+    import logging
+    logger = logging.getLogger(__name__)
+
+    user = request.user
+    force_refresh = request.GET.get('refresh', 'false').lower() == 'true'
+
+    try:
+        result = generate_career_mentor_summary(user, refresh=force_refresh)
+
+        if result.get('not_enough_data'):
+            return JsonResponse({
+                'success': False,
+                'error': 'not_enough_data',
+                'message': 'Complete an assessment or upload a resume to receive your personalised career mentor summary.'
+            }, status=200)
+
+        return JsonResponse({
+            'success': True,
+            'summary': result.get('summary', ''),
+            'focus_areas': result.get('focus_areas', []),
+            'next_steps': result.get('next_steps', []),
+            'generated_at': result.get('generated_at', ''),
+            'cached': not force_refresh and not result.get('fallback', False),
+        })
+
+    except Exception as exc:
+        import traceback as _tb
+        logger.error(f"career_mentor_generate_api: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+
+@login_required
+def career_mentor_chat_api(request):
+    """Feature #21 — AI Career Mentor interactive chat.
+    
+    Takes {message, history} via POST and returns the mentor's reply.
+    Not cached (conversational) but context is primed with the user's signals.
+    """
+    import json as _json
+    from django.http import JsonResponse
+    from AnalysisModules.career_mentor import career_mentor_chat
+    import logging
+    logger = logging.getLogger(__name__)
+
+    user = request.user
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'method_not_allowed', 'message': 'Use POST.'}, status=405)
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'invalid_json', 'message': 'Invalid JSON body.'}, status=400)
+
+        message = body.get('message', '').strip()
+        history = body.get('history') or []
+
+        if not isinstance(history, list):
+            history = []
+
+        if not message:
+            return JsonResponse({'success': False, 'error': 'empty_message', 'message': 'Please enter a message.'}, status=400)
+
+        result = career_mentor_chat(user, message, conversation_history=history)
+
+        return JsonResponse({
+            'success': True,
+            'reply': result.get('reply', ''),
+        })
+
+    except Exception as exc:
+        import traceback as _tb
+        logger.error(f"career_mentor_chat_api: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+
+@login_required
+def career_mentor_intake_api(request):
+    """Feature #21 — Save/update the user's CareerIntake row.
+    
+    Accepts POST with {target_role, timeline, concern} (all optional).
+    Upserts a single CareerIntake row per user.
+    """
+    import json as _json
+    from django.http import JsonResponse
+    from AnalysisAPI.models import CareerIntake
+    import logging
+    logger = logging.getLogger(__name__)
+
+    user = request.user
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'method_not_allowed', 'message': 'Use POST.'}, status=405)
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'invalid_json', 'message': 'Invalid JSON body.'}, status=400)
+
+        target_role = (body.get('target_role') or '').strip()[:255] or None
+        timeline = (body.get('timeline') or '').strip()[:255] or None
+        concern = (body.get('concern') or '').strip() or None
+
+        intake, created = CareerIntake.objects.update_or_create(
+            user=user,
+            defaults={
+                'target_role': target_role,
+                'timeline': timeline,
+                'concern': concern,
+            }
+        )
+
+        return JsonResponse({
+            'success': True,
+            'intake': {
+                'target_role': intake.target_role,
+                'timeline': intake.timeline,
+                'concern': intake.concern,
+                'updated_at': intake.updated_at.isoformat() if intake.updated_at else None,
+            },
+            'created': created,
+        })
+
+    except Exception as exc:
+        import traceback as _tb
+        logger.error(f"career_mentor_intake_api: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)

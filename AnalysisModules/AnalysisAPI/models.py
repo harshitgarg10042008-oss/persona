@@ -799,3 +799,29 @@ class InterviewSummaryVideo(models.Model):
 
     def __str__(self):
         return f"Summary Video for {self.assessment.session_id} - {self.status}"
+class CareerIntake(models.Model):
+    """
+    Feature #21 — Optional career intake form for the AI Career Mentor.
+    Fully optional — nothing in the app should assume this row exists.
+    Every read must handle "no CareerIntake row for this user" as normal.
+    """
+    user = models.ForeignKey(
+        'UserAPI.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='career_intakes',
+        unique=True,  # one row per user at most
+    )
+    target_role = models.CharField(max_length=255, null=True, blank=True,
+                                   help_text="Optional target job role for sharper mentor advice")
+    timeline = models.CharField(max_length=255, null=True, blank=True,
+                                help_text="Optional job-search timeline (e.g. '3 months', 'immediately')")
+    concern = models.TextField(null=True, blank=True,
+                               help_text="Optional primary concern or question the candidate wants addressed")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name_plural = 'Career Intakes'
+
+    def __str__(self):
+        return f"CareerIntake for {self.user.email}"
