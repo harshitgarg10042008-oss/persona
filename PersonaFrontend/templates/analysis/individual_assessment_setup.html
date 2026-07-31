@@ -310,8 +310,9 @@
       <span class="mr-2">🎯</span> Practice Mode (Real-Time Hints)
     </h2>
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-      Enable practice mode to receive small, on-screen text hints while answering questions. 
-      <strong>Note:</strong> Practice sessions are for learning and will not be scored as official assessments in your history.
+      Enable practice mode to receive small, on-screen text hints while answering questions.
+      <strong>Note:</strong> Practice sessions are for learning and will not be scored as official assessments in your
+      history.
     </p>
     <div class="flex items-center space-x-4">
       <label class="relative inline-flex items-center cursor-pointer">
@@ -339,8 +340,7 @@
       <input type="hidden" name="adaptive_mode" id="adaptive-mode-input" value="true">
       <input type="hidden" name="practice_mode" id="practice-mode-input" value="false">
       <div class="mb-4 text-left">
-        <label for="resume"
-          class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Resume (PDF or
+        <label for="resume" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Resume (PDF or
           plain text)</label>
         <input type="file" name="resume" id="resume" accept="application/pdf,text/plain"
           class="w-full text-sm text-gray-700 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg p-3" />
@@ -417,8 +417,10 @@
         video: { width: 640, height: 480 },
       });
 
-      // Store stream for later use
+      // Store stream for later use - pass to next page via sessionStorage
       mediaStream = stream;
+      sessionStorage.setItem('assessmentMediaStreamActive', 'true');
+      console.log('[Setup] Camera stream obtained and stored for next page');
 
       item.classList.add("checked");
       status.classList.remove("status-pending");
@@ -604,10 +606,11 @@
   });
 
   // Cleanup media stream when leaving page
+  // NOTE: Don't stop stream here - let it persist to the question page
+  // The question page will handle stream management
   window.addEventListener("beforeunload", function () {
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-    }
+    console.log('[Setup] Page unloading - keeping stream active for question page');
+    // Stream cleanup is now handled by the question page
   });
 </script>
 {% endblock %}

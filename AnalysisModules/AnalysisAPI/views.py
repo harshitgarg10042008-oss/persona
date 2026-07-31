@@ -3622,10 +3622,29 @@ def cover_letter_generate(request):
 
         resume_context = ""
         resume_review = None
+        file_hash = None
         if resume_review_id:
             try:
                 resume_review = ResumeReview.objects.get(id=resume_review_id, user=request.user)
                 resume_context = _extract_resume_text(resume_review.resume_file)
+                
+                # --- Compute SHA-256 hash of file bytes for deduplication ---
+                resume_review.resume_file.seek(0)
+                file_bytes = resume_review.resume_file.read()
+                file_hash = hashlib.sha256(file_bytes).hexdigest()
+                
+                # --- Check for duplicate cover letter by same user with same resume ---
+                existing_letter = CoverLetter.objects.filter(
+                    user=request.user,
+                    file_hash=file_hash,
+                    job_title=job_title,
+                    company_name=company_name,
+                ).first()
+                
+                if existing_letter:
+                    messages.info(request, 'You already have a cover letter for this job with the same resume. Redirecting to your existing cover letter.')
+                    return redirect('analysis:cover_letter_result', letter_id=existing_letter.id)
+                    
             except ResumeReview.DoesNotExist:
                 messages.error(request, 'Selected resume review not found.')
                 return redirect('analysis:cover_letter_generate')
@@ -3670,7 +3689,8 @@ def cover_letter_generate(request):
                 company_name=company_name,
                 job_description=job_description,
                 resume_review=resume_review,
-                generated_text=generated_text
+                generated_text=generated_text,
+                file_hash=file_hash
             )
             return redirect('analysis:cover_letter_result', letter_id=cover_letter.id)
             

@@ -748,6 +748,7 @@ class CoverLetter(models.Model):
         related_name='cover_letters',
     )
     generated_text = models.TextField()
+    file_hash = models.CharField(max_length=64, null=True, blank=True, help_text='SHA-256 hash of resume file bytes for deduplication')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -301,13 +301,32 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.95);
     z-index: 10001;
     align-items: center;
     justify-content: center;
     color: var(--color-text-inverse);
     text-align: center;
     padding: 1.5rem;
+  }
+
+  /* Hide main content while start gate is active */
+  .assessment-container.has-start-gate .main-content,
+  .assessment-container.has-start-gate .assessment-header {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Ensure start gate modal is always clickable */
+  .assessment-container.has-start-gate #assessment-start-gate {
+    pointer-events: auto;
+  }
+
+  .assessment-container:not(.has-start-gate) .main-content,
+  .assessment-container:not(.has-start-gate) .assessment-header {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
   }
 
   .assessment-start-gate .gate-panel {
@@ -371,8 +390,423 @@
     font-weight: 600;
   }
 </style>
-{% endblock %} {% block content %} {% csrf_token %}
-<div class="assessment-container">
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Global variables
+  let mediaRecorder = null;
+  let audioChunks = []; // Note: despite name, this stores video+audio chunks
+  let videoStream = null;
+  let isRecording = false;
+  let preparationTime = 10;
+  let responseTime = 0;
+  let prepInterval = null;
+  let responseInterval = null;
+  let questionStartTime = Date.now();
+  let responseStartTime = null;
+  let fullscreenViolations = 0;
+  let bodyLanguageInterval = null;
+  let attireInterval = null;
+  let assessmentActive = false;
+  let _assessmentEnded = false;
+  let _proctorAbandonTriggered = false;
+  let _proctorDebounceTimer = null;
+  let _proctorSuppressed = false;
+  let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
+  let timeLeft = 0;
+  let timeLimitInterval = null;
+  const PROCTOR_DEBOUNCE_MS = 300;
+  const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
+  const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
+  let currentQuestionNumber = parseInt('{{ question_number }}');
+
+  function isFullscreenActive() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+  }
+
+  function startAssessmentFromGate() {
+    console.log('[Start Assessment] ========== BUTTON CLICKED ==========');
+    console.log('[Start Assessment] Function called, handler firing');
+    const gateError = document.getElementById('start-gate-error');
+    const startBtn = document.getElementById('start-assessment-btn');
+    console.log('[Start Assessment] Got DOM elements:', !!gateError, !!startBtn);
+    gateError.style.display = 'none';
+    gateError.textContent = '';
+
+    let fullscreenPromise = null;
+    try {
+      console.log('[Start Assessment] Requesting fullscreen...');
+      if (document.documentElement.requestFullscreen) {
+        fullscreenPromise = document.documentElement.requestFullscreen();
+        console.log('[Start Assessment] requestFullscreen() called, promise:', fullscreenPromise);
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+        console.log('[Start Assessment] webkitRequestFullscreen() called');
+      } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+        console.log('[Start Assessment] mozRequestFullScreen() called');
+      } else {
+        console.error('[Start Assessment] Fullscreen not supported');
+        gateError.textContent = 'Fullscreen is required but not supported in this browser.';
+        gateError.style.display = 'block';
+        return;
+      }
+    } catch (e) {
+      console.error('[Start Assessment] Fullscreen init failed:', e);
+      gateError.textContent = 'Could not enter fullscreen. Please allow fullscreen and try again.';
+      gateError.style.display = 'block';
+      return;
+    }
+
+    // Call initializeCamera() NOW — synchronously inside the click handler — so
+    // getUserMedia() runs during the user-gesture activation window. The function
+    // acquires the media stream immediately; it will attach it to the <video> element
+    // once the modal is hidden (handled inside initializeCamera via waitForModal).
+    console.log('[Start Assessment] Requesting camera/mic (user gesture context)...');
+    initializeCamera();
+
+    function beginActiveSession() {
+      console.log('[Start Assessment] beginActiveSession called');
+      if (assessmentActive) return;
+      assessmentActive = true;
+      startBtn.disabled = true;
+      console.log('[Start Assessment] Hiding start gate modal');
+      document.getElementById('assessment-start-gate').style.display = 'none';
+      document.querySelector('.assessment-container').classList.remove('has-start-gate');
+
+      const audioEl = document.getElementById('question-audio');
+      const replayBtn = document.getElementById('replay-audio-btn');
+      if (audioEl && audioEl.src && !audioEl.src.endsWith('/None')) {
+        replayBtn.style.display = 'block';
+        audioEl.play().catch(e => console.warn('Auto-play blocked:', e));
+      }
+
+      questionStartTime = Date.now();
+      startPreparationTimer();
+      startBackgroundAnalysis();
+    }
+
+    function failFullscreen(message) {
+      assessmentActive = false;
+      if (videoStream) {
+        videoStream.getTracks().forEach(function (track) { track.stop(); });
+        videoStream = null;
+      }
+      gateError.textContent = message;
+      gateError.style.display = 'block';
+      startBtn.disabled = false;
+    }
+
+    if (fullscreenPromise && typeof fullscreenPromise.then === 'function') {
+      console.log('[Start Assessment] Waiting for fullscreen promise...');
+      fullscreenPromise.then(function () {
+        console.log('[Start Assessment] Fullscreen granted, calling beginActiveSession');
+        beginActiveSession();
+      }).catch(function (e) {
+        console.error('[Start Assessment] Fullscreen request failed:', e);
+        failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
+      });
+    } else {
+      console.log('[Start Assessment] No fullscreen promise, using timeout fallback');
+      setTimeout(function () {
+        if (isFullscreenActive()) {
+          console.log('[Start Assessment] Fullscreen active (fallback), calling beginActiveSession');
+          beginActiveSession();
+        } else {
+          console.error('[Start Assessment] Fullscreen not active (fallback)');
+          failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
+        }
+      }, 100);
+    }
+  }
+
+  let _isInitializingCamera = false;
+  async function initializeCamera() {
+    if (_isInitializingCamera) return;
+    _isInitializingCamera = true;
+    console.log('[Camera] Starting camera initialization...');
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access not supported in this browser');
+      }
+
+      const hasActiveStream = sessionStorage.getItem('assessmentMediaStreamActive') === 'true';
+      console.log('[Camera] Has active stream from setup page:', hasActiveStream);
+
+      if (hasActiveStream) {
+        console.log('[Camera] Reusing existing stream from setup page');
+        try {
+          const existingStreams = await navigator.mediaDevices.enumerateDevices();
+          console.log('[Camera] Existing devices:', existingStreams.length);
+        } catch (e) {
+          console.warn('[Camera] Could not enumerate devices:', e);
+        }
+      }
+
+      console.log('[Camera] Requesting camera and microphone permissions...');
+
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        console.log('[Camera] Permissions granted, got media stream');
+      } catch (mediaError) {
+        console.error('[Camera] getUserMedia failed:', mediaError);
+        throw mediaError;
+      }
+
+      // Wait for DOM to be ready before accessing video element
+      const videoFeed = await new Promise((resolve, reject) => {
+        let timeoutId;
+        const checkVideo = () => {
+          const video = document.getElementById('video-feed');
+          console.log('[Camera] Looking for video-feed element, found:', !!video);
+          if (video) {
+            console.log('[Camera] Video element found, resolving promise');
+            clearTimeout(timeoutId);
+            resolve(video);
+          } else {
+            console.log('[Camera] Video element not found yet, retrying...');
+            setTimeout(checkVideo, 100);
+          }
+        };
+        checkVideo();
+        timeoutId = setTimeout(() => {
+          console.error('[Camera] Video element still not found after 5 seconds. DOM elements with "video" in id:', Array.from(document.querySelectorAll('[id*="video"]')).map(el => el.id));
+          reject(new Error('Video element not found after timeout'));
+        }, 5000);
+      });
+
+      console.log('[Camera] Video element found, setting video source...');
+      videoFeed.srcObject = videoStream;
+
+      try {
+        await videoFeed.play();
+        console.log('[Camera] Video is playing');
+      } catch (playError) {
+        console.warn('[Camera] Video play failed, trying manual play:', playError);
+        setTimeout(() => videoFeed.play(), 100);
+      }
+
+      function markCameraReady() {
+        const loadingElement = document.getElementById('video-loading');
+        if (loadingElement) loadingElement.style.display = 'none';
+      }
+
+      videoFeed.onloadedmetadata = function () {
+        console.log('[Camera] Video metadata loaded - camera ready!');
+        markCameraReady();
+      };
+
+      setTimeout(() => {
+        if (document.getElementById('video-loading') &&
+          document.getElementById('video-loading').style.display !== 'none') {
+          console.log('[Camera] Fallback: forcing camera overlay off after timeout');
+          markCameraReady();
+        }
+      }, 3000);
+
+      videoFeed.onerror = function (e) {
+        console.error('[Camera] Video element error:', e);
+        showCameraError('Video playback failed');
+      };
+
+      console.log('[Camera] Camera initialized successfully');
+
+    } catch (error) {
+      console.error('[Camera] Camera initialization failed:', error);
+      showCameraError(error);
+    } finally {
+      _isInitializingCamera = false;
+    }
+  }
+
+  function showCameraError(error) {
+    const loadingElement = document.getElementById('video-loading');
+    if (loadingElement) {
+      let errorMessage = 'Camera access failed';
+      let helpText = 'Make sure to allow camera and microphone access when prompted';
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera access denied';
+        helpText = 'Please click the camera icon in your browser\'s address bar to allow access';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found';
+        helpText = 'Please connect a camera and try again';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is busy';
+        helpText = 'Please close other applications using the camera and try again';
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      loadingElement.innerHTML = `
+          <div class="text-center p-4">
+              <div class="text-red-600 dark:text-red-400 font-bold mb-2">❌ ${errorMessage}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">${helpText}</div>
+              <button onclick="initializeCamera()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  Try Again
+              </button>
+          </div>
+      `;
+    }
+  }
+
+  function startPreparationTimer() {
+    if (prepInterval) clearInterval(prepInterval);
+    prepInterval = setInterval(() => {
+      preparationTime--;
+      const prepTimeEl = document.getElementById('prep-time');
+      if (prepTimeEl) prepTimeEl.textContent = preparationTime;
+
+      if (preparationTime <= 0) {
+        clearInterval(prepInterval);
+        prepInterval = null;
+        const prepTimer = document.getElementById('prep-timer');
+        if (prepTimer) prepTimer.style.display = 'none';
+        const responseTimer = document.getElementById('response-timer');
+        if (responseTimer) responseTimer.style.display = 'block';
+
+        const recordButton = document.getElementById('record-button');
+        if (recordButton) {
+          recordButton.disabled = false;
+          recordButton.classList.remove('disabled');
+        }
+
+        const recordStatus = document.getElementById('record-status');
+        if (recordStatus) {
+          recordStatus.textContent = 'Ready to Record';
+        }
+
+        startResponseTimer();
+      }
+    }, 1000);
+  }
+
+  function startResponseTimer() {
+    if (responseInterval) clearInterval(responseInterval);
+
+    if (timeLimitSeconds) {
+      timeLeft = timeLimitSeconds;
+      const timeLeftSpan = document.getElementById('time-left');
+      if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
+      const timeLimitContainer = document.getElementById('time-limit-container');
+      if (timeLimitContainer) timeLimitContainer.style.display = 'block';
+
+      const audioEl = document.getElementById('question-audio');
+      if (audioEl && !audioEl.paused && !audioEl.ended) {
+        audioEl.addEventListener('ended', startRapidFireCountdown, { once: true });
+        audioEl.addEventListener('error', startRapidFireCountdown, { once: true });
+      } else {
+        startRapidFireCountdown();
+      }
+    } else {
+      responseInterval = setInterval(() => {
+        responseTime++;
+        const responseTimeEl = document.getElementById('response-time');
+        if (responseTimeEl) responseTimeEl.textContent = responseTime;
+      }, 1000);
+    }
+  }
+
+  function startRapidFireCountdown() {
+    if (timeLimitInterval) clearInterval(timeLimitInterval);
+    timeLimitInterval = setInterval(() => {
+      timeLeft--;
+      const timeLeftSpan = document.getElementById('time-left');
+      if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
+
+      if (timeLeft <= 0) {
+        clearInterval(timeLimitInterval);
+        timeLimitInterval = null;
+        handleTimeOut();
+      }
+    }, 1000);
+  }
+
+  async function handleTimeOut() {
+    if (isRecording) {
+      await stopRecording();
+      await nextQuestion();
+    } else if (!submitPromise && !submissionInFlight) {
+      await forceSkipQuestion();
+    } else {
+      await nextQuestion();
+    }
+  }
+
+  function startBackgroundAnalysis() {
+    console.log('Starting background analysis...');
+
+    bodyLanguageInterval = setInterval(() => {
+      captureSnapshot('body_language');
+    }, 5000);
+
+    attireInterval = setInterval(() => {
+      captureSnapshot('attire');
+    }, 10000);
+  }
+
+  function captureSnapshot(analysisType) {
+    const video = document.getElementById('video-feed');
+    const canvas = document.getElementById('snapshot-canvas');
+
+    if (!video || video.readyState !== 4) {
+      console.log('Video not ready for snapshot');
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    fetch(`{% url 'analysis:capture_assessment_snapshot' session_id=session_id %}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        image_data: imageData,
+        analysis_type: analysisType,
+        question_id: "{{ question.id }}",
+        timestamp: new Date().toISOString()
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success) {
+          console.error(`${analysisType} analysis failed:`, data.error);
+        }
+      })
+      .catch(error => {
+        console.error(`${analysisType} analysis failed:`, error);
+      });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}
+{% block content %} {% csrf_token %}
+<div class="assessment-container has-start-gate">
   <!-- Start Assessment gate — fullscreen + camera require a user gesture -->
   <div id="assessment-start-gate" class="assessment-start-gate">
     <div class="gate-panel">
@@ -385,7 +819,7 @@
         Clicking Start will enter fullscreen and enable your camera and
         microphone.
       </p>
-      <button id="start-assessment-btn" type="button"
+      <button id="start-assessment-btn" type="button" onclick="startAssessmentFromGate()"
         class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 text-lg font-medium">
         Start Assessment
       </button>
@@ -511,6 +945,7 @@
             <div id="time-limit-container" class="text-red-600 dark:text-red-400 text-sm mt-1" style="display: none">
               Time Left: <span id="time-left">{{ time_limit_seconds }}</span>s
             </div>
+            {% endif %}
           </div>
         </div>
 
@@ -622,42 +1057,8 @@
   });
 </script>
 <script>
-  // Global variables
-  let mediaRecorder = null;
-  let audioChunks = [];
-  let videoStream = null;
-  let isRecording = false;
-  let preparationTime = 10;
-  let responseTime = 0;
-  let prepInterval = null;
-  let responseInterval = null;
-  let questionStartTime = Date.now();
-  let responseStartTime = null;
-  let fullscreenViolations = 0;
-  let bodyLanguageInterval = null;
-  let attireInterval = null;
-  let assessmentActive = false;
-  let _assessmentEnded = false;  // set by next/skip/complete or proctor abandon
-  let _proctorAbandonTriggered = false;
-  let _proctorDebounceTimer = null;
-  let _proctorSuppressed = false; // temporarily suppress proctor during native dialogs
-  let timeLimitSeconds = {% if time_limit_seconds %}{ { time_limit_seconds } } {% else %} null{% endif %};
-  let timeLeft = 0;
-  let timeLimitInterval = null;
-  const PROCTOR_DEBOUNCE_MS = 300;
-  const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
-  const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
-  // Track current question number for practice mode hints
-  let currentQuestionNumber = parseInt('{{ question_number }}');
-
-  function isFullscreenActive() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-  }
-
   // Initialize assessment — wait for Start gate click (user gesture for fullscreen)
   document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('start-assessment-btn').addEventListener('click', startAssessmentFromGate);
-
     // Safe to wire before start — handlers no-op until assessmentActive / recording UI ready
     document.getElementById('record-button').addEventListener('click', toggleRecording);
     document.getElementById('next-button').addEventListener('click', nextQuestion);
@@ -681,84 +1082,9 @@
     setInterval(updateSessionTimer, 1000);
   });
 
-  function startAssessmentFromGate() {
-    const gateError = document.getElementById('start-gate-error');
-    const startBtn = document.getElementById('start-assessment-btn');
-    gateError.style.display = 'none';
-    gateError.textContent = '';
-
-    // MUST call requestFullscreen synchronously in this click handler
-    let fullscreenPromise = null;
-    try {
-      if (document.documentElement.requestFullscreen) {
-        fullscreenPromise = document.documentElement.requestFullscreen();
-      } else if (document.documentElement.webkitRequestFullscreen) {
-        document.documentElement.webkitRequestFullscreen();
-      } else if (document.documentElement.mozRequestFullScreen) {
-        document.documentElement.mozRequestFullScreen();
-      } else {
-        gateError.textContent = 'Fullscreen is required but not supported in this browser.';
-        gateError.style.display = 'block';
-        return;
-      }
-    } catch (e) {
-      console.warn('Fullscreen init failed:', e);
-      gateError.textContent = 'Could not enter fullscreen. Please allow fullscreen and try again.';
-      gateError.style.display = 'block';
-      return;
-    }
-
-    // Start getUserMedia in the same user-gesture turn so permissions still work
-    initializeCamera();
-
-    function beginActiveSession() {
-      if (assessmentActive) return;
-      assessmentActive = true;
-      startBtn.disabled = true;
-      document.getElementById('assessment-start-gate').style.display = 'none';
-
-      // Auto-play the first question audio now that we have user interaction
-      const audioEl = document.getElementById('question-audio');
-      const replayBtn = document.getElementById('replay-audio-btn');
-      if (audioEl && audioEl.src && !audioEl.src.endsWith('/None')) {
-        replayBtn.style.display = 'block';
-        audioEl.play().catch(e => console.warn('Auto-play blocked:', e));
-      }
-
-      questionStartTime = Date.now();
-      startPreparationTimer();
-      startBackgroundAnalysis();
-    }
-
-    function failFullscreen(message) {
-      assessmentActive = false;
-      if (videoStream) {
-        videoStream.getTracks().forEach(function (track) { track.stop(); });
-        videoStream = null;
-      }
-      gateError.textContent = message;
-      gateError.style.display = 'block';
-      startBtn.disabled = false;
-    }
-
-    if (fullscreenPromise && typeof fullscreenPromise.then === 'function') {
-      fullscreenPromise.then(function () {
-        beginActiveSession();
-      }).catch(function (e) {
-        console.warn('Fullscreen request failed:', e);
-        failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
-      });
-    } else {
-      // Older webkit/moz paths: verify shortly without delaying getUserMedia
-      setTimeout(function () {
-        if (isFullscreenActive()) {
-          beginActiveSession();
-        } else {
-          failFullscreen('Fullscreen is required to start this proctored assessment. Please allow fullscreen and try again.');
-        }
-      }, 100);
-    }
-  }
+  // startAssessmentFromGate() is defined in the extra_js block above.
+  // That version correctly waits for the modal to hide before initializing the
+  // camera, avoiding the infinite video-feed lookup loop. Do NOT redefine it here.
 
   function scheduleProctorAbandon(reason) {
     if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered || _proctorSuppressed) return;
@@ -832,85 +1158,6 @@
     setTimeout(function () {
       window.location.href = DASHBOARD_URL;
     }, 1800);
-  }
-
-  // Initialize camera
-  let _isInitializingCamera = false;
-  async function initializeCamera() {
-    if (_isInitializingCamera) return;
-    _isInitializingCamera = true;
-    console.log('Starting camera initialization...');
-
-    try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access not supported in this browser');
-      }
-
-      console.log('Requesting camera and microphone permissions...');
-
-      // Request camera and microphone permissions with less restrictive constraints
-      videoStream = await navigator.mediaDevices.getUserMedia({
-        video: true, // Start with basic video constraints
-        audio: true  // Start with basic audio constraints
-      });
-
-      console.log('Permissions granted, got media stream');
-
-      const videoFeed = document.getElementById('video-feed');
-      if (!videoFeed) {
-        throw new Error('Video element not found');
-      }
-
-      console.log('Setting video source...');
-      videoFeed.srcObject = videoStream;
-
-      // Force video to start
-      try {
-        await videoFeed.play();
-        console.log('Video is playing');
-      } catch (playError) {
-        console.warn('Video play failed, trying manual play:', playError);
-        setTimeout(() => videoFeed.play(), 100);
-      }
-
-      // Helper: mark camera as ready (hides overlay, enables record button)
-      function markCameraReady() {
-        const loadingElement = document.getElementById('video-loading');
-        if (loadingElement) loadingElement.style.display = 'none';
-        // Record button enabling is gated by the preparation timer reaching 0.
-      }
-
-      // Wait for video metadata — fire markCameraReady when ready
-      videoFeed.onloadedmetadata = function () {
-        console.log('Video metadata loaded - camera ready!');
-        markCameraReady();
-      };
-
-      // Fallback: if onloadedmetadata never fires in sandboxed iframe,
-      // force-show the camera feed after 3 seconds (stream is already live)
-      setTimeout(() => {
-        if (document.getElementById('video-loading') &&
-          document.getElementById('video-loading').style.display !== 'none') {
-          console.log('Fallback: forcing camera overlay off after timeout');
-          markCameraReady();
-        }
-      }, 3000);
-
-      // Handle video errors
-      videoFeed.onerror = function (e) {
-        console.error('Video element error:', e);
-        showCameraError('Video playback failed');
-      };
-
-      console.log('Camera initialized successfully');
-
-    } catch (error) {
-      console.error('Camera initialization failed:', error);
-      showCameraError(error);
-    } finally {
-      _isInitializingCamera = false;
-    }
   }
 
   // Show camera error
@@ -1001,86 +1248,6 @@
       });
   }
 
-  // Start preparation timer
-  function startPreparationTimer() {
-    if (prepInterval) clearInterval(prepInterval);
-    prepInterval = setInterval(() => {
-      preparationTime--;
-      document.getElementById('prep-time').textContent = preparationTime;
-
-      if (preparationTime <= 0) {
-        clearInterval(prepInterval);
-        prepInterval = null;
-        document.getElementById('prep-timer').style.display = 'none';
-        document.getElementById('response-timer').style.display = 'block';
-
-        const recordButton = document.getElementById('record-button');
-        recordButton.disabled = false;
-        recordButton.classList.remove('disabled');
-
-        const recordStatus = document.getElementById('record-status');
-        if (recordStatus) {
-          recordStatus.textContent = 'Ready to Record';
-        }
-
-        startResponseTimer();
-      }
-    }, 1000);
-  }
-
-  // Start response timer
-  function startResponseTimer() {
-    if (responseInterval) clearInterval(responseInterval);
-
-    if (timeLimitSeconds) {
-      timeLeft = timeLimitSeconds;
-      const timeLeftSpan = document.getElementById('time-left');
-      const timeLimitContainer = document.getElementById('time-limit-container');
-      if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
-      if (timeLimitContainer) timeLimitContainer.style.display = 'block';
-
-      const audioEl = document.getElementById('question-audio');
-      if (audioEl && !audioEl.paused && !audioEl.ended) {
-        audioEl.addEventListener('ended', startRapidFireCountdown, { once: true });
-        audioEl.addEventListener('error', startRapidFireCountdown, { once: true });
-      } else {
-        startRapidFireCountdown();
-      }
-    }
-
-    responseInterval = setInterval(() => {
-      responseTime++;
-      document.getElementById('response-time').textContent = responseTime;
-    }, 1000);
-  }
-
-  function startRapidFireCountdown() {
-    if (timeLimitInterval) clearInterval(timeLimitInterval);
-    timeLimitInterval = setInterval(() => {
-      if (timeLeft > 0) {
-        timeLeft--;
-        const timeLeftSpan = document.getElementById('time-left');
-        if (timeLeftSpan) timeLeftSpan.textContent = timeLeft;
-      }
-      if (timeLeft <= 0) {
-        clearInterval(timeLimitInterval);
-        timeLimitInterval = null;
-        handleTimeOut();
-      }
-    }, 1000);
-  }
-
-  async function handleTimeOut() {
-    if (isRecording) {
-      await stopRecording();
-      await nextQuestion();
-    } else if (!submitPromise && !submissionInFlight) {
-      await forceSkipQuestion();
-    } else {
-      await nextQuestion();
-    }
-  }
-
   // Toggle recording
   async function toggleRecording() {
     if (!isRecording) {
@@ -1140,11 +1307,15 @@
 
       // Update UI
       const recordButton = document.getElementById('record-button');
-      recordButton.classList.remove('start');
-      recordButton.classList.add('stop');
-      recordButton.querySelector('#record-icon').textContent = '⏹️';
+      if (recordButton) {
+        recordButton.classList.remove('start');
+        recordButton.classList.add('stop');
+        const recordIcon = recordButton.querySelector('#record-icon');
+        if (recordIcon) recordIcon.textContent = '⏹️';
+      }
 
-      document.getElementById('recording-indicator').style.display = 'block';
+      const recordingIndicator = document.getElementById('recording-indicator');
+      if (recordingIndicator) recordingIndicator.style.display = 'block';
 
     } catch (error) {
       console.error('Recording start failed:', error);
@@ -1175,7 +1346,8 @@
       const videoTransition = document.getElementById('video-transition');
       if (videoTransition) {
         videoTransition.style.display = 'flex';
-        document.getElementById('transition-text').textContent = 'Saving your answer...';
+        const transitionText = document.getElementById('transition-text');
+        if (transitionText) transitionText.textContent = 'Saving your answer...';
       }
 
       try { mediaRecorder.requestData(); } catch (e) { }
@@ -1191,14 +1363,18 @@
 
       // Update UI
       const recordButton = document.getElementById('record-button');
-      recordButton.style.display = 'none';
-      document.getElementById('recording-indicator').style.display = 'none';
+      if (recordButton) recordButton.style.display = 'none';
+      const recordingIndicator = document.getElementById('recording-indicator');
+      if (recordingIndicator) recordingIndicator.style.display = 'none';
 
       // Show confirmation message
       const recordStatus = document.getElementById('record-status');
-      recordStatus.innerHTML = '<span style="color: var(--color-success); font-weight: 600;">✓ Answer recorded successfully</span>';
+      if (recordStatus) {
+        recordStatus.innerHTML = '<span style="color: var(--color-success); font-weight: 600;">✓ Answer recorded successfully</span>';
+      }
 
-      document.getElementById('next-button').style.display = 'block';
+      const nextButton = document.getElementById('next-button');
+      if (nextButton) nextButton.style.display = 'block';
     }
   }
 
@@ -1229,11 +1405,14 @@
     if (videoBlob.size < 1024) {
       showWarning('Recording too short or empty. Please speak for at least 2 seconds.');
       const recordButton = document.getElementById('record-button');
-      recordButton.style.display = 'block';
-      recordButton.disabled = false;
-      recordButton.classList.remove('stop');
-      recordButton.classList.add('start');
-      recordButton.querySelector('#record-icon').textContent = '🎙️';
+      if (recordButton) {
+        recordButton.style.display = 'block';
+        recordButton.disabled = false;
+        recordButton.classList.remove('stop');
+        recordButton.classList.add('start');
+        const recordIcon = recordButton.querySelector('#record-icon');
+        if (recordIcon) recordIcon.textContent = '🎙️';
+      }
       audioChunks = [];
       submissionInFlight = false;
       return;
@@ -1313,17 +1492,12 @@
         if (videoStream) {
           videoStream.getTracks().forEach(track => track.stop());
         }
-        const transitionText = document.getElementById('transition-text');
-        if (transitionText) transitionText.textContent = 'Completing assessment...';
-        const videoTransition = document.getElementById('video-transition');
-        if (videoTransition) videoTransition.style.display = 'flex';
-        const videoFeed = document.getElementById('video-feed');
-        if (videoFeed) videoFeed.style.opacity = '0';
 
-        window.location.href = result.complete_url;
-        return;
-      }
-      if (result.next_question) {
+        const transitionText = document.getElementById('transition-text');
+        if (transitionText) {
+          transitionText.textContent = 'Assessment complete! Redirecting to results...';
+        }
+      } else {
         if (nextBtn) {
           nextBtn.disabled = false;
           nextBtn.textContent = 'Next Question →';
@@ -1342,8 +1516,7 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory| yesno: "true,false"
-  }};
+    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
 
   let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
   if (isMandatory) {
@@ -1383,6 +1556,10 @@
   }
 
   const skipButton = document.getElementById('skip-button');
+  if (!skipButton) {
+    console.warn('[Skip] Skip button not found');
+    return;
+  }
   skipButton.disabled = true;
   skipButton.textContent = 'Skipping…';
 
@@ -1592,6 +1769,7 @@
     audioChunks = [];
     recordingPromise = null;
     submitPromise = null;
+    _assessmentEnded = false;
 
     document.getElementById('prep-time').textContent = preparationTime;
     document.getElementById('response-time').textContent = responseTime;
@@ -1661,7 +1839,8 @@
       videoFeed.style.opacity = '1';
     }
 
-    // 6. Start new question flow
+    // 6. Start new question flow — reset camera-init guard so next question re-inits
+    _isInitializingCamera = false;
     initializeCamera();
     startPreparationTimer();
     startBackgroundAnalysis();
