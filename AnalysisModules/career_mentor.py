@@ -228,7 +228,7 @@ def generate_career_mentor_summary(user, refresh: bool = False) -> Dict[str, Any
     resume_id = context['resume']['id'] if context['resume'] else 'none'
     assessment_ids = '_'.join(str(a['id']) for a in context['assessments'])
     # Include intake updated_at in hash so intake changes invalidate the cache
-    intake_ts = context.get('intake', {}).get('updated_at', '') or 'none'
+    intake_ts = (context.get('intake') or {}).get('updated_at', '') or 'none'
     data_hash = f"res_{resume_id}_ast_{assessment_ids}_intake_{intake_ts}"
     cache_key = f"user_{user.id}_career_mentor_v1"
 
