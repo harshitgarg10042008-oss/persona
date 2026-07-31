@@ -557,7 +557,6 @@
         throw mediaError;
       }
 
-      // Wait for DOM to be ready before accessing video element
       const videoFeed = await new Promise((resolve, reject) => {
         let timeoutId;
         const checkVideo = () => {
@@ -572,12 +571,14 @@
             setTimeout(checkVideo, 100);
           }
         };
-        checkVideo();
         timeoutId = setTimeout(() => {
           console.error('[Camera] Video element still not found after 5 seconds. DOM elements with "video" in id:', Array.from(document.querySelectorAll('[id*="video"]')).map(el => el.id));
           reject(new Error('Video element not found after timeout'));
         }, 5000);
+        // Start polling AFTER timeoutId is set so clearTimeout works correctly
+        checkVideo();
       });
+
 
       console.log('[Camera] Video element found, setting video source...');
       videoFeed.srcObject = videoStream;
