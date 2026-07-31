@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import json
 from django.conf import settings
 from django_ratelimit.decorators import ratelimit
@@ -21,7 +21,7 @@ def _apply_session_preference(request, remember_me):
 def signup_view(request):
     if request.method == 'POST':
         user_type = request.POST.get('user_type')
-        
+
         if user_type == 'individual':
             form = IndividualSignUpForm(request.POST)
         elif user_type == 'business':
@@ -29,21 +29,19 @@ def signup_view(request):
         else:
             messages.error(request, 'Invalid user type.')
             return redirect('signup')
-        
+
         if form.is_valid():
             user = form.save()
             remember_me = request.POST.get('remember_me') == 'on'
             login(request, user)
             _apply_session_preference(request, remember_me)
             messages.success(request, f'Welcome to Persona! Your {user_type} account has been created successfully.')
-            
-            # Redirect based on user type
+
             if user_type == 'business':
                 return redirect('analysis:business_dashboard')
             else:
                 return redirect('individual_dashboard')
         else:
-            # Pass form errors to template
             context = {
                 'individual_form': IndividualSignUpForm(),
                 'business_form': BusinessSignUpForm(),
@@ -51,13 +49,14 @@ def signup_view(request):
                 'form_errors': form.errors
             }
             return render(request, 'auth/signup.html', context)
-    
+
     context = {
         'individual_form': IndividualSignUpForm(),
         'business_form': BusinessSignUpForm(),
         'active_tab': 'individual'
     }
     return render(request, 'auth/signup.html', context)
+
 
 @ratelimit(key='ip', rate=settings.RATE_LIMIT_AUTH, block=True, method='POST')
 def login_view(request):
@@ -68,8 +67,7 @@ def login_view(request):
             remember_me = request.POST.get('remember_me') == 'on'
             login(request, user)
             _apply_session_preference(request, remember_me)
-            
-            # Determine user type for personalized message and redirect
+
             if hasattr(user, 'business_profile'):
                 messages.success(request, f'Welcome back!')
                 return redirect('analysis:business_dashboard')
@@ -82,63 +80,57 @@ def login_view(request):
                 'form_errors': form.errors
             }
             return render(request, 'auth/login.html', context)
-    
+
     context = {
         'login_form': CustomLoginForm()
     }
     return render(request, 'auth/login.html', context)
+
 
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
     return redirect('home')
 
+
 def dashboard_view(request):
     """Legacy dashboard - redirect to appropriate dashboard based on user type"""
     if not request.user.is_authenticated:
         return redirect('login')
-    
-    # Redirect to appropriate dashboard
+
     if hasattr(request.user, 'business_profile'):
         return redirect('analysis:business_dashboard')
     else:
         return redirect('individual_dashboard')
 
+
 def individual_dashboard_view(request):
     """Dashboard for individual users"""
     if not request.user.is_authenticated:
         return redirect('login')
-    
-    # Check if user has business profile first
+
     if hasattr(request.user, 'business_profile'):
         messages.error(request, "Access denied. Business users should use the business dashboard.")
         return redirect('analysis:business_dashboard')
-    
-    # Check if user has individual profile
+
     if hasattr(request.user, 'individual_profile'):
         try:
             individual_user = request.user.individual_profile
-            
-            # Get assessment statistics
+
             from AnalysisAPI.models import IndividualAssessment, PlatformJobTitle
-            
-            assessments = IndividualAssessment.objects.filter(
-                user=request.user  # Use request.user instead of individual_user
-            )
-            
+
+            assessments = IndividualAssessment.objects.filter(user=request.user)
             completed_assessments = assessments.filter(status='completed')
             total_sessions = assessments.count()
             avg_score = None
-            
+
             if completed_assessments.exists():
                 scores = [a.overall_score for a in completed_assessments if a.overall_score is not None]
                 if scores:
                     avg_score = sum(scores) / len(scores)
-            
-            # Get institution memberships
+
             institution_memberships = individual_user.institution_memberships.filter(is_active=True)
-            
-            # Build chart data for the progress chart
+
             import json as _json
             scored_assessments = completed_assessments.filter(
                 overall_score__isnull=False
@@ -150,7 +142,7 @@ def individual_dashboard_view(request):
                     chart_dates.append(a.completed_at.strftime('%b %d'))
                     chart_scores.append(float(a.overall_score))
             chart_data = {'labels': chart_dates, 'scores': chart_scores}
-            
+
             context = {
                 'user': request.user,
                 'profile': individual_user,
@@ -168,44 +160,40 @@ def individual_dashboard_view(request):
             messages.error(request, f"Error accessing individual profile: {e}")
             return redirect('home')
     else:
-        # User has no profile - might be admin user or created before profile system
         messages.error(request, "No user profile found. This account may need to be set up properly.")
         return redirect('home')
+
 
 @login_required
 def join_institution(request):
     """Join an institution using an institution code"""
     if request.method == 'POST':
         institution_code = request.POST.get('institution_code', '').strip()
-        
+
         if not institution_code:
             messages.error(request, 'Please enter an institution code.')
             return redirect('individual_dashboard')
-        
-        # Check if user has business profile
+
         if hasattr(request.user, 'business_profile'):
             messages.error(request, 'Business users cannot join institutions.')
             return redirect('analysis:business_dashboard')
-        
-        # Check if user has individual profile
+
         if not hasattr(request.user, 'individual_profile'):
             messages.error(request, 'Individual profile required to join institutions.')
             return redirect('individual_dashboard')
-        
-        # Parse institution code
+
         try:
             business_id = int(institution_code.replace('INST-', ''))
             business = BusinessUser.objects.get(id=business_id)
         except (ValueError, BusinessUser.DoesNotExist):
             messages.error(request, 'Invalid institution code.')
             return redirect('individual_dashboard')
-        
-        # Check if already a member
+
         existing_membership = InstitutionMembership.objects.filter(
             individual=request.user.individual_profile,
             business=business
         ).first()
-        
+
         if existing_membership:
             if existing_membership.is_active:
                 messages.info(request, f'You are already a member of {business.company_name or business.name}.')
@@ -214,51 +202,104 @@ def join_institution(request):
                 existing_membership.save()
                 messages.success(request, f'Your membership to {business.company_name or business.name} has been reactivated.')
             return redirect('individual_dashboard')
-        
-        # Check consent
+
         consent_granted = request.POST.get('consent_granted') == 'on'
         if not consent_granted:
             messages.error(request, 'You must consent to share your assessment results with the institution.')
             return redirect('individual_dashboard')
-        
-        # Create membership
+
         from django.utils import timezone
-        membership = InstitutionMembership.objects.create(
+        InstitutionMembership.objects.create(
             individual=request.user.individual_profile,
             business=business,
             consent_granted=True,
             consent_granted_at=timezone.now()
         )
-        
+
         messages.success(request, f'Successfully joined {business.company_name or business.name}!')
         return redirect('individual_dashboard')
-    
+
     return redirect('individual_dashboard')
+
 
 @login_required
 def user_settings_view(request):
     """User settings page for managing account preferences"""
-    # Check if user has individual profile
     if not hasattr(request.user, 'individual_profile'):
         messages.error(request, 'Individual profile required to access settings.')
         return redirect('home')
-    
+
     profile = request.user.individual_profile
-    
+
     if request.method == 'POST':
         media_retention_days = request.POST.get('media_retention_days')
-        
+
         if media_retention_days in ['15', '30', '60']:
             profile.media_retention_days = int(media_retention_days)
             profile.save()
             messages.success(request, 'Settings saved successfully.')
         else:
             messages.error(request, 'Invalid media retention setting.')
-        
+
         return redirect('user_settings')
-    
+
     context = {
         'user': request.user,
         'profile': profile,
     }
     return render(request, 'user/settings.html', context)
+
+
+# ─── Feature #22 — Voice Interviewer Personas ─────────────────────────────────
+
+from AnalysisAPI.voice_interviewer import PERSONAS
+from .models import UserInterviewerPreference
+
+
+@login_required
+def get_personas_view(request):
+    """Return available personas and the user's current preference."""
+    try:
+        pref = request.user.interviewer_preference
+        current = pref.persona_id
+    except UserInterviewerPreference.DoesNotExist:
+        current = 'friendly_encouraging'
+
+    return JsonResponse({
+        'personas': list(PERSONAS.values()),
+        'current_preference': current
+    })
+
+
+@login_required
+def update_persona_preference(request):
+    """Save the user's chosen interviewer persona."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            persona_id = data.get('persona_id')
+
+            if persona_id not in PERSONAS:
+                return JsonResponse({'error': 'Invalid persona'}, status=400)
+
+            pref, created = UserInterviewerPreference.objects.get_or_create(
+                user=request.user,
+                defaults={'persona_id': persona_id}
+            )
+
+            if not created:
+                pref.persona_id = persona_id
+                pref.save()
+
+            return JsonResponse({'status': 'success', 'message': 'Preference saved successfully'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+def debug_urls(request):
+    from django.urls import get_resolver
+    from django.http import HttpResponse
+    resolver = get_resolver()
+    keys = [k for k in resolver.reverse_dict.keys() if isinstance(k, str)]
+    return HttpResponse("<br>".join(keys))

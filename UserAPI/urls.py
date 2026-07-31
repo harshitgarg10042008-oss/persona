@@ -30,4 +30,8 @@ urlpatterns = [
     path('individual-dashboard/', views.individual_dashboard_view, name='individual_dashboard'),
     path('join-institution/', views.join_institution, name='join_institution'),
     path('settings/', views.user_settings_view, name='user_settings'),
+    # Feature #22 — Voice Interviewer
+    path('voice-interviewer/personas/', views.get_personas_view, name='get_personas'),
+    path('voice-interviewer/preference/', views.update_persona_preference, name='voice_interviewer_preference'),
+    path('debug-urls/', views.debug_urls, name='debug_urls'),
 ]

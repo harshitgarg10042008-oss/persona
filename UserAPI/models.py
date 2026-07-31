@@ -95,3 +95,11 @@ class InstitutionMembership(models.Model):
     
     def __str__(self):
         return f"{self.individual.name} - {self.business.company_name or self.business.name}"
+
+class UserInterviewerPreference(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='interviewer_preference')
+    persona_id = models.CharField(max_length=50, default='friendly_encouraging')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.persona_id}"

@@ -120,6 +120,20 @@
     </div>
   </div>
 
+  <!-- Feature #22: Voice Interviewer Persona -->
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-50">Interviewer Voice Persona</h2>
+    <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Select the voice and personality of your AI interviewer for future assessments.</p>
+    
+    <div id="persona-loading" class="py-4 text-gray-500">
+      <svg class="animate-spin w-5 h-5 inline-block mr-2 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading voices...
+    </div>
+    
+    <div id="persona-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
   <!-- Available Job Titles -->
   <div class="mb-8">
     <h2 class="text-lg font-semibold mb-6 text-gray-900 dark:text-gray-50">Start New Assessment</h2>
@@ -569,6 +583,56 @@
 </div>
 
 <script>
+  function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  }
+
+  function loadPersonas() {
+    fetch('/auth/voice-interviewer/personas/')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('persona-loading').classList.add('hidden');
+        const list = document.getElementById('persona-list');
+        list.classList.remove('hidden');
+        list.innerHTML = '';
+        
+        data.personas.forEach(p => {
+          const isSelected = p.id === data.current_preference;
+          const selectedClass = isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700';
+          
+          list.innerHTML += `
+            <div class="persona-card border rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-all ${selectedClass}" onclick="savePersona('${p.id}')">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-bold text-gray-800 dark:text-gray-100">${p.name}</h3>
+                ${isSelected ? '<span class="text-blue-600 text-xs font-bold px-2 py-1 bg-blue-100 rounded-full">Selected</span>' : ''}
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">${p.description}</p>
+            </div>
+          `;
+        });
+      })
+      .catch(e => {
+        document.getElementById('persona-loading').innerText = 'Failed to load voices.';
+      });
+  }
+
+  function savePersona(id) {
+    fetch('/auth/voice-interviewer/preference/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({persona_id: id})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data.status === 'success') loadPersonas();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', loadPersonas);
+
   function selectJobTitle(jobTitleId) {
     // Clear all radio buttons
     document.querySelectorAll('input[name="job_title_id"]').forEach((radio) => {

@@ -1313,8 +1313,10 @@ def individual_assessment_question(request, session_id):
             # No more questions, complete the assessment
             return redirect('analysis:complete_individual_assessment', session_id=session_id)
             
-    from .tts_utils import get_or_create_question_audio
-    audio_url = get_or_create_question_audio(current_question.question_text, session_id) if current_question else None
+    from UserAPI.models import UserInterviewerPreference
+    from .voice_interviewer import generate_question_audio
+    persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+    audio_url = generate_question_audio(current_question.question_text, persona_id, session_id) if current_question else None
     
     # Add time limit for Rapid Fire mode
     time_limit_seconds = 12 if assessment.interview_mode == 'rapid_fire' else None
@@ -1394,8 +1396,10 @@ def submit_assessment_response(request, session_id):
                         next_q_type_display = next_q.get_question_type_display() if next_q else ""
                         next_q_is_mandatory = next_q.is_mandatory if next_q else False
                         
-                    from .tts_utils import get_or_create_question_audio
-                    audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                    from UserAPI.models import UserInterviewerPreference
+                    from .voice_interviewer import generate_question_audio
+                    persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+                    audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                         
                     response_data['next_question'] = {
                         'is_follow_up': is_follow_up,
@@ -1511,8 +1515,10 @@ def submit_assessment_response(request, session_id):
                     next_q_type_display = next_q.get_question_type_display() if next_q else ""
                     next_q_is_mandatory = next_q.is_mandatory if next_q else False
                     
-                from .tts_utils import get_or_create_question_audio
-                audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                from UserAPI.models import UserInterviewerPreference
+                from .voice_interviewer import generate_question_audio
+                persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+                audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                     
                 response_data['next_question'] = {
                     'is_follow_up': is_follow_up,
@@ -1880,8 +1886,10 @@ def submit_assessment_response(request, session_id):
                 next_q_type_display = next_q.get_question_type_display() if next_q else ""
                 next_q_is_mandatory = next_q.is_mandatory if next_q else False
                 
-            from .tts_utils import get_or_create_question_audio
-            audio_url = get_or_create_question_audio(next_q_text, session_id) if next_q_text else None
+                from UserAPI.models import UserInterviewerPreference
+                from .voice_interviewer import generate_question_audio
+                persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+                audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                 
             response_data['next_question'] = {
                 'is_follow_up': is_follow_up,
