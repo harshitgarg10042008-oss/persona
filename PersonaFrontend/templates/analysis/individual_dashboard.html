@@ -1,5 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice
-Dashboard{% endblock %} {% block extra_css %}
+{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block extra_css %}
 <style>
   .analysis-status {
     display: inline-block;
@@ -174,6 +173,77 @@ Dashboard{% endblock %} {% block extra_css %}
     </div>
   </div>
 
+  <!-- Feature #19: AI Job Matches -->
+  <div id="job-matches-card" class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">AI Job Matches</h2>
+      </div>
+      <button id="job-matches-refresh-btn" onclick="loadJobMatches(true)" class="hidden text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium flex items-center gap-1 transition-colors" title="Refresh job matches">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="job-matches-loading" class="py-8">
+      <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
+        <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-sm">Analysing your profile for role matches&hellip;</span>
+      </div>
+    </div>
+
+    <!-- Empty / not-enough-data state -->
+    <div id="job-matches-empty" class="hidden py-8 text-center">
+      <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      </div>
+      <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="job-matches-empty-message">Complete an assessment or upload a resume to see your personalised job matches.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised recommendations will appear here once you have some data.</p>
+      <div class="flex items-center justify-center gap-3 flex-wrap">
+        <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Start an Assessment
+        </a>
+        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+          Upload Resume
+        </a>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="job-matches-error" class="hidden py-6 text-center">
+      <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load job matches</p>
+      <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
+      <button onclick="loadJobMatches(false)" class="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium underline">Try again</button>
+    </div>
+
+    <!-- Results state -->
+    <div id="job-matches-results" class="hidden">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on your resume and assessment history, these roles are your best fits right now.</p>
+      <div id="job-matches-list" class="space-y-3"></div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 text-right" id="job-matches-cache-note"></p>
+    </div>
+  </div>
+
   <!-- Recent Assessments -->
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
     <div class="flex items-center justify-between mb-6">
@@ -271,5 +341,79 @@ Dashboard{% endblock %} {% block extra_css %}
     // Add selection style to clicked card
     event.currentTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
   }
+
+  /* Feature #19 – AI Job Matches */
+  function showMatchesState(state) {
+    ['loading', 'empty', 'error', 'results'].forEach(function(s) {
+      document.getElementById('job-matches-' + s).classList.add('hidden');
+    });
+    document.getElementById('job-matches-' + state).classList.remove('hidden');
+  }
+
+  function scoreColor(score) {
+    if (score >= 75) return 'bg-green-500';
+    if (score >= 50) return 'bg-yellow-400';
+    if (score >= 25) return 'bg-orange-400';
+    return 'bg-red-400';
+  }
+
+  function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(str || '')));
+    return d.innerHTML;
+  }
+
+  function renderMatches(matches, cached) {
+    var list = document.getElementById('job-matches-list');
+    list.innerHTML = '';
+    matches.forEach(function(m, idx) {
+      var score = parseInt(m.match_score) || 0;
+      var bar = scoreColor(score);
+      var html = '<div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-violet-400 transition-colors">'
+        + '<div class="flex items-start justify-between gap-4 mb-2">'
+        + '<div class="flex items-center gap-2">'
+        + '<span class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center flex-shrink-0">' + (idx + 1) + '</span>'
+        + '<h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">' + escapeHtml(m.job_title) + '</h3>'
+        + '</div>'
+        + '<span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-shrink-0">' + score + '%</span>'
+        + '</div>'
+        + '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">'
+        + '<div class="' + bar + ' h-1.5 rounded-full transition-all duration-700" style="width:' + score + '%"></div>'
+        + '</div>'
+        + '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">' + escapeHtml(m.reason) + '</p>'
+        + '</div>';
+      list.insertAdjacentHTML('beforeend', html);
+    });
+    document.getElementById('job-matches-cache-note').textContent = cached ? 'Cached result — click Refresh to regenerate.' : 'Generated fresh just now.';
+    document.getElementById('job-matches-refresh-btn').classList.remove('hidden');
+    showMatchesState('results');
+  }
+
+  function loadJobMatches(forceRefresh) {
+    showMatchesState('loading');
+    document.getElementById('job-matches-refresh-btn').classList.add('hidden');
+    var url = "{% url 'analysis:generate_job_matches' %}" + (forceRefresh ? '?refresh=true' : '');
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (!data.success) {
+          if (data.error === 'not_enough_data' || data.error === 'ai_failed') {
+            var msg = document.getElementById('job-matches-empty-message');
+            if (msg && data.message) { msg.textContent = data.message; }
+            showMatchesState('empty');
+          } else {
+            showMatchesState('error');
+          }
+          return;
+        }
+        renderMatches(data.matches || [], data.cached === true);
+      })
+      .catch(function(err) {
+        console.error('Job matches fetch error:', err);
+        showMatchesState('error');
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() { loadJobMatches(false); });
 </script>
 {% endblock %}

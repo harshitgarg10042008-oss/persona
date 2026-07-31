@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Any additional scroll-based animations can go here
     }, 16)); // ~60fps
     
-    console.log('🎉 Persona enhanced interactions loaded!');
+
 });
 
 // Loading animation

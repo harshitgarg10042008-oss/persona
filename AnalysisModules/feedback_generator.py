@@ -1546,3 +1546,82 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose 
     except Exception as exc:
         logger.exception('generate_communication_analysis failed')
         return None
+
+def generate_job_matches(candidate_context: str, available_jobs: list) -> Optional[list]:
+    """
+    Generate a ranked list of job roles that are a good match for the candidate.
+    candidate_context: A summary of the candidate's resume and interview performance.
+    available_jobs: A list of available job titles to choose from.
+    """
+    if not candidate_context or not available_jobs:
+        return None
+
+    jobs_str = "\n".join(f"- {j}" for j in available_jobs)
+    
+    prompt = f"""
+You are an expert career advisor. Based on the candidate's profile and assessment history, recommend the top 3-5 job roles from the available list that are the best match for them.
+
+Candidate Profile & Assessment History:
+{candidate_context}
+
+Available Job Roles:
+{jobs_str}
+
+Return ONLY valid JSON as a list of objects. Each object must have:
+- job_title: The exact name of the job title from the available list
+- match_score: A number from 0 to 100 representing how good of a match this is
+- reason: A brief 1-2 sentence explanation of why this role matches their strengths and profile
+
+Example format:
+[
+  {{
+    "job_title": "Software Engineer",
+    "match_score": 92,
+    "reason": "The candidate has strong programming skills and their assessment highlighted excellent problem-solving abilities."
+  }}
+]
+"""
+
+    try:
+        text = _call_groq(prompt, timeout=40)
+        if not text:
+            print('[WARN] generate_job_matches: Groq returned empty content')
+            return None
+
+        # Strip markdown fences if present
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        matches = json.loads(cleaned)
+
+        if not isinstance(matches, list):
+            print('[WARN] generate_job_matches: JSON is not a list')
+            return None
+        
+        # Unescape and validate
+        valid_matches = []
+        for m in matches:
+            if not isinstance(m, dict): continue
+            if 'job_title' not in m or 'match_score' not in m or 'reason' not in m: continue
+            
+            try:
+                score = int(m['match_score'])
+            except ValueError:
+                score = 0
+
+            valid_matches.append({
+                'job_title': html.unescape(str(m['job_title'])),
+                'match_score': score,
+                'reason': html.unescape(str(m['reason']))
+            })
+            
+        # Sort by match_score descending just in case the LLM didn't
+        valid_matches.sort(key=lambda x: x['match_score'], reverse=True)
+        return valid_matches[:5]
+
+    except json.JSONDecodeError as exc:
+        print(f'[ERROR] generate_job_matches: JSON parse failed: {exc}')
+        return None
+    except Exception as exc:
+        print(f'[ERROR] generate_job_matches failed: {type(exc).__name__}: {exc}')
+        return None

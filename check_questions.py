@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'PersonaBackend.settings')
 django.setup()
 
-from AnalysisModules.AnalysisAPI.models import PlatformQuestion
+from AnalysisAPI.models import PlatformQuestion
 from django.db.models import Count
 
 print(f'Total questions: {PlatformQuestion.objects.count()}')

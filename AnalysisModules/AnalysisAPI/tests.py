@@ -36,7 +36,8 @@ class FeedbackGeneratorTests(SimpleTestCase):
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from AnalysisModules.AnalysisAPI.models import PlatformJobTitle, IndividualAssessment, IndividualAssessmentResponse, PlatformQuestion
+from AnalysisAPI.models import PlatformJobTitle, IndividualAssessment, IndividualAssessmentResponse, PlatformQuestion
+from UserAPI.models import BusinessUser, IndividualUser
 
 User = get_user_model()
 

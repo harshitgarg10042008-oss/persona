@@ -101,4 +101,7 @@ urlpatterns = [
     path('linkedin-post/<int:post_id>/delete/', views.delete_linkedin_post, name='delete_linkedin_post'),
     path('resume-reviewer/<int:review_id>/delete/', views.delete_resume_review, name='delete_resume_review'),
     path('cover-letter/<int:letter_id>/delete/', views.delete_cover_letter, name='delete_cover_letter'),
+    path('job-matches/generate/', views.generate_job_matches_api, name='generate_job_matches'),
+
+
 ]

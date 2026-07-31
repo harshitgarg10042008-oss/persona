@@ -4097,3 +4097,100 @@ def delete_cover_letter(request, letter_id):
     letter.delete()
     return JsonResponse({'success': True})
 
+@login_required
+def generate_job_matches_api(request):
+    """Feature #19 — AI Job Matching API endpoint.
+    
+    Returns a ranked list of job roles that best match this candidate,
+    derived from their latest resume review + up to 3 recent assessments.
+    Caches the result keyed on a data-hash so Groq is only re-called when
+    the underlying data has actually changed (or the user forces a refresh).
+    """
+    import json as _json
+    from django.http import JsonResponse
+    from django.core.cache import cache
+    from AnalysisAPI.models import ResumeReview, IndividualAssessment, PlatformJobTitle
+    from AnalysisModules.feedback_generator import generate_job_matches
+    import logging
+    logger = logging.getLogger(__name__)
+
+    user = request.user
+    force_refresh = request.GET.get('refresh', 'false').lower() == 'true'
+
+    try:
+        latest_resume = ResumeReview.objects.filter(user=user).order_by('-created_at').first()
+        latest_assessments = list(
+            IndividualAssessment.objects.filter(user=user, status='completed').order_by('-created_at')[:3]
+        )
+        
+        # Empty state: no data at all — do not call Groq
+        if not latest_resume and not latest_assessments:
+            return JsonResponse({
+                'success': False, 
+                'error': 'not_enough_data',
+                'message': 'Complete an assessment or upload a resume to see your personalised job matches.'
+            }, status=200)  # 200 so the frontend can display the friendly message cleanly
+
+        # Build a deterministic hash from the IDs of the data we are using.
+        # If this hash matches the cached entry we skip the Groq call.
+        data_hash = (
+            f"res_{latest_resume.id if latest_resume else 'none'}"
+            f"_ast_{'_'.join(str(a.id) for a in latest_assessments)}"
+        )
+        cache_key = f"user_{user.id}_job_matches_v1"
+        
+        if not force_refresh:
+            cached_data = cache.get(cache_key)
+            if cached_data and cached_data.get('data_hash') == data_hash:
+                return JsonResponse({'success': True, 'matches': cached_data['matches'], 'cached': True})
+
+        # Build the candidate context string for the Groq prompt
+        context_lines = []
+        if latest_resume:
+            context_lines.append(f"Resume Review Score: {latest_resume.overall_score}/100")
+            if latest_resume.feedback:
+                context_lines.append(f"Resume Feedback: {_json.dumps(latest_resume.feedback)[:500]}")
+                
+        if latest_assessments:
+            context_lines.append("Recent Interview Assessments:")
+            for a in latest_assessments:
+                context_lines.append(f"- Role: {a.platform_job_title.title}, Score: {a.overall_score}/100")
+                if a.ai_coach_strengths:
+                    context_lines.append(f"  Strengths: {', '.join(a.ai_coach_strengths[:3])}")
+                if a.ai_coach_weaknesses:
+                    context_lines.append(f"  Weaknesses: {', '.join(a.ai_coach_weaknesses[:3])}")
+                if a.skill_gap_analysis and isinstance(a.skill_gap_analysis, dict):
+                    gaps = a.skill_gap_analysis.get('gaps', [])
+                    if gaps:
+                        context_lines.append(f"  Skill Gaps: {', '.join(g.get('skill','') for g in gaps[:3] if isinstance(g,dict))}")
+                    
+        candidate_context = "\n".join(context_lines)
+        
+        jobs = list(PlatformJobTitle.objects.filter(is_active=True).values_list('title', flat=True))
+        if not jobs:
+            logger.error("generate_job_matches_api: no active PlatformJobTitle records found")
+            return JsonResponse({'success': False, 'error': 'no_job_titles', 'message': 'No active job titles found on the platform.'}, status=500)
+            
+        matches = generate_job_matches(candidate_context, jobs)
+        if not matches:
+            logger.warning("generate_job_matches_api: generate_job_matches returned None/empty")
+            return JsonResponse({
+                'success': False, 
+                'error': 'ai_failed',
+                'message': 'We could not generate job matches right now. Please try again in a moment.'
+            }, status=200)  # 200 so the UI shows the message rather than treating it as a network failure
+            
+        result_data = {'data_hash': data_hash, 'matches': matches}
+        cache.set(cache_key, result_data, timeout=86400 * 7)  # Cache for 7 days
+        
+        return JsonResponse({'success': True, 'matches': matches, 'cached': False})
+        
+    except Exception as exc:
+        import traceback as _tb
+        logger.error(f"generate_job_matches_api: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
