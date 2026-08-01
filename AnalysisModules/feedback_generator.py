@@ -329,6 +329,47 @@ Return ONLY a JSON array of strings, with no additional explanation.
         return []
 
 
+def generate_panel_synthesis_summary(panel_session_data: dict) -> str:
+    """
+    Feature #25 — Generate a synthesis summary for a panel interview.
+    Combines perspectives from multiple personas and calls out significant divergences.
+    """
+    aggregated_score = panel_session_data.get('aggregated_score')
+    persona_scores = panel_session_data.get('persona_scores', {})
+    persona_roster = panel_session_data.get('persona_roster', {})
+    
+    # Build context for each persona's verdict
+    verdicts = []
+    for pid, score in persona_scores.items():
+        name = persona_roster.get(pid, {}).get('name', pid)
+        verdicts.append(f"- {name}: score={score}/10")
+        
+    prompt = f"""
+You are an expert HR coordinator synthesizing feedback from a panel interview.
+The panel consisted of multiple interviewers with different personas.
+
+Aggregated Panel Score: {aggregated_score}/10
+
+Individual Panelist Verdicts:
+{chr(10).join(verdicts)}
+
+Your task:
+1. Write a single, coherent piece of feedback (2-3 paragraphs) that synthesizes the different personas' perspectives.
+2. Explicitly call out if personas' assessments diverged significantly (e.g., one scored high while another scored low).
+3. The tone should be professional, objective, and constructive.
+4. Read as one coherent piece of feedback, not just a list of summaries.
+
+Return ONLY the feedback text. No preamble, no quotes.
+"""
+    try:
+        text = _call_groq(prompt)
+        if text:
+            return text.strip()
+    except Exception as exc:
+        logger.warning('generate_panel_synthesis_summary failed: %s', exc)
+        
+    return "A synthesis of the panel's feedback is currently unavailable."
+
 def generate_feedback_summary(scores: dict, per_question_evaluations: list) -> str:
     """Generate a concise, encouraging feedback paragraph for the full assessment."""
     overall_score = scores.get('overall_score')

@@ -21,6 +21,97 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def _calculate_panel_results(assessment):
+    """Calculate per-persona scores and aggregated verdict for a panel session"""
+    from .models import PanelSession, PanelPersonaScore, IndividualAssessmentResponse
+    
+    try:
+        panel_session = assessment.panel_session
+    except PanelSession.DoesNotExist:
+        return None
+
+    responses = assessment.responses.all()
+    persona_scores = {}
+    
+    from .voice_interviewer import PERSONAS
+    
+    for pid in panel_session.personas:
+        persona_responses = responses.filter(interviewer_persona_id=pid)
+        if persona_responses.exists():
+            scores = []
+            for resp in persona_responses:
+                eval_data = resp.analysis_data.get('content_evaluation', {})
+                score = eval_data.get('content_correctness_score')
+                if score is not None:
+                    scores.append(score)
+            
+            if scores:
+                avg_score = sum(scores) / len(scores)
+                # Store or update per-persona score
+                PanelPersonaScore.objects.update_or_create(
+                    panel_session=panel_session,
+                    persona_id=pid,
+                    defaults={
+                        'score': avg_score,
+                        'feedback': f"Evaluated based on {len(scores)} questions."
+                    }
+                )
+                persona_scores[pid] = avg_score
+
+    # Aggregated score (simple average as per requirements)
+    if persona_scores:
+        panel_session.aggregated_score = sum(persona_scores.values()) / len(persona_scores)
+        
+        # Check for synthesis cache
+        import hashlib
+        # Build data hash from persona scores
+        hash_input = f"{assessment.id}_{sorted(persona_scores.items())}"
+        data_hash = hashlib.md5(hash_input.encode('utf-8')).hexdigest()
+        
+        if panel_session.data_hash != data_hash:
+            from AnalysisModules.feedback_generator import generate_panel_synthesis_summary
+            
+            panel_data = {
+                'aggregated_score': panel_session.aggregated_score,
+                'persona_scores': persona_scores,
+                'persona_roster': PERSONAS
+            }
+            panel_session.ai_synthesis_summary = generate_panel_synthesis_summary(panel_data)
+            panel_session.ai_synthesis_cached_at = timezone.now()
+            panel_session.data_hash = data_hash
+            
+        panel_session.save()
+    
+    return panel_session
+
+def _get_interviewer_persona(assessment, question_index, is_follow_up, user):
+    """Helper to get the persona for a question based on interview mode"""
+    from .voice_interviewer import PERSONAS
+    from UserAPI.models import UserInterviewerPreference
+    
+    if assessment.interview_mode == 'panel':
+        try:
+            panel_session = assessment.panel_session
+            personas = panel_session.personas
+            if not personas:
+                return UserInterviewerPreference.objects.get_or_create(user=user)[0].persona_id
+
+            if is_follow_up:
+                # Reuse the persona from the last response
+                last_response = IndividualAssessmentResponse.objects.filter(
+                    assessment=assessment
+                ).order_by('-created_at').first()
+                if last_response and last_response.interviewer_persona_id:
+                    return last_response.interviewer_persona_id
+            
+            # Rotation: persona index = question_index % num_personas
+            return personas[question_index % len(personas)]
+        except Exception:
+            # Fallback to default persona if panel session is missing
+            return UserInterviewerPreference.objects.get_or_create(user=user)[0].persona_id
+    else:
+        return UserInterviewerPreference.objects.get_or_create(user=user)[0].persona_id
+
 def _sanitize_for_json(obj):
     """Recursively convert numpy scalar types to native Python types for JSON serialization."""
     if hasattr(obj, 'item') and hasattr(obj, 'dtype'):
@@ -943,13 +1034,70 @@ def individual_assessment_mode_submit(request, session_id):
     )
 
     interview_mode = request.POST.get('interview_mode')
-    if interview_mode not in ['hr', 'technical', 'managerial', 'stress', 'rapid_fire']:
+    if interview_mode not in ['hr', 'technical', 'managerial', 'stress', 'rapid_fire', 'panel']:
         messages.error(request, "Invalid interview mode selected.")
         return redirect('analysis:individual_assessment_mode_select', session_id=session_id)
 
     # Save the selected mode
     assessment.interview_mode = interview_mode
     assessment.save(update_fields=['interview_mode'])
+
+    if interview_mode == 'panel':
+        return redirect('analysis:panel_selection', session_id=session_id)
+
+    return redirect('analysis:individual_assessment_company_select', session_id=session_id)
+
+@login_required
+def panel_selection(request, session_id):
+    """Selection page for panel interviewers"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+    
+    if assessment.interview_mode != 'panel':
+        return redirect('analysis:individual_assessment_mode_select', session_id=session_id)
+
+    from .voice_interviewer import PERSONAS
+    
+    context = {
+        'assessment': assessment,
+        'job_title': assessment.platform_job_title,
+        'personas': PERSONAS,
+    }
+    return render(request, 'analysis/panel_selection.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def panel_submit(request, session_id):
+    """Handle panel selection submission"""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='pending'
+    )
+
+    selected_personas = request.POST.getlist('personas')
+    
+    if len(selected_personas) < 2 or len(selected_personas) > 3:
+        messages.error(request, "Please select 2 or 3 personas for the panel.")
+        return redirect('analysis:panel_selection', session_id=session_id)
+
+    from .voice_interviewer import PERSONAS
+    for pid in selected_personas:
+        if pid not in PERSONAS:
+            messages.error(request, f"Invalid persona selected: {pid}")
+            return redirect('analysis:panel_selection', session_id=session_id)
+
+    # Create PanelSession
+    from .models import PanelSession
+    PanelSession.objects.update_or_create(
+        assessment=assessment,
+        defaults={'personas': selected_personas}
+    )
 
     return redirect('analysis:individual_assessment_company_select', session_id=session_id)
 
@@ -1313,9 +1461,8 @@ def individual_assessment_question(request, session_id):
             # No more questions, complete the assessment
             return redirect('analysis:complete_individual_assessment', session_id=session_id)
             
-    from UserAPI.models import UserInterviewerPreference
     from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
-    persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+    persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, is_follow_up, request.user)
     audio_url = generate_question_audio(current_question.question_text, persona_id, session_id) if current_question else None
     persona_avatar = get_persona_avatar(persona_id)
     persona_name = PERSONAS.get(persona_id, {}).get('name', 'Interviewer')
@@ -1481,6 +1628,7 @@ def submit_assessment_response(request, session_id):
         # Handle skip
         if data.get('skipped'):
             if not is_answering_follow_up:
+                persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
                 IndividualAssessmentResponse.objects.create(
                     assessment=assessment,
                     question=current_question,
@@ -1490,6 +1638,7 @@ def submit_assessment_response(request, session_id):
                     response_ended_at=timezone.now(),
                     response_duration=0,
                     time_to_start=0,
+                    interviewer_persona_id=persona_id,
                     analysis_data={
                         'skipped': True,
                         'skip_reason': data.get('skip_reason', 'user_skipped'),
@@ -1523,10 +1672,9 @@ def submit_assessment_response(request, session_id):
                     next_q_type_display = next_q.get_question_type_display() if next_q else ""
                     next_q_is_mandatory = next_q.is_mandatory if next_q else False
                     
-                from UserAPI.models import UserInterviewerPreference
                 from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
-                persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
-                audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
+                next_persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, is_follow_up, request.user)
+                audio_url = generate_question_audio(next_q_text, next_persona_id, session_id) if next_q_text else None
                     
                 response_data['next_question'] = {
                     'is_follow_up': is_follow_up,
@@ -1537,9 +1685,9 @@ def submit_assessment_response(request, session_id):
                     'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                     'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                     'audio_url': audio_url,
-                    'persona_avatar': get_persona_avatar(persona_id),
-                    'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
-                    'persona_id': persona_id,
+                    'persona_avatar': get_persona_avatar(next_persona_id),
+                    'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
+                    'persona_id': next_persona_id,
                     'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                 }
             return JsonResponse(response_data)
@@ -1557,6 +1705,7 @@ def submit_assessment_response(request, session_id):
             )
             response = None
         else:
+            persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
             response = IndividualAssessmentResponse.objects.create(
                 assessment=assessment,
                 question=current_question,
@@ -1567,7 +1716,8 @@ def submit_assessment_response(request, session_id):
                 # FormData sends all values as strings (e.g. "10.482"); parse through
                 # float() first so fractional-second values don't crash the PositiveIntegerField.
                 response_duration=int(float(data.get('response_duration', 0) or 0)),
-                time_to_start=int(float(data.get('time_to_start', 0) or 0))
+                time_to_start=int(float(data.get('time_to_start', 0) or 0)),
+                interviewer_persona_id=persona_id
             )
         
         # Process video/audio if provided
@@ -2550,12 +2700,21 @@ def complete_individual_assessment(request, session_id):
     if request.session.get('active_placement_drive_id'):
         return redirect('analysis:placement_drive_advance')
 
+    # Feature #25 — Panel data for result screen
+    panel_session = None
+    if assessment.interview_mode == 'panel':
+        try:
+            panel_session = assessment.panel_session
+        except:
+            pass
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
         'responses': responses,
         'snapshots': snapshots,
         'ai_feedback_summary': ai_feedback_summary,
+        'panel_session': panel_session,
         'duration_seconds': int((assessment.completed_at - assessment.started_at).total_seconds()) if assessment.completed_at and assessment.started_at else 0,
         'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
         'confidence_chart_json': confidence_chart_json,

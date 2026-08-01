@@ -1,0 +1,186 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Select Your Panel - {{ job_title.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .persona-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+    position: relative;
+  }
+
+  .persona-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .persona-card.selected {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+
+  .persona-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    object-fit: cover;
+    border: 3px solid #f3f4f6;
+  }
+
+  .persona-card.selected .persona-avatar {
+    border-color: #3b82f6;
+  }
+
+  .persona-name {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 8px;
+    color: #1f2937;
+  }
+
+  .persona-description {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .selection-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 10;
+  }
+
+  .persona-card.selected .selection-badge {
+    display: flex;
+  }
+
+  .panel-count {
+    background-color: #3b82f6;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+  <!-- Header -->
+  <div class="text-center mb-12">
+    <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+      Assemble Your Interview Panel
+    </h1>
+    <p class="text-lg text-gray-600 dark:text-gray-400">
+      Select <strong>2 to 3 interviewers</strong> to form your panel for the
+      <strong>{{ job_title.title }}</strong> session.
+    </p>
+    <div class="mt-4">
+      <span id="selection-status" class="text-sm font-medium text-gray-500">
+        Selected: <span id="selected-count" class="panel-count">0</span> / 3
+      </span>
+    </div>
+  </div>
+
+  <!-- Persona Selection Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+    {% for pid, persona in personas.items %}
+    <div class="persona-card" data-persona-id="{{ pid }}" onclick="togglePersona('{{ pid }}')">
+      <div class="selection-badge" id="badge-{{ pid }}">✓</div>
+      <img src="{{ persona.avatar }}" alt="{{ persona.name }}" class="persona-avatar">
+      <h2 class="persona-name">{{ persona.name }}</h2>
+      <p class="persona-description">{{ persona.description }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Actions -->
+  <div class="text-center">
+    <form id="panel-form" method="POST" action="{% url 'analysis:panel_submit' session_id=assessment.session_id %}">
+      {% csrf_token %}
+      <div id="hidden-inputs"></div>
+      
+      <div class="flex flex-col items-center space-y-4">
+        <button type="submit" id="start-btn" disabled
+          class="bg-blue-600 text-white px-10 py-4 rounded-lg hover:bg-blue-700 transition-colors font-bold text-xl opacity-50 cursor-not-allowed">
+          Confirm Panel Selection
+        </button>
+        
+        <a href="{% url 'analysis:individual_assessment_mode_select' session_id=assessment.session_id %}" 
+           class="text-blue-600 hover:underline font-medium">
+          ← Back to Mode Selection
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let selectedPersonas = new Set();
+
+  function togglePersona(pid) {
+    const card = document.querySelector(`[data-persona-id="${pid}"]`);
+    
+    if (selectedPersonas.has(pid)) {
+      selectedPersonas.delete(pid);
+      card.classList.remove('selected');
+    } else {
+      if (selectedPersonas.size >= 3) {
+        // Could add a toast message here
+        return;
+      }
+      selectedPersonas.add(pid);
+      card.classList.add('selected');
+    }
+
+    updateUI();
+  }
+
+  function updateUI() {
+    const count = selectedPersonas.size;
+    document.getElementById('selected-count').textContent = count;
+    
+    const startBtn = document.getElementById('start-btn');
+    const hiddenInputs = document.getElementById('hidden-inputs');
+    
+    // Clear hidden inputs
+    hiddenInputs.innerHTML = '';
+    
+    // Enable/disable button
+    if (count >= 2 && count <= 3) {
+      startBtn.disabled = false;
+      startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      
+      // Add hidden inputs for form submission
+      selectedPersonas.forEach(pid => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'personas';
+        input.value = pid;
+        hiddenInputs.appendChild(input);
+      });
+    } else {
+      startBtn.disabled = true;
+      startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+</script>
+{% endblock %}
