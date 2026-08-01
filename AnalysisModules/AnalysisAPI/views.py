@@ -1025,7 +1025,7 @@ def individual_dashboard(request):
 @login_required
 @requires_interview_slot('ai_interview')
 def start_individual_assessment(request):
-    """Start a new individual assessment (gated: 1/month for free users)"""
+    """Start a new individual assessment (gated: 2/month for free users)"""
     if request.method == 'POST':
         job_title_id = request.POST.get('job_title_id')
         
