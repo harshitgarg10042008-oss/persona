@@ -901,8 +901,16 @@
         {% endif %}
       </div>
 
-      <div class="question-audio-controls flex items-center justify-between mb-2">
+      <div class="question-audio-controls flex items-center justify-between mb-3">
         <audio id="question-audio" src="{{ audio_url|default:'' }}" preload="auto" style="display: none"></audio>
+        <!-- Feature #23: Interviewer Avatar Display -->
+        <div id="interviewer-avatar-container" class="flex items-center gap-3">
+          <img id="interviewer-avatar" src="{{ persona_avatar|default:'' }}" alt="{{ persona_name|default:'Interviewer' }}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400" onerror="this.style.display='none'" />
+          <div>
+            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ persona_name|default:'Interviewer' }}</span>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Asking the question…</p>
+          </div>
+        </div>
         <div class="flex items-center space-x-2">
           <button id="replay-audio-btn" class="text-gray-400 hover:text-indigo-500 transition-colors"
             title="Replay Question" style="display: none">
@@ -1761,6 +1769,21 @@
       } else {
         audioEl.src = '';
         replayBtn.style.display = 'none';
+      }
+    }
+
+    // Feature #23: Update interviewer avatar for the next question
+    const avatarImg = document.getElementById('interviewer-avatar');
+    const avatarContainer = document.getElementById('interviewer-avatar-container');
+    const interviewerName = document.getElementById('interviewer-name');
+    if (avatarContainer && next_question.persona_avatar) {
+      if (avatarImg) {
+        avatarImg.src = next_question.persona_avatar;
+        avatarImg.style.display = '';
+        avatarImg.alt = next_question.persona_name || 'Interviewer';
+      }
+      if (interviewerName) {
+        interviewerName.textContent = next_question.persona_name || 'Interviewer';
       }
     }
 

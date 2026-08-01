@@ -599,14 +599,18 @@
         data.personas.forEach(p => {
           const isSelected = p.id === data.current_preference;
           const selectedClass = isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700';
+          const avatarUrl = p.avatar || '';
           
           list.innerHTML += `
             <div class="persona-card border rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-all ${selectedClass}" onclick="savePersona('${p.id}')">
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-gray-800 dark:text-gray-100">${p.name}</h3>
+              <div class="flex items-center gap-3 mb-3">
+                <img src="${avatarUrl}" alt="${p.name} avatar" class="w-14 h-14 rounded-full object-cover border-2 ${isSelected ? 'border-blue-500' : 'border-gray-200 dark:border-gray-600'}" onerror="this.style.display='none'" />
+                <div class="flex-1">
+                  <h3 class="font-bold text-gray-800 dark:text-gray-100">${p.name}</h3>
+                </div>
                 ${isSelected ? '<span class="text-blue-600 text-xs font-bold px-2 py-1 bg-blue-100 rounded-full">Selected</span>' : ''}
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">${p.description}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${p.description}</p>
             </div>
           `;
         });
