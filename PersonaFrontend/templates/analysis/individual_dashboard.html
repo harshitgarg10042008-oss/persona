@@ -361,12 +361,19 @@
         {% endif %}
       </div>
       <div>
+        {% if subscription and subscription.is_premium %}
         <a href="{% url 'analysis:placement_drive_status' %}" class="placement-cta">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
           Mock Placement Drive
         </a>
+        {% else %}
+        <a href="{% url 'pricing_page' %}" class="placement-cta bg-gradient-to-r from-gray-400 to-gray-500 text-white opacity-70 hover:opacity-90">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          Premium Only
+        </a>
+        {% endif %}
       </div>
     </div>
 
@@ -422,7 +429,7 @@
         <h2>AI Analysis Modules</h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
               <i class="fas fa-tshirt text-white text-sm"></i>
@@ -432,12 +439,17 @@
               <p class="text-xs text-gray-500 dark:text-gray-400">AI attire analysis</p>
             </div>
           </div>
-          <span class="status-badge {% if analysis_status.attire_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
-            {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
-          </span>
+          <div class="flex items-center gap-2">
+            {% if subscription and not subscription.is_premium %}
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            {% endif %}
+            <span class="status-badge {% if analysis_status.attire_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+              {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
+            </span>
+          </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
               <i class="fas fa-hand-paper text-white text-sm"></i>
@@ -447,9 +459,14 @@
               <p class="text-xs text-gray-500 dark:text-gray-400">Posture & eye contact</p>
             </div>
           </div>
-          <span class="status-badge {% if analysis_status.body_language_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
-            {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
-          </span>
+          <div class="flex items-center gap-2">
+            {% if subscription and not subscription.is_premium %}
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            {% endif %}
+            <span class="status-badge {% if analysis_status.body_language_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+              {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
+            </span>
+          </div>
         </div>
 
         <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
@@ -694,7 +711,17 @@
     </div>
 
     <!-- ── Feature #21: AI Career Mentor ──────────────────── -->
-    <div id="career-mentor-card" class="glass-card p-6 mb-8">
+    <div id="career-mentor-card" class="glass-card p-6 mb-8 relative">
+      {% if subscription and not subscription.is_premium %}
+      <div class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+        <div class="text-center">
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <p class="text-gray-700 dark:text-gray-300 font-semibold mb-2">Premium Feature</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">AI Career Mentor requires a Premium subscription.</p>
+          <a href="{% url 'pricing_page' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade to Premium</a>
+        </div>
+      </div>
+      {% endif %}
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg">
@@ -785,7 +812,17 @@
     </div>
 
     <!-- ── Feature #26: AI Recruiter Dashboard ──────────── -->
-    <div class="glass-card p-6 mb-8">
+    <div class="glass-card p-6 mb-8 relative">
+      {% if subscription and not subscription.is_premium %}
+      <div class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+        <div class="text-center">
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <p class="text-gray-700 dark:text-gray-300 font-semibold mb-2">Premium Feature</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">AI Recruiter Dashboard requires a Premium subscription.</p>
+          <a href="{% url 'pricing_page' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade to Premium</a>
+        </div>
+      </div>
+      {% endif %}
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">

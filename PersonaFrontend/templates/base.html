@@ -99,6 +99,12 @@
           </button>
           
           {% if user.is_authenticated %}
+          <!-- Subscription Badge -->
+          {% if subscription and subscription.is_premium %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-sm tracking-wide">PREMIUM</span>
+          {% elif user.is_authenticated and subscription is None %}
+            <a href="{% url 'pricing_page' %}" class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-colors shadow-sm tracking-wide">GO PREMIUM</a>
+          {% endif %}
           <!-- Settings -->
           <a
             href="{% url 'user_settings' %}"
