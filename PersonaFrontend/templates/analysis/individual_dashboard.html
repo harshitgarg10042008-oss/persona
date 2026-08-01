@@ -826,57 +826,69 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
   /* ── Score Chart (Chart.js) ──────────────────────────────── */
   {% if chart_json %}
   (function() {
-    var data = {{ chart_json|safe }};
-    if (!data.labels || data.labels.length === 0) return;
-    var ctx = document.getElementById('scoreChart');
-    if (!ctx) return;
-    var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(102,126,234,0.2)');
-    gradient.addColorStop(1, 'rgba(102,126,234,0)');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.labels,
-        datasets: [{
-          label: 'Score',
-          data: data.scores,
-          borderColor: '#667eea',
-          backgroundColor: gradient,
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#667eea',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 5,
-          pointHoverRadius: 7
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(30,41,59,0.9)',
-            titleFont: { size: 13 },
-            bodyFont: { size: 13 },
-            padding: 10,
-            cornerRadius: 8
-          }
+    try {
+      var data = {{ chart_json|safe }};
+      if (!data.labels || data.labels.length === 0) return;
+      var ctx = document.getElementById('scoreChart');
+      if (!ctx) return;
+      var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0, 'rgba(102,126,234,0.2)');
+      gradient.addColorStop(1, 'rgba(102,126,234,0)');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'Score',
+            data: data.scores,
+            borderColor: '#667eea',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#667eea',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
+          }]
         },
-        scales: {
-          y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
-          x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(30,41,59,0.9)',
+              titleFont: { size: 13 },
+              bodyFont: { size: 13 },
+              padding: 10,
+              cornerRadius: 8
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.error("Chart initialization failed:", e);
+    }
   })();
   {% endif %}
+</script>
 
+<script>
+  /* ── Utilities & Personas ────────────────────────────────── */
   function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
   }
@@ -924,7 +936,9 @@
     document.querySelectorAll(".job-card").forEach(c => c.classList.remove("selected"));
     event.currentTarget.classList.add("selected");
   }
+</script>
 
+<script>
   /* ── Feature #20 – Placement Readiness ─────────────────── */
   function showReadinessState(state) {
     ['loading','empty','error','results'].forEach(s => document.getElementById('readiness-'+s).classList.add('hidden'));
@@ -981,7 +995,9 @@
       .catch(err => { console.error('Readiness fetch error:', err); showReadinessState('error'); });
   }
   document.addEventListener('DOMContentLoaded', function(){ loadReadiness(false); });
+</script>
 
+<script>
   /* ── Feature #19 – AI Job Matches ──────────────────────── */
   function showMatchesState(state) {
     ['loading','empty','error','results'].forEach(s => document.getElementById('job-matches-'+s).classList.add('hidden'));
@@ -1030,7 +1046,9 @@
       .catch(err => { console.error('Job matches fetch error:', err); showMatchesState('error'); });
   }
   document.addEventListener('DOMContentLoaded', function(){ loadJobMatches(false); });
+</script>
 
+<script>
   /* ── Feature #21 – AI Career Mentor ─────────────────────── */
   var mentorChatHistory = [];
   function getMentorCsrfToken() {
