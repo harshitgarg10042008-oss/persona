@@ -1548,9 +1548,8 @@ def submit_assessment_response(request, session_id):
                         next_q_type_display = next_q.get_question_type_display() if next_q else ""
                         next_q_is_mandatory = next_q.is_mandatory if next_q else False
                         
-                    from UserAPI.models import UserInterviewerPreference
                     from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
-                    persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+                    persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, is_follow_up, request.user)
                     audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                         
                     response_data['next_question'] = {
@@ -1607,6 +1606,10 @@ def submit_assessment_response(request, session_id):
                         next_q_type_display = next_q.get_question_type_display() if next_q else ""
                         next_q_is_mandatory = next_q.is_mandatory if next_q else False
                         
+                    from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
+                    next_persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, is_follow_up, request.user)
+                    next_audio_url = generate_question_audio(next_q_text, next_persona_id, session_id) if next_q_text else None
+                    
                     response_data['next_question'] = {
                         'is_follow_up': is_follow_up,
                         'question_text': next_q_text,
@@ -1615,6 +1618,10 @@ def submit_assessment_response(request, session_id):
                         'difficulty_level': assessment.current_difficulty,
                         'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                        'audio_url': next_audio_url,
+                        'persona_avatar': get_persona_avatar(next_persona_id),
+                        'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
+                        'persona_id': next_persona_id,
                         'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                     }
                 return JsonResponse(response_data)
@@ -2047,9 +2054,8 @@ def submit_assessment_response(request, session_id):
                 next_q_type_display = next_q.get_question_type_display() if next_q else ""
                 next_q_is_mandatory = next_q.is_mandatory if next_q else False
                 
-                from UserAPI.models import UserInterviewerPreference
                 from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
-                persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
+                persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, is_follow_up, request.user)
                 audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                 
             response_data['next_question'] = {
@@ -2700,10 +2706,11 @@ def complete_individual_assessment(request, session_id):
     if request.session.get('active_placement_drive_id'):
         return redirect('analysis:placement_drive_advance')
 
-    # Feature #25 — Panel data for result screen
+    # Feature #25 — Calculate panel results before loading for result screen
     panel_session = None
     if assessment.interview_mode == 'panel':
         try:
+            _calculate_panel_results(assessment)
             panel_session = assessment.panel_session
         except:
             pass
@@ -2763,6 +2770,15 @@ def download_assessment_report(request, session_id):
         per_question_evaluations,
     )
     
+    # Feature #25 — Panel data for PDF report
+    panel_session = None
+    if assessment.interview_mode == 'panel':
+        try:
+            _calculate_panel_results(assessment)
+            panel_session = assessment.panel_session
+        except:
+            pass
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -2770,6 +2786,7 @@ def download_assessment_report(request, session_id):
         'ai_feedback_summary': ai_feedback_summary,
         'per_question_evaluations': per_question_evaluations,
         'duration_minutes': int((assessment.completed_at - assessment.started_at).total_seconds() // 60) if assessment.completed_at and assessment.started_at else 0,
+        'panel_session': panel_session,
     }
     
     template = get_template('analysis/assessment_pdf_report.html')
