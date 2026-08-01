@@ -155,6 +155,7 @@ from AnalysisModules.feedback_generator import (
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
+from UserAPI.subscription import requires_premium, requires_institution, get_user_subscription_context
 
 # Import analysis modules with fallback
 try:
@@ -906,6 +907,7 @@ def _extract_resume_text(resume_file):
     raise ValueError('Unsupported resume format. Please upload a PDF or plain text file.')
 
 
+@login_required
 def individual_dashboard(request):
     """Dashboard for individual users to practice assessments"""
     if hasattr(request.user, 'business_profile'):
@@ -960,11 +962,15 @@ def individual_dashboard(request):
         'scores': chart_scores
     }
     
+    # Subscription tier context for dashboard badges and locked states
+    sub_context = get_user_subscription_context(request.user)
+    
     context = {
         'recent_assessments': recent_assessments,
         'job_titles': job_titles,
         'analysis_status': analysis_status,
         'chart_json': json.dumps(chart_data),
+        'subscription': sub_context,
     }
     return render(request, 'analysis/individual_dashboard.html', context)
 
@@ -1048,6 +1054,7 @@ def individual_assessment_mode_submit(request, session_id):
     return redirect('analysis:individual_assessment_company_select', session_id=session_id)
 
 @login_required
+@requires_premium('panel_interview')
 def panel_selection(request, session_id):
     """Selection page for panel interviewers"""
     assessment = get_object_or_404(
@@ -1070,6 +1077,7 @@ def panel_selection(request, session_id):
     return render(request, 'analysis/panel_selection.html', context)
 
 @login_required
+@requires_premium('panel_interview')
 @require_http_methods(["POST"])
 def panel_submit(request, session_id):
     """Handle panel selection submission"""
@@ -3540,10 +3548,17 @@ def download_achievement_badge(request, session_id):
 
 @login_required
 def export_institution_members_csv(request):
-    """Export institution members and their assessment results as CSV"""
+    """Export institution members and their assessment results as CSV (Institution only)."""
     if not hasattr(request.user, 'business_profile'):
         messages.error(request, "Access denied. Only business users can access this page.")
         return redirect('persona_frontend:home')
+    # Institution-only: check subscription tier
+    from UserAPI.subscription import _is_owner
+    if not _is_owner(request.user):
+        from UserAPI.models import InstitutionMembership
+        if not InstitutionMembership.objects.filter(business=request.user.business_profile, is_active=True).exists():
+            messages.info(request, "PDF/CSV export requires an active Institution subscription.")
+            return redirect('pricing_page')
     
     business_user = request.user.business_profile
     
@@ -4501,6 +4516,7 @@ def placement_readiness_api(request):
 # ---------------------------------------------------------------------------
 
 @login_required
+@requires_premium('ai_career_mentor')
 def career_mentor_generate_api(request):
     """Feature #21 — AI Career Mentor summary generation.
     
@@ -4547,6 +4563,7 @@ def career_mentor_generate_api(request):
 
 
 @login_required
+@requires_premium('ai_career_mentor')
 def career_mentor_chat_api(request):
     """Feature #21 — AI Career Mentor interactive chat.
     
@@ -4597,6 +4614,7 @@ def career_mentor_chat_api(request):
 
 
 @login_required
+@requires_premium('ai_career_mentor')
 def career_mentor_intake_api(request):
     """Feature #21 — Save/update the user's CareerIntake row.
     
@@ -4705,6 +4723,7 @@ def _generate_drive_feedback(drive):
         return "Feedback generation failed."
 
 @login_required
+@requires_premium('mock_placement_drive')
 def placement_drive_start(request):
     """Start a new Mock Placement Drive."""
     # Stage 1: Resume Screen
@@ -4747,6 +4766,7 @@ def placement_drive_start(request):
         return redirect('analysis:placement_drive_result', drive_id=drive.id)
 
 @login_required
+@requires_premium('mock_placement_drive')
 def placement_drive_status(request):
     """Dashboard for the active placement drive."""
     drive = PlacementDrive.objects.filter(user=request.user, final_outcome='in_progress').first()
@@ -4766,12 +4786,14 @@ def placement_drive_status(request):
     return render(request, 'analysis/placement_drive_dashboard.html', {'drive': drive})
 
 @login_required
+@requires_premium('mock_placement_drive')
 def placement_drive_result(request, drive_id):
     """Final result screen for a placement drive."""
     drive = get_object_or_404(PlacementDrive, id=drive_id, user=request.user)
     return render(request, 'analysis/placement_drive_result.html', {'drive': drive})
 
 @login_required
+@requires_premium('mock_placement_drive')
 def placement_drive_advance(request):
     """
     Orchestration hook to advance the drive stage after an assessment/interview completion.
@@ -4844,6 +4866,7 @@ def placement_drive_advance(request):
 # ---------------------------------------------------------------------------
 
 @login_required
+@requires_premium('ai_recruiter_dashboard')
 def recruiter_dashboard(request):
     """
     Main dashboard page — Part A: consolidated read-only data view.
@@ -4888,6 +4911,7 @@ def recruiter_dashboard(request):
 
 
 @login_required
+@requires_premium('ai_recruiter_dashboard')
 def recruiter_dashboard_generate_verdict(request):
     """
     Part B: Trigger AI recruiter verdict generation.

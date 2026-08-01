@@ -15,3 +15,12 @@ def dashboard_view(request):
     else:
         # Default to individual dashboard for any user
         return redirect('analysis:individual_dashboard')
+
+def pricing_page_view(request):
+    """Pricing page — show plans and upgrade CTA."""
+    context = {}
+    if request.user.is_authenticated:
+        from UserAPI.subscription import get_user_subscription_context, _is_owner
+        context['subscription'] = get_user_subscription_context(request.user)
+        context['is_owner'] = _is_owner(request.user)
+    return render(request, 'frontend/pricing.html', context)

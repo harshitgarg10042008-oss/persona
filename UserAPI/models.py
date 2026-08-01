@@ -103,3 +103,102 @@ class UserInterviewerPreference(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.persona_id}"
+class Institution(models.Model):
+    """B2B Institution account — universities, colleges, training providers."""
+    PLAN_CHOICES = [
+        ('monthly', 'Monthly'),
+        ('annual', 'Annual'),
+        ('enterprise', 'Enterprise'),
+    ]
+    name = models.CharField(max_length=255)
+    contact_email = models.EmailField()
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
+    seat_limit = models.IntegerField(
+        null=True, blank=True,
+        help_text='Max linked students. NULL = unlimited.'
+    )
+    subscription_expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Institutions'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_active(self):
+        if not self.subscription_expires_at:
+            return True
+        return self.subscription_expires_at > timezone.now()
+
+    @property
+    def has_unlimited_seats(self):
+        return self.seat_limit is None
+
+    def current_seat_count(self):
+        """Return number of active institution_member subscriptions."""
+        return SubscriptionTier.objects.filter(
+            institution=self,
+            tier='institution_member',
+            is_active=True
+        ).count()
+
+    def can_add_member(self):
+        """Check if institution can add another member."""
+        if self.seat_limit is None:
+            return True  # unlimited
+        return self.current_seat_count() < self.seat_limit
+
+
+class SubscriptionTier(models.Model):
+    """One-to-one tier assignment per user. Controls feature gating."""
+    TIER_CHOICES = [
+        ('free', 'Free'),
+        ('premium', 'Premium'),
+        ('institution_member', 'Institution Member'),
+    ]
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='subscription')
+    tier = models.CharField(max_length=20, choices=TIER_CHOICES, default='free')
+    premium_expires_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When premium expires. NULL = free tier or lifetime premium.'
+    )
+    institution = models.ForeignKey(
+        Institution, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='member_subscriptions'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Subscription Tier'
+        verbose_name_plural = 'Subscription Tiers'
+
+    def __str__(self):
+        return f"{self.user.email} — {self.get_tier_display()}"
+
+    @property
+    def is_premium(self):
+        """Premium if tier is premium (and not expired) or institution_member."""
+        if self.tier == 'institution_member':
+            return self.is_active and self.institution and self.institution.is_active
+        if self.tier == 'premium':
+            if not self.is_active:
+                return False
+            if self.premium_expires_at is None:
+                return True  # lifetime premium
+            return self.premium_expires_at > timezone.now()
+        return False
+
+    @property
+    def is_free(self):
+        return self.tier == 'free' or not self.is_premium
+
+    @property
+    def is_institution_member(self):
+        return self.tier == 'institution_member'

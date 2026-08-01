@@ -246,3 +246,12 @@ CSP_FRAME_SRC = ("'self'",)
 
 # Email Backend for Password Reset (Console for local testing)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# ─── Subscription / Feature Gating ─────────────────────────────────────────
+# Emails that bypass ALL subscription checks (project owner / admin).
+# Set this via .env SUBSCRIPTION_OWNER_EMAILS (comma-separated).
+SUBSCRIPTION_OWNER_EMAILS = config(
+    'SUBSCRIPTION_OWNER_EMAILS',
+    default='',
+    cast=lambda v: [e.strip() for e in v.split(',') if e.strip()] if v else []
+)

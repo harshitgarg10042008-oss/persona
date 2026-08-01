@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Pricing — Choose Your Plan{% endblock %}
+{% block extra_css %}
+<style>
+  .pricing-bg {
+    background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
+    min-height: 100vh;
+  }
+  [data-theme="dark"] .pricing-bg {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
+  }
+  .pricing-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  [data-theme="dark"] .pricing-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+  .pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+  }
+  .pricing-card.featured {
+    border: 2px solid #667eea;
+    box-shadow: 0 0 0 1px rgba(102,126,234,0.1), 0 8px 32px -8px rgba(102,126,234,0.3);
+  }
+  .pricing-card.featured::before {
+    content: 'Most Popular';
+    position: absolute;
+    top: 1rem;
+    right: -2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.25rem 2.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transform: rotate(45deg);
+  }
+  .plan-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  [data-theme="dark"] .plan-name { color: #f1f5f9; }
+  .plan-price {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+  }
+  [data-theme="dark"] .plan-price { color: #f1f5f9; }
+  .plan-price span { font-size: 1rem; font-weight: 500; color: #64748b; }
+  .feature-list { list-style: none; padding: 0; margin: 1.5rem 0; }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  [data-theme="dark"] .feature-list li { color: #cbd5e1; }
+  .feature-list li svg { flex-shrink: 0; margin-top: 2px; }
+  .feature-included { color: #10b981; }
+  .feature-excluded { color: #ef4444; }
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 0.875rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+  }
+  .cta-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  .cta-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(102,126,234,0.5);
+  }
+  .cta-btn-outline {
+    background: transparent;
+    border: 2px solid #667eea;
+    color: #667eea;
+  }
+  .cta-btn-outline:hover {
+    background: rgba(102,126,234,0.05);
+  }
+  .cta-btn-disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+  .cta-btn-current {
+    background: #d1fae5;
+    color: #065f46;
+    cursor: default;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="pricing-bg">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">
+        Choose the plan that's right for you
+      </h1>
+      <p class="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+        Start free and upgrade as you grow. All plans include unlimited interview practice sessions.
+      </p>
+      {% if is_owner %}
+      <div class="mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-lg">
+        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.293z"/></svg>
+        You have full access — no payment needed
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Pricing Cards -->
+    <div class="grid md:grid-cols-3 gap-8">
+      <!-- Free Plan -->
+      <div class="pricing-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price mt-4">$0<span>/month</span></div>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Get started with core features</p>
+        <ul class="feature-list">
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>AI Interview practice (1 lifetime session)</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Resume analysis (Speech module only)</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>AI Job Matches (top 3 roles)</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Placement Readiness score</span>
+          </li>
+          <li>
+            <svg class="feature-excluded w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <span class="text-gray-400 dark:text-gray-500">AI Career Mentor</span>
+          </li>
+          <li>
+            <svg class="feature-excluded w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <span class="text-gray-400 dark:text-gray-500">Mock Placement Drive</span>
+          </li>
+          <li>
+            <svg class="feature-excluded w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <span class="text-gray-400 dark:text-gray-500">AI Recruiter Dashboard</span>
+          </li>
+        </ul>
+        {% if subscription and subscription.is_free and not is_owner %}
+        <button class="cta-btn cta-btn-current">Current Plan</button>
+        {% elif is_owner %}
+        <button class="cta-btn cta-btn-current">Full Access</button>
+        {% else %}
+        <a href="#upgrade" class="cta-btn cta-btn-outline">Upgrade Now</a>
+        {% endif %}
+      </div>
+
+      <!-- Premium Plan -->
+      <div class="pricing-card featured">
+        <div class="plan-name">Premium</div>
+        <div class="plan-price mt-4">$9.99<span>/month</span></div>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Unlock the full AI interview suite</p>
+        <ul class="feature-list">
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span><strong>Everything in Free</strong></span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Unlimited AI Interview sessions</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Full Resume analysis (Speech + Attire + Body Language)</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>AI Career Mentor with chat</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Mock Placement Drive</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Panel / Team Interview</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>AI Recruiter Dashboard + Verdict</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Voice Interviewer Personas + Avatars</span>
+          </li>
+        </ul>
+        {% if subscription and subscription.is_premium and not subscription.is_institution %}
+        <button class="cta-btn cta-btn-current">Current Plan</button>
+        {% elif is_owner %}
+        <button class="cta-btn cta-btn-current">Full Access</button>
+        {% else %}
+        <button class="cta-btn cta-btn-primary" disabled>Payment Coming Soon</button>
+        <p class="text-xs text-center text-gray-400 mt-2">Payment integration in progress</p>
+        {% endif %}
+      </div>
+
+      <!-- Institution Plan -->
+      <div class="pricing-card">
+        <div class="plan-name">Institution</div>
+        <div class="plan-price mt-4">Custom<span></span></div>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">For universities and colleges</p>
+        <ul class="feature-list">
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span><strong>Everything in Premium</strong></span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Batch/Cohort Dashboard</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Weak-area analytics across the batch</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>PDF/CSV export of results</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Unlimited or configurable seat limits</span>
+          </li>
+          <li>
+            <svg class="feature-included w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Dedicated support</span>
+          </li>
+        </ul>
+        {% if subscription and subscription.is_institution %}
+        <button class="cta-btn cta-btn-current">Current Plan</button>
+        {% elif is_owner %}
+        <button class="cta-btn cta-btn-current">Full Access</button>
+        {% else %}
+        <button class="cta-btn cta-btn-primary" disabled>Contact Sales</button>
+        <p class="text-xs text-center text-gray-400 mt-2">sales@persona.ai</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="mt-16 max-w-3xl mx-auto">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-50 text-center mb-8">Frequently Asked Questions</h2>
+      <div class="space-y-4">
+        <details class="group glass-card p-4">
+          <summary class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">What's included in the Free plan?</summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">The Free plan gives you 1 lifetime AI interview session, resume analysis (speech module only), top 3 AI job matches, and placement readiness score. Upgrade to Premium for unlimited access.</p>
+        </details>
+        <details class="group glass-card p-4">
+          <summary class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">How does the Premium plan work?</summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">Premium unlocks all features: unlimited interviews, full resume analysis (attire + body language), AI Career Mentor, Mock Placement Drive, Panel Interview, AI Recruiter Dashboard, and more.</p>
+        </details>
+        <details class="group glass-card p-4">
+          <summary class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">Is there an Institution plan?</summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">Yes! Institutions get everything in Premium plus batch analytics, weak-area reports, PDF/CSV exports, and configurable seat limits. Contact sales for custom pricing.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
