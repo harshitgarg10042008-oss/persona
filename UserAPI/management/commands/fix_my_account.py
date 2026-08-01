@@ -12,7 +12,6 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-User = get_user_model()
 OWNER_EMAIL = 'harshit77.edu@gmail.com'
 
 
@@ -20,6 +19,10 @@ class Command(BaseCommand):
     help = 'Clean database: keep only owner account, delete old assessments, set premium'
 
     def handle(self, *args, **options):
+        User = get_user_model()
+        from AnalysisAPI.models import IndividualAssessment, AssessmentSnapshot
+        from UserAPI.models import SubscriptionTier
+
         self.stdout.write("=" * 60)
         self.stdout.write("STEP 1: Clean up users")
         self.stdout.write("=" * 60)
@@ -55,11 +58,6 @@ class Command(BaseCommand):
         self.stdout.write("STEP 2: Delete all old assessments")
         self.stdout.write("=" * 60)
 
-        from AnalysisAPI.models import IndividualAssessment, AssessmentSnapshot
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        owner = User.objects.get(email=OWNER_EMAIL)
-
         # Delete snapshots first (foreign key dependency)
         snapshots_deleted = AssessmentSnapshot.objects.filter(assessment__user=owner).count()
         AssessmentSnapshot.objects.filter(assessment__user=owner).delete()
@@ -75,8 +73,6 @@ class Command(BaseCommand):
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write("STEP 3: Set lifetime Premium")
         self.stdout.write("=" * 60)
-
-        from UserAPI.models import SubscriptionTier
 
         try:
             sub = owner.subscription
