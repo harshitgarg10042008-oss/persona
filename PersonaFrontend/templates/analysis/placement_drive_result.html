@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mock Placement Drive - Final Result{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+        <!-- Result Header -->
+        <div class="p-8 text-center {% if drive.final_outcome == 'offer' %}bg-green-600 text-white{% else %}bg-gray-800 text-white{% endif %}">
+            {% if drive.final_outcome == 'offer' %}
+                <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-4xl">🎉</span>
+                </div>
+                <h1 class="text-4xl font-bold mb-2">Job Offer Secured!</h1>
+                <p class="text-green-100 text-lg">Outstanding performance across all stages.</p>
+            {% else %}
+                <div class="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-4xl">📋</span>
+                </div>
+                <h1 class="text-3xl font-bold mb-2">Drive Completed</h1>
+                <p class="text-gray-300 text-lg">
+                    {% if drive.final_outcome == 'eliminated_at_resume' %}
+                        Eliminated at Resume Screen
+                    {% elif drive.final_outcome == 'eliminated_at_assessment' %}
+                        Eliminated at Assessment
+                    {% elif drive.final_outcome == 'eliminated_at_interview' %}
+                        Eliminated at Interview
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="p-8">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Resume</p>
+                    <p class="text-xl font-bold {% if drive.stage_results.resume.passed %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ drive.stage_results.resume.score|stringformat:".1f" }}%
+                    </p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Assessment</p>
+                    <p class="text-xl font-bold {% if drive.stage_results.assessment.passed %}text-green-600{% elif 'assessment' in drive.stage_results %}text-red-600{% else %}text-gray-400{% endif %}">
+                        {% if 'assessment' in drive.stage_results %}{{ drive.stage_results.assessment.score|stringformat:".1f" }}%{% else %}N/A{% endif %}
+                    </p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Interview</p>
+                    <p class="text-xl font-bold {% if drive.stage_results.interview.passed %}text-green-600{% elif 'interview' in drive.stage_results %}text-red-600{% else %}text-gray-400{% endif %}">
+                        {% if 'interview' in drive.stage_results %}{{ drive.stage_results.interview.score|stringformat:".1f" }}%{% else %}N/A{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- AI Feedback Summary -->
+            <div class="mb-10">
+                <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Hiring Manager Feedback
+                </h3>
+                <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-6 rounded-2xl text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line">
+                    {{ drive.ai_feedback_summary }}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row gap-4 justify-center border-t border-gray-100 dark:border-gray-800 pt-8">
+                <a href="{% url 'analysis:placement_drive_start' %}" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-bold text-center">
+                    Try Again
+                </a>
+                <a href="{% url 'individual_dashboard' %}" class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-8 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-bold text-center">
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

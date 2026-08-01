@@ -47,7 +47,7 @@ from .models import (
     PlatformJobTitle, PlatformQuestion, IndividualAssessment, 
     IndividualAssessmentResponse, FollowUpResponse, AssessmentSnapshot,
     BusinessAssessmentResponse, BusinessAssessmentSnapshot, CompanyProfile,
-    ResumeReview, CoverLetter, LinkedInPost
+    ResumeReview, CoverLetter, LinkedInPost, PlacementDrive
 )
 from UserAPI.models import BusinessUser
 from AnalysisModules.feedback_generator import (
@@ -2546,6 +2546,10 @@ def complete_individual_assessment(request, session_id):
     # Get platform average for peer comparison
     platform_average = IndividualAssessment.get_platform_average_for_job(assessment.platform_job_title.id)
     
+    # Feature #24 hook: if this assessment was part of a placement drive, redirect to advance
+    if request.session.get('active_placement_drive_id'):
+        return redirect('analysis:placement_drive_advance')
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -4472,3 +4476,190 @@ def career_mentor_intake_api(request):
             'error': 'server_error',
             'message': 'An unexpected error occurred. Please try again later.'
         }, status=500)
+
+# ─── Feature #24 — Mock Placement Drive ───────────────────────────────────────
+
+def _generate_drive_feedback(drive):
+    """
+    Generate a professional AI feedback summary for the mock placement drive.
+    Reuses the Groq pattern from #21.
+    """
+    user = drive.user
+    results = drive.stage_results
+    
+    context = f"Candidate: {user.email}\n"
+    context += f"Outcome: {drive.get_final_outcome_display()}\n\n"
+    
+    if 'resume' in results:
+        res = results['resume']
+        context += f"STAGE 1: Resume Screen\n- Score: {res['score']}/100\n- Result: {'Passed' if res['passed'] else 'Eliminated'}\n"
+        if drive.resume_review:
+            context += f"- Feedback: {json.dumps(drive.resume_review.feedback)}\n"
+            
+    if 'assessment' in results:
+        ast = results['assessment']
+        context += f"\nSTAGE 2: Assessment\n- Score: {ast['score']}/100\n- Result: {'Passed' if ast['passed'] else 'Eliminated'}\n"
+        if drive.assessment:
+            context += f"- Strengths: {', '.join(drive.assessment.ai_coach_strengths or [])}\n"
+            context += f"- Weaknesses: {', '.join(drive.assessment.ai_coach_weaknesses or [])}\n"
+            
+    if 'interview' in results:
+        intv = results['interview']
+        context += f"\nSTAGE 3: Interview\n- Score: {intv['score']}/100\n- Result: {'Passed' if intv['passed'] else 'Eliminated'}\n"
+        if drive.interview:
+            context += f"- Persona: {drive.interview.interview_mode}\n"
+            context += f"- Strengths: {', '.join(drive.interview.ai_coach_strengths or [])}\n"
+            context += f"- Weaknesses: {', '.join(drive.interview.ai_coach_weaknesses or [])}\n"
+
+    prompt = (
+        "You are a senior hiring manager providing final feedback to a candidate after a Mock Placement Drive. "
+        "The drive consists of a Resume Screen, an Assessment, and an AI Interview. "
+        "Based on the following data, write a professional, encouraging, yet honest summary of their performance. "
+        "Focus on WHY they reached the stage they did and what they should focus on to secure a real offer next time. "
+        "The feedback should read like a real placement feedback report, not a score dump. "
+        "Keep it to 2-3 concise paragraphs.\n\n"
+        f"DATA:\n{context}"
+    )
+    
+    try:
+        feedback = _call_groq(prompt, timeout=45)
+        return feedback or "Feedback generation unavailable at this time."
+    except Exception as e:
+        logger.error(f"Failed to generate drive feedback: {e}")
+        return "Feedback generation failed."
+
+@login_required
+def placement_drive_start(request):
+    """Start a new Mock Placement Drive."""
+    # Stage 1: Resume Screen
+    latest_resume = ResumeReview.objects.filter(user=request.user).order_by('-created_at').first()
+    
+    if not latest_resume:
+        messages.info(request, "To start a Mock Placement Drive, you must first upload your resume for screening.")
+        return redirect('analysis:resume_reviewer_upload')
+
+    # Create drive
+    drive = PlacementDrive.objects.create(
+        user=request.user,
+        resume_review=latest_resume,
+        current_stage='resume'
+    )
+    
+    # Run Stage 1 logic
+    score = latest_resume.ats_score if latest_resume.ats_score is not None else (latest_resume.overall_score * 10)
+    passed = score >= 60
+    
+    drive.stage_results['resume'] = {
+        'score': score,
+        'passed': passed,
+        'review_id': latest_resume.id
+    }
+    
+    if passed:
+        drive.current_stage = 'assessment'
+        drive.save()
+        messages.success(request, "You passed the Resume Screen! Proceeding to the Assessment stage.")
+        request.session['active_placement_drive_id'] = drive.id
+        return redirect('analysis:placement_drive_status')
+    else:
+        drive.current_stage = 'completed'
+        drive.final_outcome = 'eliminated_at_resume'
+        drive.completed_at = timezone.now()
+        drive.ai_feedback_summary = _generate_drive_feedback(drive)
+        drive.ai_feedback_cached_at = timezone.now()
+        drive.save()
+        return redirect('analysis:placement_drive_result', drive_id=drive.id)
+
+@login_required
+def placement_drive_status(request):
+    """Dashboard for the active placement drive."""
+    drive = PlacementDrive.objects.filter(user=request.user, final_outcome='in_progress').first()
+    
+    if not drive:
+        # Check for last completed drive
+        drive = PlacementDrive.objects.filter(user=request.user).order_by('-created_at').first()
+        if not drive:
+            return render(request, 'analysis/placement_drive_dashboard.html', {'drive': None})
+        if drive.final_outcome != 'in_progress':
+            return redirect('analysis:placement_drive_result', drive_id=drive.id)
+
+    # Ensure session key is set if drive is active
+    if drive:
+        request.session['active_placement_drive_id'] = drive.id
+
+    return render(request, 'analysis/placement_drive_dashboard.html', {'drive': drive})
+
+@login_required
+def placement_drive_result(request, drive_id):
+    """Final result screen for a placement drive."""
+    drive = get_object_or_404(PlacementDrive, id=drive_id, user=request.user)
+    return render(request, 'analysis/placement_drive_result.html', {'drive': drive})
+
+@login_required
+def placement_drive_advance(request):
+    """
+    Orchestration hook to advance the drive stage after an assessment/interview completion.
+    """
+    drive_id = request.session.get('active_placement_drive_id')
+    if not drive_id:
+        return redirect('analysis:individual_dashboard')
+        
+    drive = get_object_or_404(PlacementDrive, id=drive_id, user=request.user)
+    
+    if drive.final_outcome != 'in_progress':
+        return redirect('analysis:placement_drive_result', drive_id=drive.id)
+    
+    # Check what just completed
+    if drive.current_stage == 'assessment':
+        # Find the latest completed assessment
+        latest_ast = IndividualAssessment.objects.filter(user=request.user, status='completed').order_by('-completed_at').first()
+        if latest_ast and (not drive.assessment or latest_ast.id != drive.assessment.id):
+            drive.assessment = latest_ast
+            score = latest_ast.overall_score or 0
+            passed = score >= 60
+            drive.stage_results['assessment'] = {
+                'score': score,
+                'passed': passed,
+                'assessment_id': latest_ast.id
+            }
+            if passed:
+                drive.current_stage = 'interview'
+                messages.success(request, "Great job! You passed the Assessment. Final Stage: AI Interview.")
+            else:
+                drive.current_stage = 'completed'
+                drive.final_outcome = 'eliminated_at_assessment'
+                drive.completed_at = timezone.now()
+                drive.ai_feedback_summary = _generate_drive_feedback(drive)
+                # Clear drive from session on failure
+                if 'active_placement_drive_id' in request.session:
+                    del request.session['active_placement_drive_id']
+            drive.save()
+            
+    elif drive.current_stage == 'interview':
+        # Find the latest completed interview
+        latest_intv = IndividualAssessment.objects.filter(user=request.user, status='completed').order_by('-completed_at').first()
+        if latest_intv and (not drive.interview or latest_intv.id != drive.interview.id):
+            drive.interview = latest_intv
+            score = latest_intv.overall_score or 0
+            passed = score >= 70
+            drive.stage_results['interview'] = {
+                'score': score,
+                'passed': passed,
+                'assessment_id': latest_intv.id
+            }
+            drive.current_stage = 'completed'
+            if passed:
+                drive.final_outcome = 'offer'
+                messages.success(request, "CONGRATULATIONS! You've received a Mock Job Offer!")
+            else:
+                drive.final_outcome = 'eliminated_at_interview'
+            drive.completed_at = timezone.now()
+            drive.ai_feedback_summary = _generate_drive_feedback(drive)
+            drive.save()
+            # Clear drive from session on completion
+            if 'active_placement_drive_id' in request.session:
+                del request.session['active_placement_drive_id']
+
+    if drive.final_outcome != 'in_progress':
+        return redirect('analysis:placement_drive_result', drive_id=drive.id)
+    return redirect('analysis:placement_drive_status')

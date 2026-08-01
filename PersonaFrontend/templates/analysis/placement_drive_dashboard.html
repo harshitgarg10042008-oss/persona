@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mock Placement Drive - Status{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .step-indicator::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e5e7eb;
+        z-index: 1;
+        transform: translateY(-50%);
+    }
+    .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .step.active {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    .step.completed {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+    .step-label {
+        position: absolute;
+        top: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+    }
+    .step.active + .step-label {
+        color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Mock Placement Drive</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Complete all stages to receive a mock job offer.</p>
+    </div>
+
+    {% if not drive %}
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8 text-center">
+        <div class="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold mb-4">Ready to test your skills?</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+            Our Mock Placement Drive simulates a real hiring process with three elimination stages: Resume Screen, Assessment, and AI Interview.
+        </p>
+        <a href="{% url 'analysis:placement_drive_start' %}" class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-bold">
+            Start Mock Placement Drive
+        </a>
+    </div>
+    {% else %}
+    <!-- Progress Indicator -->
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md p-10 mb-8">
+        <div class="step-indicator mb-16">
+            <div class="relative">
+                <div class="step completed">✓</div>
+                <div class="step-label">Resume Screen</div>
+            </div>
+            <div class="relative">
+                <div class="step {% if drive.current_stage == 'assessment' %}active{% elif drive.current_stage == 'interview' or drive.current_stage == 'completed' %}completed{% endif %}">
+                    {% if drive.current_stage == 'interview' or drive.current_stage == 'completed' %}✓{% else %}2{% endif %}
+                </div>
+                <div class="step-label">Assessment</div>
+            </div>
+            <div class="relative">
+                <div class="step {% if drive.current_stage == 'interview' %}active{% elif drive.current_stage == 'completed' %}completed{% endif %}">
+                    {% if drive.current_stage == 'completed' %}✓{% else %}3{% endif %}
+                </div>
+                <div class="step-label">AI Interview</div>
+            </div>
+        </div>
+
+        <!-- Current Stage Action -->
+        <div class="text-center pt-8 border-t border-gray-100 dark:border-gray-800">
+            {% if drive.current_stage == 'assessment' %}
+                <h3 class="text-2xl font-bold mb-4">Stage 2: Assessment</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-8">
+                    You've passed the Resume Screen! Now it's time for the technical and behavioral assessment.
+                </p>
+                <form action="{% url 'analysis:start_individual_assessment' %}" method="post">
+                    {% csrf_token %}
+                    <!-- Select a default job title or let user pick? Prompt says "A single-user, single-company mock placement drive". 
+                         We'll use the one from the resume if possible, or a general one. -->
+                    <input type="hidden" name="job_title_id" value="{{ drive.resume_review.job_title_id|default:1 }}">
+                    <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 transition-colors font-bold text-lg shadow-lg">
+                        Start Assessment
+                    </button>
+                </form>
+            {% elif drive.current_stage == 'interview' %}
+                <h3 class="text-2xl font-bold mb-4">Stage 3: AI Interview</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-8">
+                    Final hurdle! Impress our AI interviewer to secure your mock job offer.
+                </p>
+                <form action="{% url 'analysis:start_individual_assessment' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="job_title_id" value="{{ drive.resume_review.job_title_id|default:1 }}">
+                    <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-xl hover:bg-indigo-700 transition-colors font-bold text-lg shadow-lg">
+                        Start AI Interview
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Results so far -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Resume Screen</h4>
+            <div class="flex items-center justify-between">
+                <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ drive.stage_results.resume.score|stringformat:".1f" }}%</span>
+                <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded">PASSED</span>
+            </div>
+        </div>
+        
+        {% if 'assessment' in drive.stage_results %}
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border-l-4 {% if drive.stage_results.assessment.passed %}border-green-500{% else %}border-red-500{% endif %}">
+            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Assessment</h4>
+            <div class="flex items-center justify-between">
+                <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ drive.stage_results.assessment.score|stringformat:".1f" }}%</span>
+                {% if drive.stage_results.assessment.passed %}
+                    <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded">PASSED</span>
+                {% else %}
+                    <span class="bg-red-100 text-red-800 text-xs font-bold px-2.5 py-0.5 rounded">ELIMINATED</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

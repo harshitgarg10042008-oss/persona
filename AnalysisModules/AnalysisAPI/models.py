@@ -825,3 +825,46 @@ class CareerIntake(models.Model):
 
     def __str__(self):
         return f"CareerIntake for {self.user.email}"
+
+class PlacementDrive(models.Model):
+    STAGE_CHOICES = [
+        ('resume', 'Resume Screen'),
+        ('assessment', 'Assessment'),
+        ('interview', 'Interview'),
+        ('completed', 'Completed'),
+    ]
+    
+    OUTCOME_CHOICES = [
+        ('in_progress', 'In Progress'),
+        ('eliminated_at_resume', 'Eliminated at Resume Screen'),
+        ('eliminated_at_assessment', 'Eliminated at Assessment'),
+        ('eliminated_at_interview', 'Eliminated at Interview'),
+        ('offer', 'OFFER'),
+    ]
+    
+    user = models.ForeignKey('UserAPI.CustomUser', on_delete=models.CASCADE, related_name='placement_drives')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    current_stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='resume')
+    final_outcome = models.CharField(max_length=30, choices=OUTCOME_CHOICES, default='in_progress')
+    
+    # Orchestration links - referencing existing results
+    resume_review = models.ForeignKey('ResumeReview', on_delete=models.SET_NULL, null=True, blank=True)
+    assessment = models.ForeignKey('IndividualAssessment', on_delete=models.SET_NULL, null=True, blank=True, related_name='placement_drive_assessment')
+    interview = models.ForeignKey('IndividualAssessment', on_delete=models.SET_NULL, null=True, blank=True, related_name='placement_drive_interview')
+    
+    # Store scores and pass/fail per stage
+    stage_results = models.JSONField(default=dict, blank=True)
+    
+    # AI Feedback summary
+    ai_feedback_summary = models.TextField(blank=True, null=True)
+    ai_feedback_cached_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'AnalysisAPI_placementdrive'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Placement Drive for {self.user.email} - {self.final_outcome}"

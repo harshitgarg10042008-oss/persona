@@ -69,13 +69,23 @@
 {% endblock %} {% block content %}
 <div class="container mx-auto px-4 py-8">
   <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-      Practice Interview Dashboard
-    </h1>
-    <p class="text-gray-600 dark:text-gray-400 mt-2">
-      Improve your interview skills with AI-powered analysis
-    </p>
+  <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
+        Practice Interview Dashboard
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-2">
+        Improve your interview skills with AI-powered analysis
+      </p>
+    </div>
+    <div>
+      <a href="{% url 'analysis:placement_drive_status' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        Mock Placement Drive
+      </a>
+    </div>
   </div>
 
   <!-- Analysis Module Status -->

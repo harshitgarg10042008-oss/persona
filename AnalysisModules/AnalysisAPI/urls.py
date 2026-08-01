@@ -109,4 +109,10 @@ urlpatterns = [
     path('career-mentor/chat/', views.career_mentor_chat_api, name='career_mentor_chat'),
     path('career-mentor/intake/', views.career_mentor_intake_api, name='career_mentor_intake'),
 
+    # Feature #24 — Mock Placement Drive
+    path('placement-drive/start/', views.placement_drive_start, name='placement_drive_start'),
+    path('placement-drive/status/', views.placement_drive_status, name='placement_drive_status'),
+    path('placement-drive/result/<int:drive_id>/', views.placement_drive_result, name='placement_drive_result'),
+    path('placement-drive/advance/', views.placement_drive_advance, name='placement_drive_advance'),
+
 ]
