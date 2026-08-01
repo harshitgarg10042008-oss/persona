@@ -103,9 +103,9 @@ FEATURE_REGISTRY = {
     'resume':              {'tier': 'free'},
     'resume_analysis':     {'tier': 'free'},
     'job_matches':         {'tier': 'free'},
-    'ai_interview':        {'tier': 'free', 'free_interview_limit': 1},
-    'voice_interviewer':   {'tier': 'free', 'free_interview_limit': 1},
-    'rapid_fire':          {'tier': 'free', 'free_interview_limit': 1},
+    'ai_interview':        {'tier': 'free', 'free_interview_limit': 2},
+    'voice_interviewer':   {'tier': 'free', 'free_interview_limit': 2},
+    'rapid_fire':          {'tier': 'free', 'free_interview_limit': 2},
     'placement_readiness':         {'tier': 'free'},
     'placement_readiness_score':   {'tier': 'free'},
     'placement_readiness_detail':  {'tier': 'premium'},  # detailed breakdown
@@ -197,7 +197,7 @@ def user_free_interview_count(user) -> int:
 
 def check_free_interview_limit(user) -> bool:
     """
-    Returns True if free user has NOT yet used their 1 free interview
+    Returns True if free user has NOT yet used their 2 free interviews
     for the current calendar month.
     Premium/owner users always return True (unlimited).
     """
@@ -205,7 +205,7 @@ def check_free_interview_limit(user) -> bool:
         return True
     if user_has_premium(user):
         return True  # unlimited
-    return user_free_interview_count(user) < 1
+    return user_free_interview_count(user) < 2
 
 
 def check_free_interview_remaining(user) -> dict:
@@ -218,11 +218,11 @@ def check_free_interview_remaining(user) -> dict:
     if user_has_premium(user):
         return {'allowed': True, 'count': 0, 'limit': 999, 'reset_date': None, 'is_owner': False}
     count = user_free_interview_count(user)
-    remaining = max(0, 1 - count)
+    remaining = max(0, 2 - count)
     return {
         'allowed': remaining > 0,
         'count': count,
-        'limit': 1,
+        'limit': 2,
         'remaining': remaining,
         'reset_date': _format_next_reset_date(),
         'is_owner': False,
@@ -346,7 +346,7 @@ def requires_institution(feature_name=''):
 def requires_interview_slot(feature_name='ai_interview'):
     """
     Decorator that enforces the free-tier monthly interview limit.
-    Free users can only start 1 interview per calendar month.
+    Free users can only start 2 interviews per calendar month.
     Premium users have unlimited interviews.
     Owner bypasses all checks.
     """
@@ -366,14 +366,14 @@ def requires_interview_slot(feature_name='ai_interview'):
                     return JsonResponse({
                         'success': False,
                         'error': 'interview_limit_reached',
-                        'message': f"You've used your free interview for this month. "
+                        'message': f"You've used your 2 free interviews for this month. "
                                    f"Your next free interview unlocks on {reset_date}. "
                                    f"Upgrade to Premium for unlimited interviews.",
                         'reset_date': reset_date,
                     }, status=429)
                 messages.error(
                     request,
-                    f"You've used your free interview for this month. "
+                    f"You've used your 2 free interviews for this month. "
                     f"Your next free interview unlocks on {reset_date}. "
                     f"Upgrade to Premium for unlimited interviews."
                 )
