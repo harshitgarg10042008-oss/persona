@@ -399,6 +399,7 @@ class IndividualAssessment(models.Model):
             ('managerial', 'Managerial'),
             ('stress', 'Stress'),
             ('rapid_fire', 'Rapid Fire'),
+            ('panel', 'Panel Interview'),
         ],
         default='hr',
         help_text='Interview style/mode for this assessment'
@@ -627,10 +628,49 @@ class IndividualAssessmentResponse(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+    interviewer_persona_id = models.CharField(max_length=50, null=True, blank=True, help_text="ID of the persona who asked this question")
     
     def __str__(self):
         return f"{self.assessment.user.email} - Q{self.question_order}"
 
+
+class PanelSession(models.Model):
+    """
+    Feature #25 — Orchestration layer for panel interviews.
+    Links 2-3 personas to a single IndividualAssessment session.
+    """
+    assessment = models.OneToOneField(IndividualAssessment, on_delete=models.CASCADE, related_name='panel_session')
+    personas = models.JSONField(default=list, help_text="List of persona IDs in the panel (e.g. ['friendly_encouraging', 'professional_stern'])")
+    
+    # Aggregated results & synthesis
+    aggregated_score = models.FloatField(null=True, blank=True)
+    ai_synthesis_summary = models.TextField(blank=True)
+    ai_synthesis_cached_at = models.DateTimeField(null=True, blank=True)
+    data_hash = models.CharField(max_length=64, blank=True, help_text="Hash of source data to detect changes for AI summary")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Panel Session for {self.assessment.session_id}"
+
+class PanelPersonaScore(models.Model):
+    """
+    Individual verdict/score from each panelist for the entire session.
+    """
+    panel_session = models.ForeignKey(PanelSession, on_delete=models.CASCADE, related_name='persona_scores')
+    persona_id = models.CharField(max_length=50)
+    
+    score = models.FloatField(null=True, blank=True)
+    feedback = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['panel_session', 'persona_id']
+
+    def __str__(self):
+        return f"{self.persona_id} score for {self.panel_session}"
 
 class FollowUpResponse(models.Model):
     """Follow-up responses generated for an assessment response"""
