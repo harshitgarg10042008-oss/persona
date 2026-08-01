@@ -381,7 +381,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
       <div class="stat-card stat-sessions animate-slide-up delay-1">
         <div class="stat-label">Practice Sessions</div>
-        <div class="stat-number">{{ total_sessions|default:"26" }}</div>
+        <div class="stat-number">{{ total_sessions|default:"0" }}</div>
         <div class="stat-sub">Total assessments taken</div>
         <div class="absolute top-4 right-4 opacity-20">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
@@ -389,7 +389,7 @@
       </div>
       <div class="stat-card stat-completed animate-slide-up delay-2">
         <div class="stat-label">Completed</div>
-        <div class="stat-number">{{ completed_sessions|default:"19" }}</div>
+        <div class="stat-number">{{ completed_sessions|default:"0" }}</div>
         <div class="stat-sub">Successfully completed</div>
         <div class="absolute top-4 right-4 opacity-20">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
@@ -397,7 +397,7 @@
       </div>
       <div class="stat-card stat-score animate-slide-up delay-3">
         <div class="stat-label">Average Score</div>
-        <div class="stat-number">{{ avg_score|default:"5.3" }}<span class="text-lg opacity-70">/10</span></div>
+        <div class="stat-number">{% if avg_score %}{{ avg_score }}{% else %}--{% endif %}<span class="text-lg opacity-70">/10</span></div>
         <div class="stat-sub">Overall performance</div>
         <div class="absolute top-4 right-4 opacity-20">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
@@ -405,8 +405,8 @@
       </div>
       <div class="stat-card stat-streak animate-slide-up delay-4">
         <div class="stat-label">Current Streak</div>
-        <div class="stat-number">🔥 {{ current_streak|default:"1" }}</div>
-        <div class="stat-sub">Day streak (Best: {{ best_streak|default:"2" }})</div>
+        <div class="stat-number">{% if current_streak %}🔥 {{ current_streak }}{% else %}--{% endif %}</div>
+        <div class="stat-sub">Day streak (Best: {{ best_streak|default:"0" }})</div>
         <div class="absolute top-4 right-4 opacity-20">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>
         </div>

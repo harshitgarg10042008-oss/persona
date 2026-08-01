@@ -968,6 +968,31 @@ def individual_dashboard(request):
         'scores': chart_scores
     }
     
+    # ---- Stat card computations ----
+    all_assessments = IndividualAssessment.objects.filter(user=request.user)
+    total_sessions = all_assessments.count()
+
+    completed_only = IndividualAssessment.objects.filter(
+        user=request.user, status='completed'
+    )
+    completed_sessions = completed_only.count()
+
+    # Average score from scored completions
+    scored = completed_only.filter(overall_score__isnull=False)
+    if scored.exists():
+        avg_score = round(
+            sum(float(a.overall_score) for a in scored) / scored.count(), 1
+        )
+    else:
+        avg_score = None
+
+    # Streak from IndividualUser profile (if it exists)
+    current_streak = 0
+    best_streak = 0
+    if hasattr(request.user, 'individual_profile'):
+        current_streak = request.user.individual_profile.current_streak
+        best_streak = request.user.individual_profile.longest_streak
+
     # Subscription tier context for dashboard badges and locked states
     sub_context = get_user_subscription_context(request.user)
 
@@ -987,6 +1012,12 @@ def individual_dashboard(request):
         'chart_json': json.dumps(chart_data),
         'subscription': sub_context,
         'interview_usage': interview_usage,
+        # Stat cards
+        'total_sessions': total_sessions,
+        'completed_sessions': completed_sessions,
+        'avg_score': avg_score,
+        'current_streak': current_streak,
+        'best_streak': best_streak,
     }
     return render(request, 'analysis/individual_dashboard.html', context)
 
