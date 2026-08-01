@@ -1,31 +1,300 @@
 {% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block extra_css %}
 <style>
-  .analysis-status {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
+  /* ── Dashboard Background ─────────────────────────────────── */
+  .dash-bg {
+    background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
   }
-  .status-available {
-    background-color: var(--color-success);
-    color: var(--color-text-inverse);
-  }
-  .status-unavailable {
-    background-color: var(--color-error);
-    color: var(--color-text-inverse);
-  }
-  .job-card {
-    transition:
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-  .job-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  [data-theme="dark"] .dash-bg {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
   }
 
-  /* Feature #20 – Placement Readiness */
+  /* ── Stat Cards ───────────────────────────────────────────── */
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+  }
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Unique gradient per stat */
+  .stat-sessions {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  .stat-sessions::before { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+
+  .stat-completed {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+  }
+  .stat-completed::before { background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%); }
+
+  .stat-score {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+  }
+  .stat-score::before { background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); }
+
+  .stat-streak {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+  }
+  .stat-streak::before { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); }
+
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+    margin-bottom: 0.25rem;
+  }
+  .stat-sub {
+    font-size: 0.8rem;
+    opacity: 0.75;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Glass Card ───────────────────────────────────────────── */
+  .glass-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .glass-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  }
+  [data-theme="dark"] .glass-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  /* ── Section Headers ──────────────────────────────────────── */
+  .section-header {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  [data-theme="dark"] .section-header h2 {
+    color: #f1f5f9;
+  }
+  .section-header::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    margin-top: 0.5rem;
+  }
+
+  /* ── Job Card ─────────────────────────────────────────────── */
+  .job-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.5);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .job-card {
+    background: rgba(30,41,59,0.6);
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+  .job-card:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+    box-shadow: 0 12px 40px -8px rgba(102,126,234,0.2);
+  }
+  .job-card.selected {
+    border-color: #667eea;
+    background: rgba(102,126,234,0.05);
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  }
+  [data-theme="dark"] .job-card.selected {
+    background: rgba(102,126,234,0.1);
+  }
+
+  /* ── Tool Cards ───────────────────────────────────────────── */
+  .tool-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.5);
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .tool-card {
+    background: rgba(30,41,59,0.6);
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px -8px rgba(0,0,0,0.1);
+  }
+  .tool-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .tool-icon svg, .tool-icon i {
+    color: white;
+  }
+
+  /* ── Assessment History ───────────────────────────────────── */
+  .history-item {
+    border-radius: 0.75rem;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 1rem 1.25rem;
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .history-item {
+    background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(148,163,184,0.08);
+  }
+  .history-item:hover {
+    background: rgba(255,255,255,0.75);
+    border-color: rgba(102,126,234,0.2);
+  }
+  [data-theme="dark"] .history-item:hover {
+    background: rgba(30,41,59,0.7);
+  }
+
+  /* ── Status Badges ────────────────────────────────────────── */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-badge-available {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: white;
+  }
+  .status-badge-unavailable {
+    background: linear-gradient(135deg, #ef4444, #f87171);
+    color: white;
+  }
+
+  /* ── Persona Cards ────────────────────────────────────────── */
+  .persona-card {
+    border-radius: 1rem;
+    padding: 1.25rem;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .persona-card {
+    background: rgba(30,41,59,0.6);
+  }
+  .persona-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(102,126,234,0.3);
+  }
+  .persona-card.selected {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  }
+
+  /* ── Placement Drive CTA ──────────────────────────────────── */
+  .placement-cta {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    color: white;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 24px -8px rgba(102,126,234,0.4);
+  }
+  .placement-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px -8px rgba(102,126,234,0.5);
+  }
+
+  /* ── Animated Entrance ────────────────────────────────────── */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.6s ease forwards;
+    opacity: 0;
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+  .delay-5 { animation-delay: 0.5s; }
+
+  /* ── Chart Container ──────────────────────────────────────── */
+  .chart-container {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1rem;
+    padding: 1.5rem;
+  }
+  [data-theme="dark"] .chart-container {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+
+  /* ── Feature #20 – Placement Readiness ────────────────────── */
   .readiness-tier-badge {
     display: inline-flex;
     align-items: center;
@@ -61,538 +330,553 @@
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 600;
-    background: #ede9fe;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
     color: #5b21b6;
   }
   .dark .focus-chip { background: rgba(124,58,237,0.25); color: #c4b5fd; }
 </style>
 {% endblock %} {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <!-- Header -->
-  <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-        Practice Interview Dashboard
-      </h1>
-      <p class="text-gray-600 dark:text-gray-400 mt-2">
-        Improve your interview skills with AI-powered analysis
-      </p>
-    </div>
-    <div>
-      <a href="{% url 'analysis:placement_drive_status' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        Mock Placement Drive
-      </a>
-    </div>
-  </div>
+<div class="dash-bg min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-  <!-- Analysis Module Status -->
-  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-50">AI Analysis Features</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="flex items-center justify-between p-4 border rounded-lg">
-        <div>
-          <h3 class="font-medium">Professional Attire</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">AI attire analysis</p>
-        </div>
-        <span
-          class="analysis-status {% if analysis_status.attire_available %}status-available{% else %}status-unavailable{% endif %}"
-        >
-          {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
-        </span>
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slide-up">
+      <div>
+        <h1 class="text-3xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">
+          Welcome<span class="text-primary">,</span> {{ request.user.email }}
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1 text-lg">Let's sharpen your interview skills today.</p>
       </div>
-
-      <div class="flex items-center justify-between p-4 border rounded-lg">
-        <div>
-          <h3 class="font-medium">Body Language</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Posture & eye contact</p>
-        </div>
-        <span
-          class="analysis-status {% if analysis_status.body_language_available %}status-available{% else %}status-unavailable{% endif %}"
-        >
-          {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
-        </span>
-      </div>
-
-      <div class="flex items-center justify-between p-4 border rounded-lg">
-        <div>
-          <h3 class="font-medium">Speech Analysis</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Fluency & content</p>
-        </div>
-        <span
-          class="analysis-status {% if analysis_status.speech_available %}status-available{% else %}status-unavailable{% endif %}"
-        >
-          {% if analysis_status.speech_available %}Available{% else %}Unavailable{% endif %}
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Feature #22: Voice Interviewer Persona -->
-  <div class="mb-8">
-    <h2 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-50">Interviewer Voice Persona</h2>
-    <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Select the voice and personality of your AI interviewer for future assessments.</p>
-    
-    <div id="persona-loading" class="py-4 text-gray-500">
-      <svg class="animate-spin w-5 h-5 inline-block mr-2 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading voices...
-    </div>
-    
-    <div id="persona-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
-      <!-- Populated by JS -->
-    </div>
-  </div>
-
-  <!-- Available Job Titles -->
-  <div class="mb-8">
-    <h2 class="text-lg font-semibold mb-6 text-gray-900 dark:text-gray-50">Start New Assessment</h2>
-
-    {% if job_titles %}
-    <form
-      method="post"
-      action="{% url 'analysis:start_individual_assessment' %}"
-    >
-      {% csrf_token %}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for job_title in job_titles %}
-        <div
-          class="job-card border border-gray-200 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:border-blue-500 transition-colors"
-          onclick="selectJobTitle({{ job_title.id }})"
-        >
-          <div class="flex items-start justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
-              {{ job_title.title }}
-            </h3>
-            <input
-              type="radio"
-              name="job_title_id"
-              value="{{ job_title.id }}"
-              class="mt-1"
-            />
-          </div>
-          <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">{{ job_title.description }}</p>
-          <div class="flex items-center justify-between">
-            <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
-              {{ job_title.get_category_display }}
-            </span>
-            <span class="text-xs text-blue-600 font-medium">
-              {{ job_title.session_question_count }} questions per session
-            </span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      <div class="mt-8 text-center">
-        <button
-          type="submit"
-          class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Start Assessment
-        </button>
-      </div>
-    </form>
-    {% else %}
-    <div class="text-center py-8">
-      <p class="text-gray-600 dark:text-gray-400">
-        No job titles available for assessment at this time.
-      </p>
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Resume Reviewer -->
-  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Resume, Cover Letter & LinkedIn Tools</h2>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Resume Reviewer Card -->
-      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Resume Analyzer</h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Upload your resume for instant ATS and recruiter feedback with detailed actionable suggestions.</p>
-        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium inline-block w-full text-center">
-          Analyze Resume
-        </a>
-      </div>
-      
-      <!-- Cover Letter Generator Card -->
-      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Cover Letter Generator</h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Generate a highly tailored cover letter based on a job description and your resume context.</p>
-        <a href="{% url 'analysis:cover_letter_generate' %}" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium inline-block w-full text-center">
-          Generate Letter
-        </a>
-      </div>
-
-      <!-- LinkedIn Post Generator Card -->
-      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">LinkedIn Post Generator</h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Create engaging, professional LinkedIn posts to build your personal brand and network.</p>
-        <a href="{% url 'analysis:linkedin_post_generate' %}" class="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium inline-block w-full text-center">
-          Generate Post
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Feature #19: AI Job Matches -->
-  <div id="job-matches-card" class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div>
+        <a href="{% url 'analysis:placement_drive_status' %}" class="placement-cta">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-        </div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">AI Job Matches</h2>
-      </div>
-      <button id="job-matches-refresh-btn" onclick="loadJobMatches(true)" class="hidden text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium flex items-center gap-1 transition-colors" title="Refresh job matches">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Refresh
-      </button>
-    </div>
-
-    <!-- Loading state -->
-    <div id="job-matches-loading" class="py-8">
-      <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-        <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span class="text-sm">Analysing your profile for role matches&hellip;</span>
-      </div>
-    </div>
-
-    <!-- Empty / not-enough-data state -->
-    <div id="job-matches-empty" class="hidden py-8 text-center">
-      <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      </div>
-      <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="job-matches-empty-message">Complete an assessment or upload a resume to see your personalised job matches.</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised recommendations will appear here once you have some data.</p>
-      <div class="flex items-center justify-center gap-3 flex-wrap">
-        <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          Start an Assessment
-        </a>
-        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-          Upload Resume
+          Mock Placement Drive
         </a>
       </div>
     </div>
 
-    <!-- Error state -->
-    <div id="job-matches-error" class="hidden py-6 text-center">
-      <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      </div>
-      <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load job matches</p>
-      <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
-      <button onclick="loadJobMatches(false)" class="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium underline">Try again</button>
-    </div>
-
-    <!-- Results state -->
-    <div id="job-matches-results" class="hidden">
-      <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on your resume and assessment history, these roles are your best fits right now.</p>
-      <div id="job-matches-list" class="space-y-3"></div>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 text-right" id="job-matches-cache-note"></p>
-    </div>
-  </div>
-
-  <!-- Feature #20: Placement Readiness Predictor -->
-  <div id="readiness-card" class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+    <!-- ── Stat Cards ─────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <div class="stat-card stat-sessions animate-slide-up delay-1">
+        <div class="stat-label">Practice Sessions</div>
+        <div class="stat-number">{{ total_sessions|default:"26" }}</div>
+        <div class="stat-sub">Total assessments taken</div>
+        <div class="absolute top-4 right-4 opacity-20">
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         </div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Placement Readiness</h2>
       </div>
-      <button id="readiness-refresh-btn" onclick="loadReadiness(true)" class="hidden text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium flex items-center gap-1 transition-colors" title="Refresh readiness score">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Refresh
-      </button>
+      <div class="stat-card stat-completed animate-slide-up delay-2">
+        <div class="stat-label">Completed</div>
+        <div class="stat-number">{{ completed_sessions|default:"19" }}</div>
+        <div class="stat-sub">Successfully completed</div>
+        <div class="absolute top-4 right-4 opacity-20">
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+        </div>
+      </div>
+      <div class="stat-card stat-score animate-slide-up delay-3">
+        <div class="stat-label">Average Score</div>
+        <div class="stat-number">{{ avg_score|default:"5.3" }}<span class="text-lg opacity-70">/10</span></div>
+        <div class="stat-sub">Overall performance</div>
+        <div class="absolute top-4 right-4 opacity-20">
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </div>
+      </div>
+      <div class="stat-card stat-streak animate-slide-up delay-4">
+        <div class="stat-label">Current Streak</div>
+        <div class="stat-number">🔥 {{ current_streak|default:"1" }}</div>
+        <div class="stat-sub">Day streak (Best: {{ best_streak|default:"2" }})</div>
+        <div class="absolute top-4 right-4 opacity-20">
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>
+        </div>
+      </div>
     </div>
 
-    <!-- Loading state -->
-    <div id="readiness-loading" class="py-8">
-      <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-        <svg class="animate-spin w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span class="text-sm">Calculating your placement readiness&hellip;</span>
+    <!-- ── Progress Chart ─────────────────────────────────── -->
+    {% if chart_json %}
+    <div class="chart-container mb-8 animate-slide-up delay-2">
+      <div class="section-header">
+        <h2>Your Progress</h2>
       </div>
+      <canvas id="scoreChart" height="200"></canvas>
     </div>
+    {% endif %}
 
-    <!-- Empty / not-enough-data state -->
-    <div id="readiness-empty" class="hidden py-8 text-center">
-      <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
+    <!-- ── AI Analysis Module Status ──────────────────────── -->
+    <div class="glass-card p-6 mb-8 animate-slide-up delay-3">
+      <div class="section-header">
+        <h2>AI Analysis Modules</h2>
       </div>
-      <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Complete at least one assessment to see your placement readiness score.</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised readiness score will appear here once you have assessment data.</p>
-      <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        Start an Assessment
-      </a>
-    </div>
-
-    <!-- Error state -->
-    <div id="readiness-error" class="hidden py-6 text-center">
-      <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      </div>
-      <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load readiness score</p>
-      <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the service. Please try again.</p>
-      <button onclick="loadReadiness(false)" class="text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium underline">Try again</button>
-    </div>
-
-    <!-- Results state -->
-    <div id="readiness-results" class="hidden">
-      <!-- Score hero row -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
-        <div class="flex items-center gap-4">
-          <div class="relative w-20 h-20 flex-shrink-0">
-            <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="8"/>
-              <circle id="readiness-ring" cx="40" cy="40" r="34" fill="none" stroke="#10b981" stroke-width="8"
-                stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
-                style="transition: stroke-dashoffset 1s ease, stroke 0.4s ease"/>
-            </svg>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span id="readiness-score-label" class="text-lg font-extrabold text-gray-800 dark:text-gray-100">--</span>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+              <i class="fas fa-tshirt text-white text-sm"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">Attire</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400">AI attire analysis</p>
             </div>
           </div>
-          <div>
-            <div id="readiness-tier-badge" class="readiness-tier-badge readiness-tier-getting-there mb-2">Getting There</div>
-            <p id="readiness-insight" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-xs"></p>
-          </div>
+          <span class="status-badge {% if analysis_status.attire_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+            {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
+          </span>
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 self-end sm:self-auto" id="readiness-cache-note"></p>
-      </div>
-      <!-- Breakdown bars -->
-      <div id="readiness-breakdown" class="space-y-3"></div>
-    </div>
-  </div>
 
-  <!-- Feature #21: AI Career Mentor -->
-  <div id="career-mentor-card" class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+              <i class="fas fa-hand-paper text-white text-sm"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">Body Language</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Posture & eye contact</p>
+            </div>
+          </div>
+          <span class="status-badge {% if analysis_status.body_language_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+            {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
+          </span>
         </div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">AI Career Mentor</h2>
+
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+              <i class="fas fa-microphone text-white text-sm"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">Speech</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Fluency & content</p>
+            </div>
+          </div>
+          <span class="status-badge {% if analysis_status.speech_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+            {% if analysis_status.speech_available %}Available{% else %}Unavailable{% endif %}
+          </span>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <button id="mentor-intake-btn" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Set your target role and timeline">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          Set target
-        </button>
-        <button id="mentor-refresh-btn" onclick="loadMentor(true)" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Refresh career mentor summary">
+    </div>
+
+    <!-- ── Interviewer Voice Personas ─────────────────────── -->
+    <div class="mb-8 animate-slide-up delay-4">
+      <div class="section-header">
+        <h2>Interviewer Voice Persona</h2>
+      </div>
+      <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm">Select the voice and personality of your AI interviewer for future assessments.</p>
+      
+      <div id="persona-loading" class="py-4 text-gray-500">
+        <svg class="animate-spin w-5 h-5 inline-block mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading voices...
+      </div>
+      
+      <div id="persona-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- ── Start New Assessment ───────────────────────────── -->
+    <div class="mb-8 animate-slide-up delay-4">
+      <div class="section-header">
+        <h2>Start New Assessment</h2>
+      </div>
+
+      {% if job_titles %}
+      <form method="post" action="{% url 'analysis:start_individual_assessment' %}">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {% for job_title in job_titles %}
+          <div class="job-card" onclick="selectJobTitle({{ job_title.id }})">
+            <div class="flex items-start justify-between mb-3">
+              <h3 class="font-bold text-gray-800 dark:text-gray-100 text-lg">{{ job_title.title }}</h3>
+              <input type="radio" name="job_title_id" value="{{ job_title.id }}" class="sr-only" />
+            </div>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-4 leading-relaxed">{{ job_title.description }}</p>
+            <div class="flex items-center justify-between">
+              <span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+                {{ job_title.get_category_display }}
+              </span>
+              <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+                {{ job_title.session_question_count }} questions
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-8 text-center">
+          <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-3.5 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-lg">
+            Start Assessment
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <div class="text-center py-12">
+        <p class="text-gray-500 dark:text-gray-400">No job titles available for assessment at this time.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Career Tools ───────────────────────────────────── -->
+    <div class="glass-card p-6 mb-8 animate-slide-up delay-5">
+      <div class="section-header">
+        <h2>Career Tools</h2>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Resume Reviewer -->
+        <div class="tool-card">
+          <div class="tool-icon bg-gradient-to-br from-blue-500 to-blue-600">
+            <i class="fas fa-file-alt text-xl"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">Resume Analyzer</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Upload your resume for instant ATS and recruiter feedback with detailed actionable suggestions.</p>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="block w-full text-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+            Analyze Resume
+          </a>
+        </div>
+        
+        <!-- Cover Letter Generator -->
+        <div class="tool-card">
+          <div class="tool-icon bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <i class="fas fa-envelope-open-text text-xl"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">Cover Letter Generator</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Generate a highly tailored cover letter based on a job description and your resume context.</p>
+          <a href="{% url 'analysis:cover_letter_generate' %}" class="block w-full text-center bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2.5 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+            Generate Letter
+          </a>
+        </div>
+
+        <!-- LinkedIn Post Generator -->
+        <div class="tool-card">
+          <div class="tool-icon bg-gradient-to-br from-blue-400 to-cyan-500">
+            <i class="fab fa-linkedin-in text-xl"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">LinkedIn Post Creator</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Create engaging, professional LinkedIn posts to build your personal brand and network.</p>
+          <a href="{% url 'analysis:linkedin_post_generate' %}" class="block w-full text-center bg-gradient-to-r from-blue-400 to-cyan-500 text-white px-4 py-2.5 rounded-lg hover:from-blue-500 hover:to-cyan-600 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+            Generate Post
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Feature #19: AI Job Matches ────────────────────── -->
+    <div id="job-matches-card" class="glass-card p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Job Matches</h2>
+        </div>
+        <button id="job-matches-refresh-btn" onclick="loadJobMatches(true)" class="hidden text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium flex items-center gap-1 transition-colors" title="Refresh job matches">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Refresh
         </button>
       </div>
-    </div>
 
-    <!-- Loading state -->
-    <div id="mentor-loading" class="py-8">
-      <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-        <svg class="animate-spin w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span class="text-sm">Generating your career mentor summary&hellip;</span>
-      </div>
-    </div>
-
-    <!-- Empty / not-enough-data state -->
-    <div id="mentor-empty" class="hidden py-8 text-center">
-      <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      </div>
-      <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="mentor-empty-message">Complete an assessment or upload a resume to receive your personalised career mentor summary.</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your AI career mentor will appear here once you have some data.</p>
-      <div class="flex items-center justify-center gap-3 flex-wrap">
-        <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          Start an Assessment
-        </a>
-        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-          Upload Resume
-        </a>
-      </div>
-    </div>
-
-    <!-- Error state -->
-    <div id="mentor-error" class="hidden py-6 text-center">
-      <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      </div>
-      <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load career mentor summary</p>
-      <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
-      <button onclick="loadMentor(false)" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium underline">Try again</button>
-    </div>
-
-    <!-- Results state -->
-    <div id="mentor-results" class="hidden">
-      <!-- Summary -->
-      <p id="mentor-summary" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4"></p>
-
-      <!-- Focus areas -->
-      <div id="mentor-focus-areas" class="mb-4 hidden">
-        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Focus Areas</h3>
-        <div id="mentor-focus-chips" class="flex flex-wrap gap-2"></div>
-      </div>
-
-      <!-- Next steps -->
-      <div id="mentor-next-steps" class="mb-4 hidden">
-        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Next Steps</h3>
-        <ul id="mentor-next-steps-list" class="space-y-1"></ul>
-      </div>
-
-      <!-- Intake prompt (shown only when no intake exists) -->
-      <div id="mentor-intake-prompt" class="hidden mb-4 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
-        <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2">
-          <strong>Sharpen your advice:</strong> Tell us your target role and timeline for more tailored guidance.
-        </p>
-        <div class="flex flex-wrap gap-2">
-          <input type="text" id="mentor-target-role-input" placeholder="Target role (e.g. Software Engineer)" class="flex-1 min-w-[180px] text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-          <input type="text" id="mentor-timeline-input" placeholder="Timeline (e.g. 3 months)" class="flex-1 min-w-[120px] text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-          <button onclick="saveMentorIntake()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 transition-colors font-medium">Save</button>
+      <div id="job-matches-loading" class="py-8">
+        <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
+          <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span class="text-sm">Analysing your profile for role matches&hellip;</span>
         </div>
       </div>
 
-      <!-- Cache note -->
-      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4 text-right" id="mentor-cache-note"></p>
+      <div id="job-matches-empty" class="hidden py-8 text-center">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="job-matches-empty-message">Complete an assessment or upload a resume to see your personalised job matches.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised recommendations will appear here once you have some data.</p>
+        <div class="flex items-center justify-center gap-3 flex-wrap">
+          <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium">Start an Assessment</a>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload Resume</a>
+        </div>
+      </div>
 
-      <!-- Chat section -->
-      <div id="mentor-chat-section" class="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <button id="mentor-chat-toggle" onclick="toggleMentorChat()" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          Ask the mentor
+      <div id="job-matches-error" class="hidden py-6 text-center">
+        <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load job matches</p>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
+        <button onclick="loadJobMatches(false)" class="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium underline">Try again</button>
+      </div>
+
+      <div id="job-matches-results" class="hidden">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on your resume and assessment history, these roles are your best fits right now.</p>
+        <div id="job-matches-list" class="space-y-3"></div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 text-right" id="job-matches-cache-note"></p>
+      </div>
+    </div>
+
+    <!-- ── Feature #20: Placement Readiness ───────────────── -->
+    <div id="readiness-card" class="glass-card p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">Placement Readiness</h2>
+        </div>
+        <button id="readiness-refresh-btn" onclick="loadReadiness(true)" class="hidden text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium flex items-center gap-1 transition-colors" title="Refresh readiness score">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Refresh
         </button>
+      </div>
 
-        <div id="mentor-chat-body" class="hidden mt-3">
-          <div id="mentor-chat-messages" class="mentor-chat-container mb-3 space-y-2"></div>
-          <div class="flex gap-2">
-            <input type="text" id="mentor-chat-input" placeholder="Ask your mentor a question&hellip;" class="flex-1 text-xs px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" onkeydown="if(event.key==='Enter')sendMentorChat()" />
-            <button onclick="sendMentorChat()" class="text-xs bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors font-medium">Send</button>
-          </div>
+      <div id="readiness-loading" class="py-8">
+        <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
+          <svg class="animate-spin w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span class="text-sm">Calculating your placement readiness&hellip;</span>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Recent Assessments -->
-  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50">Assessment History</h2>
-      <a
-        href="{% url 'analysis:assessment_history' %}"
-        class="text-blue-600 hover:text-blue-700 text-sm font-medium"
-      >
-        View All Assessments →
-      </a>
-    </div>
+      <div id="readiness-empty" class="hidden py-8 text-center">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Complete at least one assessment to see your placement readiness score.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised readiness score will appear here once you have assessment data.</p>
+        <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">Start an Assessment</a>
+      </div>
 
-    {% if recent_assessments %}
-    <div class="space-y-4">
-      {% for assessment in recent_assessments %}
-      <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="font-medium text-gray-800 dark:text-gray-100">
-              {{ assessment.platform_job_title.title|default:"Assessment" }}
-            </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-              {{ assessment.created_at|date:"M d, Y" }}
-            </p>
-          </div>
-          <div class="text-right">
-            <span
-              class="inline-block px-3 py-1 text-xs rounded-full {% if assessment.status == 'completed' %}bg-green-100 text-green-800 {% elif assessment.status == 'in_progress' %}bg-yellow-100 text-yellow-800 {% else %}bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100{% endif %}"
-            >
-              {{ assessment.get_status_display }}
-            </span>
-            {% if assessment.overall_score %}
-            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Score: {{ assessment.overall_score|floatformat:1 }}/10
+      <div id="readiness-error" class="hidden py-6 text-center">
+        <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load readiness score</p>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the service. Please try again.</p>
+        <button onclick="loadReadiness(false)" class="text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium underline">Try again</button>
+      </div>
+
+      <div id="readiness-results" class="hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+          <div class="flex items-center gap-4">
+            <div class="relative w-20 h-20 flex-shrink-0">
+              <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                <circle id="readiness-ring" cx="40" cy="40" r="34" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" style="transition: stroke-dashoffset 1s ease, stroke 0.4s ease"/>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span id="readiness-score-label" class="text-lg font-extrabold text-gray-800 dark:text-gray-100">--</span>
+              </div>
             </div>
-            {% endif %}
+            <div>
+              <div id="readiness-tier-badge" class="readiness-tier-badge readiness-tier-getting-there mb-2">Getting There</div>
+              <p id="readiness-insight" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-xs"></p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500 self-end sm:self-auto" id="readiness-cache-note"></p>
+        </div>
+        <div id="readiness-breakdown" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- ── Feature #21: AI Career Mentor ──────────────────── -->
+    <div id="career-mentor-card" class="glass-card p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Career Mentor</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="mentor-intake-btn" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Set your target role and timeline">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Set target
+          </button>
+          <button id="mentor-refresh-btn" onclick="loadMentor(true)" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Refresh career mentor summary">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div id="mentor-loading" class="py-8">
+        <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
+          <svg class="animate-spin w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span class="text-sm">Generating your career mentor summary&hellip;</span>
+        </div>
+      </div>
+
+      <div id="mentor-empty" class="hidden py-8 text-center">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="mentor-empty-message">Complete an assessment or upload a resume to receive your personalised career mentor summary.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your AI career mentor will appear here once you have some data.</p>
+        <div class="flex items-center justify-center gap-3 flex-wrap">
+          <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">Start an Assessment</a>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload Resume</a>
+        </div>
+      </div>
+
+      <div id="mentor-error" class="hidden py-6 text-center">
+        <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load career mentor summary</p>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
+        <button onclick="loadMentor(false)" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium underline">Try again</button>
+      </div>
+
+      <div id="mentor-results" class="hidden">
+        <p id="mentor-summary" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4"></p>
+
+        <div id="mentor-focus-areas" class="mb-4 hidden">
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Focus Areas</h3>
+          <div id="mentor-focus-chips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div id="mentor-next-steps" class="mb-4 hidden">
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Next Steps</h3>
+          <ul id="mentor-next-steps-list" class="space-y-1"></ul>
+        </div>
+
+        <div id="mentor-intake-prompt" class="hidden mb-4 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
+          <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2"><strong>Sharpen your advice:</strong> Tell us your target role and timeline for more tailored guidance.</p>
+          <div class="flex flex-wrap gap-2">
+            <input type="text" id="mentor-target-role-input" placeholder="Target role (e.g. Software Engineer)" class="flex-1 min-w-[180px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input type="text" id="mentor-timeline-input" placeholder="Timeline (e.g. 3 months)" class="flex-1 min-w-[120px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <button onclick="saveMentorIntake()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Save</button>
           </div>
         </div>
 
-        {% if assessment.status == 'completed' %}
-        <div class="mt-3">
-          <a
-            href="{% url 'analysis:complete_individual_assessment' session_id=assessment.session_id %}"
-            class="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            View Results
-          </a>
-        </div>
-        {% elif assessment.status == 'in_progress' %}
-        <div class="mt-3">
-          <a
-            href="{% url 'analysis:individual_assessment_question' session_id=assessment.session_id %}"
-            class="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            Continue Assessment
-          </a>
-        </div>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-      <p class="mb-1">No assessments yet.</p>
-      <p class="text-sm">Complete your first practice interview above to see results here.</p>
-    </div>
-    {% endif %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-4 text-right" id="mentor-cache-note"></p>
 
-    <div class="mt-6 text-center">
-      <a
-        href="{% url 'analysis:assessment_history' %}"
-        class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 px-6 py-2 rounded-lg text-sm font-medium transition-colors"
-      >
-        View All Assessments
-      </a>
+        <div id="mentor-chat-section" class="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <button id="mentor-chat-toggle" onclick="toggleMentorChat()" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            Ask the mentor
+          </button>
+          <div id="mentor-chat-body" class="hidden mt-3">
+            <div id="mentor-chat-messages" class="mentor-chat-container mb-3 space-y-2"></div>
+            <div class="flex gap-2">
+              <input type="text" id="mentor-chat-input" placeholder="Ask your mentor a question&hellip;" class="flex-1 text-xs px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" onkeydown="if(event.key==='Enter')sendMentorChat()" />
+              <button onclick="sendMentorChat()" class="text-xs bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- ── Assessment History ───────────────────────────────── -->
+    <div class="glass-card p-6 mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <div class="section-header mb-0">
+          <h2>Assessment History</h2>
+        </div>
+        <a href="{% url 'analysis:assessment_history' %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold transition-colors">View All →</a>
+      </div>
+
+      {% if recent_assessments %}
+      <div class="space-y-3">
+        {% for assessment in recent_assessments %}
+        <div class="history-item">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ assessment.platform_job_title.title|default:"Assessment" }}</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
+            </div>
+            <div class="text-right">
+              <span class="inline-block px-3 py-1 text-xs rounded-full font-semibold {% if assessment.status == 'completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300{% elif assessment.status == 'in_progress' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400{% endif %}">
+                {{ assessment.get_status_display }}
+              </span>
+              {% if assessment.overall_score %}
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Score: {{ assessment.overall_score|floatformat:1 }}/10</div>
+              {% endif %}
+            </div>
+          </div>
+          {% if assessment.status == 'completed' %}
+          <div class="mt-3">
+            <a href="{% url 'analysis:complete_individual_assessment' session_id=assessment.session_id %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">View Results →</a>
+          </div>
+          {% elif assessment.status == 'in_progress' %}
+          <div class="mt-3">
+            <a href="{% url 'analysis:individual_assessment_question' session_id=assessment.session_id %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">Continue Assessment →</a>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+        <p class="mb-1 font-medium">No assessments yet.</p>
+        <p class="text-sm">Complete your first practice interview above to see results here.</p>
+      </div>
+      {% endif %}
+
+      <div class="mt-6 text-center">
+        <a href="{% url 'analysis:assessment_history' %}" class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">View All Assessments</a>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
+  /* ── Score Chart (Chart.js) ──────────────────────────────── */
+  {% if chart_json %}
+  (function() {
+    var data = {{ chart_json|safe }};
+    if (!data.labels || data.labels.length === 0) return;
+    var ctx = document.getElementById('scoreChart');
+    if (!ctx) return;
+    var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(102,126,234,0.2)');
+    gradient.addColorStop(1, 'rgba(102,126,234,0)');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Score',
+          data: data.scores,
+          borderColor: '#667eea',
+          backgroundColor: gradient,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#667eea',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(30,41,59,0.9)',
+            titleFont: { size: 13 },
+            bodyFont: { size: 13 },
+            padding: 10,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  })();
+  {% endif %}
+
   function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
   }
@@ -605,139 +889,81 @@
         const list = document.getElementById('persona-list');
         list.classList.remove('hidden');
         list.innerHTML = '';
-        
         data.personas.forEach(p => {
           const isSelected = p.id === data.current_preference;
-          const selectedClass = isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700';
           const avatarUrl = p.avatar || '';
-          
           list.innerHTML += `
-            <div class="persona-card border rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-all ${selectedClass}" onclick="savePersona('${p.id}')">
+            <div class="persona-card ${isSelected ? 'selected' : ''}" onclick="savePersona('${p.id}')">
               <div class="flex items-center gap-3 mb-3">
-                <img src="${avatarUrl}" alt="${p.name} avatar" class="w-14 h-14 rounded-full object-cover border-2 ${isSelected ? 'border-blue-500' : 'border-gray-200 dark:border-gray-600'}" onerror="this.style.display='none'" />
+                <img src="${avatarUrl}" alt="${p.name} avatar" class="w-14 h-14 rounded-full object-cover border-2 ${isSelected ? 'border-indigo-500' : 'border-gray-200 dark:border-gray-600'}" onerror="this.style.display='none'" />
                 <div class="flex-1">
                   <h3 class="font-bold text-gray-800 dark:text-gray-100">${p.name}</h3>
                 </div>
-                ${isSelected ? '<span class="text-blue-600 text-xs font-bold px-2 py-1 bg-blue-100 rounded-full">Selected</span>' : ''}
+                ${isSelected ? '<span class="text-indigo-600 text-xs font-bold px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">Selected</span>' : ''}
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${p.description}</p>
-            </div>
-          `;
+              <p class="text-xs text-gray-600 dark:text-gray-400">${p.description}</p>
+            </div>`;
         });
       })
-      .catch(e => {
-        document.getElementById('persona-loading').innerText = 'Failed to load voices.';
-      });
+      .catch(e => { document.getElementById('persona-loading').innerText = 'Failed to load voices.'; });
   }
 
   function savePersona(id) {
     fetch('/auth/voice-interviewer/preference/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrfToken()
-      },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
       body: JSON.stringify({persona_id: id})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if(data.status === 'success') loadPersonas();
-    });
+    }).then(r => r.json()).then(data => { if(data.status === 'success') loadPersonas(); });
   }
 
   document.addEventListener('DOMContentLoaded', loadPersonas);
 
   function selectJobTitle(jobTitleId) {
-    // Clear all radio buttons
-    document.querySelectorAll('input[name="job_title_id"]').forEach((radio) => {
-      radio.checked = false;
-    });
-
-    // Select the clicked one
+    document.querySelectorAll('input[name="job_title_id"]').forEach(r => r.checked = false);
     document.querySelector(`input[value="${jobTitleId}"]`).checked = true;
-
-    // Remove selection styles from all cards
-    document.querySelectorAll(".job-card").forEach((card) => {
-      card.classList.remove("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
-    });
-
-    // Add selection style to clicked card
-    event.currentTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20");
+    document.querySelectorAll(".job-card").forEach(c => c.classList.remove("selected"));
+    event.currentTarget.classList.add("selected");
   }
 
-  /* Feature #20 – Placement Readiness Predictor */
+  /* ── Feature #20 – Placement Readiness ─────────────────── */
   function showReadinessState(state) {
-    ['loading', 'empty', 'error', 'results'].forEach(function(s) {
-      document.getElementById('readiness-' + s).classList.add('hidden');
-    });
-    document.getElementById('readiness-' + state).classList.remove('hidden');
+    ['loading','empty','error','results'].forEach(s => document.getElementById('readiness-'+s).classList.add('hidden'));
+    document.getElementById('readiness-'+state).classList.remove('hidden');
   }
-
-  var READINESS_LABELS = {
-    performance_base:  'Performance',
-    performance_trend: 'Trend',
-    resume_quality:    'Resume Quality',
-    practice_volume:   'Practice Volume',
-    practice_recency:  'Recency',
-    coach_gaps:        'Weaknesses'
-  };
-
-  function readinessBarColor(pct) {
-    if (pct >= 75) return '#10b981';
-    if (pct >= 45) return '#f59e0b';
-    return '#ef4444';
-  }
+  var READINESS_LABELS = { performance_base:'Performance', performance_trend:'Trend', resume_quality:'Resume Quality', practice_volume:'Practice Volume', practice_recency:'Recency', coach_gaps:'Weaknesses' };
+  function readinessBarColor(pct) { if(pct>=75) return '#10b981'; if(pct>=45) return '#f59e0b'; return '#ef4444'; }
 
   function renderReadiness(readiness, cached) {
     var score = Math.round(readiness.total_score || 0);
-    var tier  = readiness.tier || 'Needs Practice';
-
-    /* Animated SVG ring */
+    var tier = readiness.tier || 'Needs Practice';
     var circumference = 213.6;
     var ring = document.getElementById('readiness-ring');
     ring.style.strokeDashoffset = circumference;
     ring.style.stroke = score >= 75 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
-    setTimeout(function() {
-      ring.style.strokeDashoffset = circumference - (score / 100) * circumference;
-    }, 60);
+    setTimeout(function(){ ring.style.strokeDashoffset = circumference - (score/100)*circumference; }, 60);
     document.getElementById('readiness-score-label').textContent = score;
-
-    /* Tier badge */
     var badge = document.getElementById('readiness-tier-badge');
     badge.className = 'readiness-tier-badge';
-    if (tier === 'Interview Ready') badge.classList.add('readiness-tier-interview-ready');
-    else if (tier === 'Getting There') badge.classList.add('readiness-tier-getting-there');
+    if(tier === 'Interview Ready') badge.classList.add('readiness-tier-interview-ready');
+    else if(tier === 'Getting There') badge.classList.add('readiness-tier-getting-there');
     else badge.classList.add('readiness-tier-needs-practice');
     badge.textContent = tier;
-
-    /* AI insight */
     document.getElementById('readiness-insight').textContent = readiness.insight || '';
-
-    /* Breakdown bars */
-    var bk   = readiness.breakdown || {};
+    var bk = readiness.breakdown || {};
     var bkEl = document.getElementById('readiness-breakdown');
     bkEl.innerHTML = '';
     Object.keys(bk).forEach(function(key) {
-      var comp  = bk[key];
-      var pct   = comp.max > 0 ? Math.round((comp.score / comp.max) * 100) : 0;
+      var comp = bk[key];
+      var pct = comp.max > 0 ? Math.round((comp.score/comp.max)*100) : 0;
       var color = readinessBarColor(pct);
       var label = READINESS_LABELS[key] || key;
       bkEl.insertAdjacentHTML('beforeend',
         '<div>'
-        + '<div class="flex justify-between items-center mb-1">'
-        + '<span class="text-xs font-medium text-gray-700 dark:text-gray-300">' + label + '</span>'
-        + '<span class="text-xs text-gray-500 dark:text-gray-400">' + comp.score + '/' + comp.max + '</span>'
-        + '</div>'
-        + '<div class="readiness-bar-track">'
-        + '<div style="width:' + pct + '%;background-color:' + color + ';height:6px;border-radius:9999px;transition:width 0.8s ease"></div>'
-        + '</div>'
-        + '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">' + (comp.description || '') + '</p>'
-        + '</div>'
-      );
+        + '<div class="flex justify-between items-center mb-1"><span class="text-xs font-medium text-gray-700 dark:text-gray-300">'+label+'</span><span class="text-xs text-gray-500 dark:text-gray-400">'+comp.score+'/'+comp.max+'</span></div>'
+        + '<div class="readiness-bar-track"><div style="width:'+pct+'%;background-color:'+color+';height:6px;border-radius:9999px;transition:width 0.8s ease"></div></div>'
+        + '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">'+(comp.description||'')+'</p></div>');
     });
-
-    document.getElementById('readiness-cache-note').textContent =
-      cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
+    document.getElementById('readiness-cache-note').textContent = cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
     document.getElementById('readiness-refresh-btn').classList.remove('hidden');
     showReadinessState('results');
   }
@@ -747,43 +973,22 @@
     document.getElementById('readiness-refresh-btn').classList.add('hidden');
     var url = "{% url 'analysis:placement_readiness_api' %}" + (forceRefresh ? '?refresh=true' : '');
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (!data.success) {
-          if (data.error === 'not_enough_data') { showReadinessState('empty'); }
-          else { showReadinessState('error'); }
-          return;
-        }
+      .then(r => r.json())
+      .then(data => {
+        if(!data.success) { if(data.error==='not_enough_data') showReadinessState('empty'); else showReadinessState('error'); return; }
         renderReadiness(data.readiness, data.cached === true);
       })
-      .catch(function(err) {
-        console.error('Readiness fetch error:', err);
-        showReadinessState('error');
-      });
+      .catch(err => { console.error('Readiness fetch error:', err); showReadinessState('error'); });
   }
+  document.addEventListener('DOMContentLoaded', function(){ loadReadiness(false); });
 
-  document.addEventListener('DOMContentLoaded', function() { loadReadiness(false); });
-
-  /* Feature #19 – AI Job Matches */
+  /* ── Feature #19 – AI Job Matches ──────────────────────── */
   function showMatchesState(state) {
-    ['loading', 'empty', 'error', 'results'].forEach(function(s) {
-      document.getElementById('job-matches-' + s).classList.add('hidden');
-    });
-    document.getElementById('job-matches-' + state).classList.remove('hidden');
+    ['loading','empty','error','results'].forEach(s => document.getElementById('job-matches-'+s).classList.add('hidden'));
+    document.getElementById('job-matches-'+state).classList.remove('hidden');
   }
-
-  function scoreColor(score) {
-    if (score >= 75) return 'bg-green-500';
-    if (score >= 50) return 'bg-yellow-400';
-    if (score >= 25) return 'bg-orange-400';
-    return 'bg-red-400';
-  }
-
-  function escapeHtml(str) {
-    var d = document.createElement('div');
-    d.appendChild(document.createTextNode(String(str || '')));
-    return d.innerHTML;
-  }
+  function scoreColor(score) { if(score>=75) return 'bg-green-500'; if(score>=50) return 'bg-yellow-400'; if(score>=25) return 'bg-orange-400'; return 'bg-red-400'; }
+  function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(String(str||''))); return d.innerHTML; }
 
   function renderMatches(matches, cached) {
     var list = document.getElementById('job-matches-list');
@@ -791,19 +996,13 @@
     matches.forEach(function(m, idx) {
       var score = parseInt(m.match_score) || 0;
       var bar = scoreColor(score);
-      var html = '<div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-violet-400 transition-colors">'
+      var html = '<div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-violet-400 transition-colors bg-white/50 dark:bg-white/5">'
         + '<div class="flex items-start justify-between gap-4 mb-2">'
-        + '<div class="flex items-center gap-2">'
-        + '<span class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center flex-shrink-0">' + (idx + 1) + '</span>'
-        + '<h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">' + escapeHtml(m.job_title) + '</h3>'
-        + '</div>'
-        + '<span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-shrink-0">' + score + '%</span>'
-        + '</div>'
-        + '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">'
-        + '<div class="' + bar + ' h-1.5 rounded-full transition-all duration-700" style="width:' + score + '%"></div>'
-        + '</div>'
-        + '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">' + escapeHtml(m.reason) + '</p>'
-        + '</div>';
+        + '<div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center flex-shrink-0">'+(idx+1)+'</span>'
+        + '<h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">'+escapeHtml(m.job_title)+'</h3></div>'
+        + '<span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-shrink-0">'+score+'%</span></div>'
+        + '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2"><div class="'+bar+' h-1.5 rounded-full transition-all duration-700" style="width:'+score+'%"></div></div>'
+        + '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">'+escapeHtml(m.reason)+'</p></div>';
       list.insertAdjacentHTML('beforeend', html);
     });
     document.getElementById('job-matches-cache-note').textContent = cached ? 'Cached result — click Refresh to regenerate.' : 'Generated fresh just now.';
@@ -816,283 +1015,126 @@
     document.getElementById('job-matches-refresh-btn').classList.add('hidden');
     var url = "{% url 'analysis:generate_job_matches' %}" + (forceRefresh ? '?refresh=true' : '');
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function(response) { return response.json(); })
-      .then(function(data) {
-        if (!data.success) {
-          if (data.error === 'not_enough_data' || data.error === 'ai_failed') {
+      .then(r => r.json())
+      .then(data => {
+        if(!data.success) {
+          if(data.error==='not_enough_data' || data.error==='ai_failed') {
             var msg = document.getElementById('job-matches-empty-message');
-            if (msg && data.message) { msg.textContent = data.message; }
+            if(msg && data.message) msg.textContent = data.message;
             showMatchesState('empty');
-          } else {
-            showMatchesState('error');
-          }
+          } else showMatchesState('error');
           return;
         }
-        renderMatches(data.matches || [], data.cached === true);
+        renderMatches(data.matches||[], data.cached === true);
       })
-      .catch(function(err) {
-        console.error('Job matches fetch error:', err);
-        showMatchesState('error');
-      });
+      .catch(err => { console.error('Job matches fetch error:', err); showMatchesState('error'); });
   }
+  document.addEventListener('DOMContentLoaded', function(){ loadJobMatches(false); });
 
-  document.addEventListener('DOMContentLoaded', function() { loadJobMatches(false); });
-
-  /* Feature #21 – AI Career Mentor */
+  /* ── Feature #21 – AI Career Mentor ─────────────────────── */
   var mentorChatHistory = [];
-
   function getMentorCsrfToken() {
     var token = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (token) return token.value;
-    // fallback: read from cookie
-    var name = 'csrftoken';
-    var cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
+    if(token) return token.value;
+    var name = 'csrftoken'; var cookieValue = null;
+    if(document.cookie && document.cookie !== '') {
       var cookies = document.cookie.split(';');
-      for (var i = 0; i < cookies.length; i++) {
+      for(var i=0;i<cookies.length;i++){
         var cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
+        if(cookie.substring(0,name.length+1)===(name+'=')){ cookieValue = decodeURIComponent(cookie.substring(name.length+1)); break; }
       }
     }
     return cookieValue;
   }
-
   function showMentorState(state) {
-    ['loading', 'empty', 'error', 'results'].forEach(function(s) {
-      var el = document.getElementById('mentor-' + s);
-      if (el) el.classList.add('hidden');
-    });
-    var el = document.getElementById('mentor-' + state);
-    if (el) el.classList.remove('hidden');
-
-    // Show/hide action buttons based on state
-    var refreshBtn = document.getElementById('mentor-refresh-btn');
-    var intakeBtn = document.getElementById('mentor-intake-btn');
-    if (refreshBtn) {
-      if (state === 'results') refreshBtn.classList.remove('hidden');
-      else refreshBtn.classList.add('hidden');
-    }
-    if (intakeBtn) {
-      if (state === 'results') intakeBtn.classList.remove('hidden');
-      else intakeBtn.classList.add('hidden');
-    }
+    ['loading','empty','error','results'].forEach(s => { var el = document.getElementById('mentor-'+s); if(el) el.classList.add('hidden'); });
+    var el = document.getElementById('mentor-'+state); if(el) el.classList.remove('hidden');
+    var refreshBtn = document.getElementById('mentor-refresh-btn'); var intakeBtn = document.getElementById('mentor-intake-btn');
+    if(refreshBtn) { if(state==='results') refreshBtn.classList.remove('hidden'); else refreshBtn.classList.add('hidden'); }
+    if(intakeBtn) { if(state==='results') intakeBtn.classList.remove('hidden'); else intakeBtn.classList.add('hidden'); }
   }
-
   function renderMentor(data) {
     document.getElementById('mentor-summary').textContent = data.summary || '';
-
-    // Focus areas
-    var focusEl = document.getElementById('mentor-focus-areas');
-    var chipsEl = document.getElementById('mentor-focus-chips');
-    if (data.focus_areas && data.focus_areas.length > 0) {
-      focusEl.classList.remove('hidden');
-      chipsEl.innerHTML = '';
-      data.focus_areas.forEach(function(f) {
-        var chip = document.createElement('span');
-        chip.className = 'focus-chip';
-        chip.textContent = f;
-        chipsEl.appendChild(chip);
-      });
-    } else {
-      focusEl.classList.add('hidden');
-    }
-
-    // Next steps
-    var stepsEl = document.getElementById('mentor-next-steps');
-    var stepsList = document.getElementById('mentor-next-steps-list');
-    if (data.next_steps && data.next_steps.length > 0) {
-      stepsEl.classList.remove('hidden');
-      stepsList.innerHTML = '';
-      data.next_steps.forEach(function(n) {
-        var li = document.createElement('li');
-        li.className = 'text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 leading-relaxed';
-        li.innerHTML = '<span class="text-indigo-500 font-bold flex-shrink-0 mt-0.5">&#8250;</span><span>' + escapeHtml(n) + '</span>';
-        stepsList.appendChild(li);
-      });
-    } else {
-      stepsEl.classList.add('hidden');
-    }
-
-    // Cache note
+    var focusEl = document.getElementById('mentor-focus-areas'); var chipsEl = document.getElementById('mentor-focus-chips');
+    if(data.focus_areas && data.focus_areas.length > 0) { focusEl.classList.remove('hidden'); chipsEl.innerHTML = ''; data.focus_areas.forEach(function(f){ var chip = document.createElement('span'); chip.className = 'focus-chip'; chip.textContent = f; chipsEl.appendChild(chip); }); }
+    else { focusEl.classList.add('hidden'); }
+    var stepsEl = document.getElementById('mentor-next-steps'); var stepsList = document.getElementById('mentor-next-steps-list');
+    if(data.next_steps && data.next_steps.length > 0) { stepsEl.classList.remove('hidden'); stepsList.innerHTML = ''; data.next_steps.forEach(function(n){ var li = document.createElement('li'); li.className = 'text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 leading-relaxed'; li.innerHTML = '<span class="text-indigo-500 font-bold flex-shrink-0 mt-0.5">&#8250;</span><span>'+escapeHtml(n)+'</span>'; stepsList.appendChild(li); }); }
+    else { stepsEl.classList.add('hidden'); }
     var cached = data.cached === true;
-    document.getElementById('mentor-cache-note').textContent =
-      cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
-
-    // Chat section
-    var chatSection = document.getElementById('mentor-chat-section');
-    if (chatSection) chatSection.classList.remove('hidden');
-
+    document.getElementById('mentor-cache-note').textContent = cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
+    var chatSection = document.getElementById('mentor-chat-section'); if(chatSection) chatSection.classList.remove('hidden');
     showMentorState('results');
   }
-
   function loadMentor(forceRefresh) {
     showMentorState('loading');
     document.getElementById('mentor-refresh-btn').classList.add('hidden');
     var url = "{% url 'analysis:career_mentor_generate' %}" + (forceRefresh ? '?refresh=true' : '');
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function(response) { return response.json(); })
-      .then(function(data) {
-        if (!data.success) {
-          if (data.error === 'not_enough_data') {
-            var msg = document.getElementById('mentor-empty-message');
-            if (msg && data.message) { msg.textContent = data.message; }
-            showMentorState('empty');
-          } else {
-            showMentorState('error');
-          }
+      .then(r => r.json())
+      .then(data => {
+        if(!data.success) {
+          if(data.error==='not_enough_data') { var msg = document.getElementById('mentor-empty-message'); if(msg && data.message) msg.textContent = data.message; showMentorState('empty'); }
+          else showMentorState('error');
           return;
         }
         renderMentor(data);
       })
-      .catch(function(err) {
-        console.error('Career mentor fetch error:', err);
-        showMentorState('error');
-      });
+      .catch(err => { console.error('Career mentor fetch error:', err); showMentorState('error'); });
   }
-
   function toggleMentorChat() {
     var body = document.getElementById('mentor-chat-body');
-    if (body.classList.contains('hidden')) {
+    if(body.classList.contains('hidden')) {
       body.classList.remove('hidden');
       var messagesEl = document.getElementById('mentor-chat-messages');
-      if (messagesEl.children.length === 0) {
-        // Add welcome message
-        var welcome = document.createElement('div');
-        welcome.className = 'flex items-start gap-2';
+      if(messagesEl.children.length === 0) {
+        var welcome = document.createElement('div'); welcome.className = 'flex items-start gap-2';
         welcome.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">Ask me anything about your career journey — your strengths, areas to improve, or next steps!</div>';
         messagesEl.appendChild(welcome);
       }
-      var input = document.getElementById('mentor-chat-input');
-      if (input) input.focus();
-    } else {
-      body.classList.add('hidden');
-    }
+      var input = document.getElementById('mentor-chat-input'); if(input) input.focus();
+    } else { body.classList.add('hidden'); }
   }
-
   function appendChatMessage(role, content) {
-    var messagesEl = document.getElementById('mentor-chat-messages');
-    var div = document.createElement('div');
+    var messagesEl = document.getElementById('mentor-chat-messages'); var div = document.createElement('div');
     div.className = 'flex items-start gap-2 ' + (role === 'user' ? 'flex-row-reverse' : '');
-    if (role === 'user') {
-      div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div><div class="text-xs text-white bg-indigo-600 rounded-lg px-3 py-2 max-w-[80%]">' + escapeHtml(content) + '</div>';
-    } else {
-      div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">' + escapeHtml(content) + '</div>';
-    }
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if(role === 'user') { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div><div class="text-xs text-white bg-indigo-600 rounded-lg px-3 py-2 max-w-[80%]">'+escapeHtml(content)+'</div>'; }
+    else { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">'+escapeHtml(content)+'</div>'; }
+    messagesEl.appendChild(div); messagesEl.scrollTop = messagesEl.scrollHeight;
   }
-
   function sendMentorChat() {
-    var input = document.getElementById('mentor-chat-input');
-    var message = input.value.trim();
-    if (!message) return;
-
-    // Add user message to UI
-    appendChatMessage('user', message);
-    input.value = '';
-
-    // Track history
+    var input = document.getElementById('mentor-chat-input'); var message = input.value.trim(); if(!message) return;
+    appendChatMessage('user', message); input.value = '';
     mentorChatHistory.push({ role: 'user', content: message });
-
-    // Show typing indicator
-    var typingDiv = document.createElement('div');
-    typingDiv.id = 'mentor-typing';
-    typingDiv.className = 'flex items-start gap-2';
+    var typingDiv = document.createElement('div'); typingDiv.id = 'mentor-typing'; typingDiv.className = 'flex items-start gap-2';
     typingDiv.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">Typing...</div>';
     document.getElementById('mentor-chat-messages').appendChild(typingDiv);
-
-    var scrollEl = document.querySelector('.mentor-chat-container');
-    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
-
+    var scrollEl = document.querySelector('.mentor-chat-container'); if(scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
     fetch("{% url 'analysis:career_mentor_chat' %}", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getMentorCsrfToken(),
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify({ message: message, history: mentorChatHistory.slice(-10) }),
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getMentorCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin', body: JSON.stringify({ message: message, history: mentorChatHistory.slice(-10) }),
     })
-    .then(function(response) { return response.json(); })
-    .then(function(data) {
-      // Remove typing indicator
-      var typing = document.getElementById('mentor-typing');
-      if (typing) typing.remove();
-
-      if (data.success && data.reply) {
-        appendChatMessage('assistant', data.reply);
-        mentorChatHistory.push({ role: 'assistant', content: data.reply });
-      } else {
-        appendChatMessage('assistant', 'Sorry, I had trouble processing that. Could you try again?');
-      }
-    })
-    .catch(function(err) {
-      var typing = document.getElementById('mentor-typing');
-      if (typing) typing.remove();
-      appendChatMessage('assistant', 'There was a network error. Please try again.');
-    });
+    .then(r => r.json()).then(data => {
+      var typing = document.getElementById('mentor-typing'); if(typing) typing.remove();
+      if(data.success && data.reply) { appendChatMessage('assistant', data.reply); mentorChatHistory.push({ role: 'assistant', content: data.reply }); }
+      else { appendChatMessage('assistant', 'Sorry, I had trouble processing that. Could you try again?'); }
+    }).catch(err => { var typing = document.getElementById('mentor-typing'); if(typing) typing.remove(); appendChatMessage('assistant', 'There was a network error. Please try again.'); });
   }
-
   function saveMentorIntake() {
-    var roleInput = document.getElementById('mentor-target-role-input');
-    var timelineInput = document.getElementById('mentor-timeline-input');
-    if (!roleInput || !timelineInput) return;
-
-    var btn = event.currentTarget;
-    var origText = btn.textContent;
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-
+    var roleInput = document.getElementById('mentor-target-role-input'); var timelineInput = document.getElementById('mentor-timeline-input');
+    if(!roleInput || !timelineInput) return;
+    var btn = event.currentTarget; var origText = btn.textContent; btn.textContent = 'Saving...'; btn.disabled = true;
     fetch("{% url 'analysis:career_mentor_intake' %}", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getMentorCsrfToken(),
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        target_role: roleInput.value.trim() || null,
-        timeline: timelineInput.value.trim() || null,
-        concern: null,
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getMentorCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin', body: JSON.stringify({ target_role: roleInput.value.trim() || null, timeline: timelineInput.value.trim() || null, concern: null }),
     })
-    .then(function(response) { return response.json(); })
-    .then(function(data) {
-      btn.textContent = origText;
-      btn.disabled = false;
-      if (data.success) {
-        roleInput.value = '';
-        timelineInput.value = '';
-        // Hide intake prompt after saving
-        var prompt = document.getElementById('mentor-intake-prompt');
-        if (prompt) prompt.classList.add('hidden');
-        // Refresh mentor summary with new intake data
-        loadMentor(true);
-      } else {
-        alert('Failed to save. Please try again.');
-      }
-    })
-    .catch(function(err) {
-      btn.textContent = origText;
-      btn.disabled = false;
-      console.error('Intake save error:', err);
-      alert('Failed to save. Please try again.');
-    });
+    .then(r => r.json()).then(data => {
+      btn.textContent = origText; btn.disabled = false;
+      if(data.success) { roleInput.value = ''; timelineInput.value = ''; var prompt = document.getElementById('mentor-intake-prompt'); if(prompt) prompt.classList.add('hidden'); loadMentor(true); }
+      else { alert('Failed to save. Please try again.'); }
+    }).catch(err => { btn.textContent = origText; btn.disabled = false; console.error('Intake save error:', err); alert('Failed to save. Please try again.'); });
   }
-
-  // Toggle intake prompt button
-  document.getElementById('mentor-intake-btn').addEventListener('click', function() {
-    var prompt = document.getElementById('mentor-intake-prompt');
-    if (prompt) {
-      prompt.classList.toggle('hidden');
-    }
-  });
-
-  document.addEventListener('DOMContentLoaded', function() { loadMentor(false); });
+  document.getElementById('mentor-intake-btn').addEventListener('click', function() { var prompt = document.getElementById('mentor-intake-prompt'); if(prompt) prompt.classList.toggle('hidden'); });
+  document.addEventListener('DOMContentLoaded', function(){ loadMentor(false); });
 </script>
 {% endblock %}
