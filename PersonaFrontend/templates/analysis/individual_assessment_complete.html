@@ -177,8 +177,51 @@
     });
   </script>
 
+  {% if panel_session %}
+  <!-- Feature #25: Panel Synthesis & Verdict -->
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8 border-l-4 border-indigo-500">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-semibold text-indigo-900 dark:text-indigo-300">Panel Synthesis Summary</h2>
+      <div class="text-right">
+        <span class="text-sm text-gray-500 block mb-1">Aggregated Panel Verdict</span>
+        <span class="text-3xl font-bold text-indigo-600">{{ panel_session.aggregated_score|floatformat:1 }}/10</span>
+      </div>
+    </div>
+    <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-400 leading-relaxed">
+      {{ panel_session.ai_synthesis_summary|linebreaks }}
+    </div>
+  </div>
+
+  <!-- Per-Panelist Verdicts -->
+  <div class="grid grid-cols-1 md:grid-cols-{{ panel_session.persona_scores.all.count }} gap-6 mb-8">
+    {% for ps in panel_session.persona_scores.all %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-100 dark:border-gray-700">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="text-2xl">
+          {% if ps.persona_id == 'professional_stern' %}👔
+          {% elif ps.persona_id == 'friendly_encouraging' %}😊
+          {% elif ps.persona_id == 'analytical_direct' %}🧐
+          {% else %}👤{% endif %}
+        </div>
+        <div>
+          <h4 class="font-bold text-gray-800 dark:text-gray-200">
+            {% if ps.persona_id == 'professional_stern' %}Professional & Stern
+            {% elif ps.persona_id == 'friendly_encouraging' %}Friendly & Encouraging
+            {% elif ps.persona_id == 'analytical_direct' %}Analytical & Direct
+            {% else %}{{ ps.persona_id }}{% endif %}
+          </h4>
+          <span class="text-xs text-gray-500">Panelist Verdict</span>
+        </div>
+        <div class="ml-auto text-xl font-bold text-indigo-600">{{ ps.score|floatformat:1 }}</div>
+      </div>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ ps.feedback }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-8">
-    <h2 class="text-2xl font-semibold mb-4">AI Feedback Summary</h2>
+    <h2 class="text-2xl font-semibold mb-4">{% if panel_session %}Overall AI Insights{% else %}AI Feedback Summary{% endif %}</h2>
     <p class="text-gray-700 dark:text-gray-400 leading-relaxed">{{ ai_feedback_summary|linebreaksbr }}</p>
   </div>
 
@@ -549,7 +592,18 @@
       {% for response in responses %}
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <div class="flex items-start justify-between gap-4 mb-2">
-          <div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              {% if response.interviewer_persona_id %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                Interviewer: 
+                {% if response.interviewer_persona_id == 'professional_stern' %}Professional & Stern
+                {% elif response.interviewer_persona_id == 'friendly_encouraging' %}Friendly & Encouraging
+                {% elif response.interviewer_persona_id == 'analytical_direct' %}Analytical & Direct
+                {% else %}{{ response.interviewer_persona_id }}{% endif %}
+              </span>
+              {% endif %}
+            </div>
             <h3 class="font-semibold text-gray-800 dark:text-gray-100">
               Q{{ response.question_order }}. {{ response.question.question_text }}
             </h3>
