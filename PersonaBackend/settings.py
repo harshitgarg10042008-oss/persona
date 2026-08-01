@@ -59,6 +59,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5000',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://8000-i09vg8t9d12an23lahp79-295b812f.sg1.manus.computer',
 ]
 if REPLIT_DEV_DOMAIN:
     CSRF_TRUSTED_ORIGINS += [

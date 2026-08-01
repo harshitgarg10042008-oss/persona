@@ -35,4 +35,5 @@ regex==2026.5.9
 requests==2.34.2
 seaborn==0.13.2
 tqdm==4.68.3
-xhtml2pdf==0.2.16razorpay==2.0.1
+xhtml2pdf==0.2.16
+razorpay==2.0.1
