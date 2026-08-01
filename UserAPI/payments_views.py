@@ -63,27 +63,51 @@ def create_order(request):
     Returns:
       { "order_id": "...", "amount": 49900, "currency": "INR", "key_id": "..." }
     """
+    # ── 1. Parse JSON body ──
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
+        logger.error(f"create_order: Invalid JSON body from user {request.user.email}")
         return JsonResponse({'error': 'Invalid JSON body'}, status=400)
 
     plan = body.get('plan', '').strip()
+    logger.info(f"create_order: user={request.user.email}, plan={plan}")
 
-    # Validate plan
+    # ── 2. Validate plan ──
     if plan not in settings.PLAN_PRICING:
+        logger.error(f"create_order: Unknown plan '{plan}' from user {request.user.email}")
         return JsonResponse({
-            'error': f'Unknown plan: {plan}. Valid: {list(settings.PLAN_PRICING.keys())}'
+            'error': f'Unknown plan: {plan}. Valid plans: {list(settings.PLAN_PRICING.keys())}'
         }, status=400)
 
-    # Check Razorpay credentials are configured
-    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
-        logger.error('Razorpay credentials not configured in .env')
+    # ── 3. Check Razorpay credentials ──
+    key_id = settings.RAZORPAY_KEY_ID
+    key_secret = settings.RAZORPAY_KEY_SECRET
+
+    if not key_id or not key_secret:
+        logger.error(
+            f"create_order: Razorpay credentials MISSING — "
+            f"KEY_ID={'SET' if key_id else 'EMPTY'}, KEY_SECRET={'SET' if key_secret else 'EMPTY'}"
+        )
         return JsonResponse({
             'error': 'Payment system is not configured. Please contact support.'
         }, status=503)
 
-    # Check if user is already on premium
+    # Check if credentials are still placeholders (common cause of 500)
+    if 'xxxx' in key_id or 'xxxx' in key_secret:
+        logger.error(
+            f"create_order: Razorpay credentials are still PLACEHOLDER values — "
+            f"KEY_ID starts with '{key_id[:10]}...', "
+            f"KEY_SECRET has placeholder chars. "
+            f"Update .env with real test keys from dashboard.razorpay.com"
+        )
+        return JsonResponse({
+            'error': 'Payment system is not yet configured with valid Razorpay keys. '
+                     'Please contact support.',
+            'config_error': True,
+        }, status=503)
+
+    # ── 4. Check if user is already on premium ──
     try:
         sub = request.user.subscription
         if sub.is_premium:
@@ -97,16 +121,25 @@ def create_order(request):
     plan_config = settings.PLAN_PRICING[plan]
     amount_paise = plan_config['amount']
 
+    # ── 5. Create Razorpay order ──
     try:
         client = _get_razorpay_client()
+
+        logger.info(
+            f"create_order: Calling Razorpay API — "
+            f"user={request.user.email}, plan={plan}, amount={amount_paise}, "
+            f"key_id_prefix={key_id[:8]}..."
+        )
+
         order = client.order.create({
             'amount': amount_paise,
             'currency': 'INR',
             'payment_capture': 1,  # auto-capture
         })
         order_id = order['id']
+        logger.info(f"create_order: Razorpay returned order_id={order_id}")
 
-        # Create audit trail record
+        # ── 6. Create audit trail record ──
         from UserAPI.models import PaymentTransaction
         PaymentTransaction.objects.create(
             user=request.user,
@@ -116,25 +149,44 @@ def create_order(request):
             status='created',
         )
 
-        logger.info(
-            f"Order created: {order_id} for user {request.user.email}, "
-            f"plan={plan}, amount={amount_paise}"
-        )
-
         return JsonResponse({
             'order_id': order_id,
             'amount': amount_paise,
             'currency': 'INR',
-            'key_id': settings.RAZORPAY_KEY_ID,  # public key, safe to expose
+            'key_id': key_id,  # public key, safe to expose
             'plan': plan,
             'plan_label': plan_config['label'],
         })
 
     except Exception as e:
-        logger.exception(f"Failed to create Razorpay order: {e}")
-        return JsonResponse({
-            'error': 'Failed to create payment order. Please try again.'
-        }, status=500)
+        # Log the EXACT exception with full context for debugging
+        error_type = type(e).__name__
+        error_msg = str(e)
+        logger.exception(
+            f"create_order: Razorpay Order.create FAILED — "
+            f"user={request.user.email}, plan={plan}, amount={amount_paise}, "
+            f"error_type={error_type}, error_msg={error_msg}"
+        )
+
+        # Provide specific error messages based on exception type
+        if 'invalid' in error_msg.lower() and 'key' in error_msg.lower():
+            return JsonResponse({
+                'error': 'Invalid Razorpay API credentials. Please update your keys in the .env file.',
+                'config_error': True,
+            }, status=500)
+        elif 'unauthorized' in error_msg.lower() or 'authentication' in error_msg.lower():
+            return JsonResponse({
+                'error': 'Razorpay authentication failed. Please check your API keys.',
+                'config_error': True,
+            }, status=500)
+        elif 'api_error' in error_type.lower():
+            return JsonResponse({
+                'error': f'Razorpay API error: {error_msg}',
+            }, status=500)
+        else:
+            return JsonResponse({
+                'error': 'Failed to create payment order. Please try again later.',
+            }, status=500)
 
 
 @csrf_exempt  # Razorpay's callback is a POST from their server
@@ -159,6 +211,7 @@ def verify_payment(request):
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
+        logger.error("verify_payment: Invalid JSON body")
         return JsonResponse({'error': 'Invalid JSON body'}, status=400)
 
     razorpay_order_id = body.get('razorpay_order_id', '').strip()
@@ -166,6 +219,7 @@ def verify_payment(request):
     signature = body.get('razorpay_signature', '').strip()
 
     if not (razorpay_order_id and razorpay_payment_id and signature):
+        logger.warning(f"verify_payment: Missing fields — order_id={bool(razorpay_order_id)}, payment_id={bool(razorpay_payment_id)}, signature={bool(signature)}")
         return JsonResponse({
             'error': 'Missing required fields: razorpay_order_id, razorpay_payment_id, razorpay_signature'
         }, status=400)
@@ -177,8 +231,13 @@ def verify_payment(request):
             razorpay_order_id=razorpay_order_id
         )
     except PaymentTransaction.DoesNotExist:
-        logger.warning(f"Unknown order_id in verify: {razorpay_order_id}")
+        logger.warning(f"verify_payment: Unknown order_id: {razorpay_order_id}")
         return JsonResponse({'error': 'Transaction not found'}, status=404)
+
+    logger.info(
+        f"verify_payment: Verifying order={razorpay_order_id}, "
+        f"payment={razorpay_payment_id}, user={transaction.user.email}"
+    )
 
     # Security: NEVER trust frontend without server-side signature verification
     if not _verify_payment_signature(razorpay_order_id, razorpay_payment_id, signature):
@@ -186,8 +245,9 @@ def verify_payment(request):
         transaction.signature = signature[:10] + '...'  # partial, for log
         transaction.save()
         logger.warning(
-            f"Payment signature verification FAILED for order {razorpay_order_id} "
-            f"user={transaction.user.email}"
+            f"verify_payment: SIGNATURE VERIFICATION FAILED — "
+            f"order={razorpay_order_id}, user={transaction.user.email} "
+            f"(possible tampering or replay attack)"
         )
         return JsonResponse({
             'error': 'Payment verification failed. Your payment could not be confirmed.',
@@ -206,7 +266,7 @@ def verify_payment(request):
     )
 
     if not success:
-        logger.error(f"Failed to activate premium: {message}")
+        logger.error(f"verify_payment: Failed to activate premium: {message}")
         return JsonResponse({
             'error': 'Payment verified but failed to activate Premium. Contact support.',
             'verified': True,
@@ -224,7 +284,7 @@ def verify_payment(request):
     expiry_date = sub.premium_expires_at.strftime('%B %d, %Y') if sub.premium_expires_at else 'lifetime'
 
     logger.info(
-        f"Payment verified: order={razorpay_order_id}, payment={razorpay_payment_id}, "
+        f"verify_payment: SUCCESS — order={razorpay_order_id}, payment={razorpay_payment_id}, "
         f"user={transaction.user.email}, plan={plan}, expires={expiry_date}"
     )
 
