@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import payments_views
 
 urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
@@ -34,4 +35,9 @@ urlpatterns = [
     path('voice-interviewer/personas/', views.get_personas_view, name='get_personas'),
     path('voice-interviewer/preference/', views.update_persona_preference, name='voice_interviewer_preference'),
     path('debug-urls/', views.debug_urls, name='debug_urls'),
+
+    # ─── Payments (Razorpay) ──────────────────────────────────────────────
+    path('payments/create-order/', payments_views.create_order, name='create_order'),
+    path('payments/verify/', payments_views.verify_payment, name='verify_payment'),
+    path('payments/', views.pricing_page_view, name='pricing_page'),
 ]

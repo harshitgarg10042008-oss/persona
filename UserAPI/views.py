@@ -297,6 +297,31 @@ def update_persona_preference(request):
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@login_required
+def pricing_page_view(request):
+    """Render the pricing page with user context."""
+    from django.conf import settings
+    # Get user's current subscription status
+    try:
+        sub = request.user.subscription
+        is_premium = sub.is_premium
+        tier = sub.tier
+        expires_at = sub.premium_expires_at
+    except Exception:
+        is_premium = False
+        tier = 'free'
+        expires_at = None
+
+    context = {
+        'plans': settings.PLAN_PRICING,
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'is_premium': is_premium,
+        'tier': tier,
+        'expires_at': expires_at.strftime('%B %d, %Y') if expires_at else None,
+    }
+    return render(request, 'pricing.html', context)
+
+
 def debug_urls(request):
     from django.urls import get_resolver
     from django.http import HttpResponse

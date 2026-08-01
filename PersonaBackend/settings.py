@@ -237,13 +237,13 @@ X_FRAME_OPTIONS = 'DENY'
 
 # CSP (django-csp)
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://checkout.razorpay.com")
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
 CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "data:")
 CSP_IMG_SRC = ("'self'", "data:", "blob:")
-CSP_CONNECT_SRC = ("'self'", "api.groq.com")  # For APIs
+CSP_CONNECT_SRC = ("'self'", "api.groq.com", "https://api.razorpay.com")
 CSP_MEDIA_SRC = ("'self'", "blob:", "data:")
-CSP_FRAME_SRC = ("'self'",)
+CSP_FRAME_SRC = ("'self'", "https://razorpay.com", "https://checkout.razorpay.com")
 
 # Email Backend for Password Reset (Console for local testing)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -256,3 +256,16 @@ SUBSCRIPTION_OWNER_EMAILS = config(
     default='',
     cast=lambda v: [e.strip() for e in v.split(',') if e.strip()] if v else []
 )
+
+# ─── Razorpay Payment Config ────────────────────────────────────────────────
+# Read from .env — NEVER hardcode secrets. .env is gitignored.
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
+RAZORPAY_TEST_MODE = config('RAZORPAY_TEST_MODE', default='true')
+
+# Plan pricing (amounts in paise: 1 INR = 100 paise)
+PLAN_PRICING = {
+    'monthly': {'amount': 49900, 'duration_days': 30, 'label': 'Monthly (1 month)'},
+    'season_pass': {'amount': 99900, 'duration_days': 90, 'label': 'Season Pass (3 months)'},
+    'annual': {'amount': 299900, 'duration_days': 365, 'label': 'Annual (12 months)'},
+}

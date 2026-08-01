@@ -207,3 +207,37 @@ class SubscriptionTier(models.Model):
     @property
     def is_institution_member(self):
         return self.tier == 'institution_member'
+
+
+class PaymentTransaction(models.Model):
+    """Audit trail for all Razorpay payment transactions."""
+    PLAN_CHOICES = [
+        ('monthly', 'Monthly (1 month)'),
+        ('season_pass', 'Season Pass (3 months)'),
+        ('annual', 'Annual (12 months)'),
+        ('institution', 'Institution (custom)'),
+    ]
+    STATUS_CHOICES = [
+        ('created', 'Created'),
+        ('paid', 'Paid'),
+        ('verified', 'Verified'),
+        ('failed', 'Failed'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='payment_transactions')
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
+    amount = models.PositiveIntegerField(help_text='Amount in paise (1 INR = 100 paise)')
+    razorpay_order_id = models.CharField(max_length=100, unique=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    signature = models.CharField(max_length=256, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Payment Transaction'
+        verbose_name_plural = 'Payment Transactions'
+
+    def __str__(self):
+        return f"{self.user.email} — {self.get_plan_display()} ({self.get_status_display()})"

@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Pricing - Persona{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 py-16">
+  <div class="max-w-6xl mx-auto px-4">
+
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-3">Choose Your Plan</h1>
+      <p class="text-lg text-gray-600 dark:text-gray-400">Unlock the full power of AI-powered interview preparation</p>
+
+      {% if is_premium %}
+      <div class="mt-4 inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-4 py-2 rounded-full">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        <span class="font-semibold">You're on Premium</span>
+        {% if expires_at %}
+        <span class="text-sm">— Valid until {{ expires_at }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Plan Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+
+      <!-- Monthly -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 hover:shadow-xl transition-shadow">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Monthly</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Perfect for trying out Premium</p>
+        <div class="mb-6">
+          <span class="text-4xl font-bold text-gray-900 dark:text-white">&#8377;499</span>
+          <span class="text-gray-500 dark:text-gray-400">/month</span>
+        </div>
+        <ul class="space-y-3 mb-8 text-sm text-gray-600 dark:text-gray-300">
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Unlimited AI Interviews</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Attire + Body Language Analysis</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Unlimited Job Matches</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Full Placement Readiness Breakdown</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> All Voice Personas & Avatars</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Unlimited Resume Reviews</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> AI Career Mentor</li>
+        </ul>
+        <button
+          onclick="initiatePayment('monthly')"
+          class="w-full py-3 px-6 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        >
+          Get Started
+        </button>
+      </div>
+
+      <!-- Season Pass (MOST POPULAR) -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-indigo-500 p-8 relative hover:shadow-2xl transition-shadow transform md:scale-105">
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span class="bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">Most Popular</span>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Season Pass</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Best value for placement season</p>
+        <div class="mb-6">
+          <span class="text-4xl font-bold text-indigo-600">&#8377;999</span>
+          <span class="text-gray-500 dark:text-gray-400">/3 months</span>
+        </div>
+        <ul class="space-y-3 mb-8 text-sm text-gray-600 dark:text-gray-300">
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Everything in Monthly</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> 3 months of uninterrupted access</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Save 33% vs monthly</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Priority support</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Panel & Rapid-Fire interview modes</li>
+        </ul>
+        <button
+          onclick="initiatePayment('season_pass')"
+          class="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Get Season Pass
+        </button>
+      </div>
+
+      <!-- Annual -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 hover:shadow-xl transition-shadow">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Annual</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Ultimate year-long preparation</p>
+        <div class="mb-6">
+          <span class="text-4xl font-bold text-gray-900 dark:text-white">&#8377;2,999</span>
+          <span class="text-gray-500 dark:text-gray-400">/year</span>
+        </div>
+        <ul class="space-y-3 mb-8 text-sm text-gray-600 dark:text-gray-300">
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Everything in Season Pass</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> 12 months of uninterrupted access</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Save 50% vs monthly</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Dedicated support</li>
+          <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Early access to new features</li>
+        </ul>
+        <button
+          onclick="initiatePayment('annual')"
+          class="w-full py-3 px-6 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        >
+          Go Annual
+        </button>
+      </div>
+    </div>
+
+    <!-- Institution Plan -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-lg p-8 text-center text-white mb-8">
+      <h3 class="text-2xl font-bold mb-2">Institution Plan</h3>
+      <p class="text-purple-100 mb-6">Want to bring Persona to your entire college or company?</p>
+      <a href="mailto:harshit77.edu@gmail.com?subject=Institution%20Plan%20Enquiry&body=Hi,%20I'm%20interested%20in%20the%20Institution%20Plan%20for%20Persona."
+         class="inline-block py-3 px-8 bg-white text-indigo-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors">
+        Talk to Sales
+      </a>
+    </div>
+
+    <!-- Feature Comparison Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Feature Comparison</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b-2 border-gray-200 dark:border-gray-700">
+              <th class="py-3 px-4 text-gray-700 dark:text-gray-300">Feature</th>
+              <th class="py-3 px-4 text-center text-gray-700 dark:text-gray-300">Free</th>
+              <th class="py-3 px-4 text-center text-indigo-600 font-bold">Premium</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            <tr><td class="py-3 px-4">AI Interviews</td><td class="py-3 px-4 text-center">1/month</td><td class="py-3 px-4 text-center">&#10003; Unlimited</td></tr>
+            <tr><td class="py-3 px-4">Speech Analysis</td><td class="py-3 px-4 text-center">&#10003;</td><td class="py-3 px-4 text-center">&#10003;</td></tr>
+            <tr><td class="py-3 px-4">Attire Analysis</td><td class="py-3 px-4 text-center text-gray-400">&#10007;</td><td class="py-3 px-4 text-center">&#10003;</td></tr>
+            <tr><td class="py-3 px-4">Body Language Analysis</td><td class="py-3 px-4 text-center text-gray-400">&#10007;</td><td class="py-3 px-4 text-center">&#10003;</td></tr>
+            <tr><td class="py-3 px-4">Job Matches</td><td class="py-3 px-4 text-center">Top 3</td><td class="py-3 px-4 text-center">&#10003; Unlimited</td></tr>
+            <tr><td class="py-3 px-4">Placement Readiness</td><td class="py-3 px-4 text-center">Score only</td><td class="py-3 px-4 text-center">Full breakdown</td></tr>
+            <tr><td class="py-3 px-4">Resume Reviews</td><td class="py-3 px-4 text-center">3 lifetime</td><td class="py-3 px-4 text-center">&#10003; Unlimited</td></tr>
+            <tr><td class="py-3 px-4">AI Career Mentor</td><td class="py-3 px-4 text-center text-gray-400">&#10007;</td><td class="py-3 px-4 text-center">&#10003;</td></tr>
+            <tr><td class="py-3 px-4">Voice Personas</td><td class="py-3 px-4 text-center">1 only</td><td class="py-3 px-4 text-center">&#10003; All</td></tr>
+            <tr><td class="py-3 px-4">Panel / Rapid-Fire Mode</td><td class="py-3 px-4 text-center text-gray-400">&#10007;</td><td class="py-3 px-4 text-center">&#10003;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+      Secure payments powered by <strong>Razorpay</strong>. All plans are one-time purchases.
+    </p>
+
+  </div>
+</div>
+
+<!-- Success / Error Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div id="modalContent" class="text-center"></div>
+  </div>
+</div>
+
+<!-- Razorpay Checkout Script + Payment Logic -->
+<script>
+const RAZORPAY_KEY_ID = "{{ razorpay_key_id }}";
+
+function initiatePayment(plan) {
+  if (!RAZORPAY_KEY_ID || RAZORPAY_KEY_ID === '') {
+    showModal('error', 'Payment system is not configured yet. Please contact support.');
+    return;
+  }
+
+  // Show loading
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = 'Processing...';
+  btn.disabled = true;
+
+  fetch('/auth/payments/create-order/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({ plan: plan }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      if (data.already_premium) {
+        showModal('info', 'You are already on a Premium plan! No need to purchase again.');
+      } else {
+        showModal('error', data.error);
+      }
+      return;
+    }
+
+    // Open Razorpay Checkout
+    const options = {
+      key: data.key_id,
+      amount: data.amount,
+      currency: data.currency,
+      name: 'Persona',
+      description: data.plan_label,
+      order_id: data.order_id,
+      handler: function (response) {
+        verifyPayment(response, data.order_id, originalText, btn);
+      },
+      prefill: {
+        email: "{{ user.email }}",
+        name: "{{ user.first_name|default:user.username }}",
+      },
+      theme: {
+        color: '#4F46E5',
+      },
+      modal: {
+        ondismiss: function () {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showModal('error', 'Payment failed: ' + (response.error.description || 'Unknown error'));
+    });
+    rzp.open();
+  })
+  .catch(err => {
+    btn.textContent = originalText;
+    btn.disabled = false;
+    showModal('error', 'Could not connect to payment server. Please try again.');
+  });
+}
+
+function verifyPayment(razorpayResponse, orderId, originalText, btn) {
+  fetch('/auth/payments/verify/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({
+      razorpay_order_id: razorpayResponse.razorpay_order_id,
+      razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+      razorpay_signature: razorpayResponse.razorpay_signature,
+    }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    btn.textContent = originalText;
+    btn.disabled = false;
+
+    if (data.verified && data.success) {
+      showModal('success', `Payment successful! You're now on <strong>${data.plan_label}</strong>. Valid until <strong>${data.expires_at}</strong>.`);
+      // Reload after 3 seconds to show updated tier
+      setTimeout(() => { window.location.reload(); }, 3000);
+    } else {
+      showModal('error', data.error || 'Payment verification failed.');
+    }
+  })
+  .catch(err => {
+    btn.textContent = originalText;
+    btn.disabled = false;
+    showModal('error', 'Could not verify payment. Please contact support with your payment ID.');
+  });
+}
+
+function showModal(type, message) {
+  const modal = document.getElementById('paymentModal');
+  const content = document.getElementById('modalContent');
+
+  const icons = {
+    success: '<svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+    error: '<svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+    info: '<svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>',
+  };
+
+  content.innerHTML = `${icons[type] || icons.info}<p class="text-lg text-gray-800 dark:text-white mb-6">${message}</p>
+    <button onclick="document.getElementById('paymentModal').classList.add('hidden')"
+            class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+      Close
+    </button>`;
+
+  modal.classList.remove('hidden');
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+
+<!-- Razorpay Checkout.js (loaded from Razorpay CDN) -->
+<script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+{% endblock %}
