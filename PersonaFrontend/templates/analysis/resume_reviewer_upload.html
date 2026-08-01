@@ -3,41 +3,278 @@
 
 {% block title %}Resume Reviewer{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* ── Page Background ─────────────────────────────────────── */
+  .tool-bg {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
+  }
+  [data-theme="dark"] .tool-bg {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
+  }
+
+  /* ── Glass Card ──────────────────────────────────────────── */
+  .glass-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .glass-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  /* ── Icon Badge ──────────────────────────────────────────── */
+  .icon-badge {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+  }
+
+  /* ── Section Header ──────────────────────────────────────── */
+  .section-header {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  [data-theme="dark"] .section-header h2 {
+    color: #f1f5f9;
+  }
+  .section-header::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    margin-top: 0.5rem;
+  }
+
+  /* ── Drop Zone ───────────────────────────────────────────── */
+  .drop-zone {
+    border: 2px dashed rgba(59,130,246,0.3);
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(59,130,246,0.02);
+    position: relative;
+  }
+  [data-theme="dark"] .drop-zone {
+    border-color: rgba(59,130,246,0.2);
+    background: rgba(59,130,246,0.03);
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #3b82f6;
+    background: rgba(59,130,246,0.06);
+    transform: scale(1.01);
+  }
+  .drop-zone-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+  }
+  .drop-zone-icon svg {
+    color: white;
+  }
+  .drop-zone-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.25rem;
+  }
+  [data-theme="dark"] .drop-zone-text {
+    color: #cbd5e1;
+  }
+  .drop-zone-sub {
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  /* ── File Input Hidden ───────────────────────────────────── */
+  .file-input-hidden {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn-gradient {
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.75rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+  }
+  .btn-link {
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .btn-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  [data-theme="dark"] .btn-link {
+    color: #93c5fd;
+  }
+
+  /* ── Animations ──────────────────────────────────────────── */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.6s ease forwards;
+    opacity: 0;
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+
+  /* ── Alert Override ──────────────────────────────────────── */
+  .glass-alert {
+    border-radius: 0.75rem;
+    border: 1px solid;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Resume Reviewer</h4>
-                </div>
-                <div class="card-body">
-                    <p class="lead">Upload your resume to get instant AI-powered feedback on how to improve it for ATS and recruiters.</p>
-                    
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    <form method="post" enctype="multipart/form-data" action="{% url 'analysis:resume_reviewer_upload' %}">
-                        {% csrf_token %}
-                        <div class="mb-4">
-                            <label for="resume_file" class="form-label fw-bold">Upload Resume (PDF or TXT)</label>
-                            <input class="form-control form-control-lg" type="file" id="resume_file" name="resume_file" accept=".pdf,.txt" required>
-                            <div class="form-text">Maximum file size: 5MB. Ensure text is extractable.</div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">Analyze Resume</button>
-                            <a href="{% url 'analysis:resume_reviewer_history' %}" class="btn btn-outline-secondary">View Past Reviews</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+<div class="tool-bg">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <!-- Header -->
+    <div class="mb-8 animate-slide-up">
+      <a href="{% url 'analysis:individual_dashboard' %}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-4 inline-flex items-center gap-1 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        Back to Dashboard
+      </a>
+      <div class="flex items-center gap-4">
+        <div class="icon-badge bg-gradient-to-br from-blue-500 to-cyan-500">
+          <i class="fas fa-file-alt text-white text-xl"></i>
         </div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">Resume Reviewer</h1>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Get instant AI-powered feedback to optimize your resume for ATS and recruiters.</p>
+        </div>
+      </div>
     </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="glass-alert mb-4 animate-slide-up {% if message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300{% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300{% else %}bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Upload Card -->
+    <div class="glass-card p-8 animate-slide-up delay-1">
+      <div class="section-header">
+        <h2>Upload Your Resume</h2>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" action="{% url 'analysis:resume_reviewer_upload' %}">
+        {% csrf_token %}
+
+        <!-- Drop Zone -->
+        <div class="mb-6">
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="resume_file" name="resume_file" accept=".pdf,.txt" required class="file-input-hidden" />
+            <div class="drop-zone-icon">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <p class="drop-zone-text">Drop your resume here or <span class="text-blue-600 dark:text-blue-400">browse</span></p>
+            <p class="drop-zone-sub">Supports PDF and TXT files up to 5MB</p>
+            <p id="fileName" class="text-xs text-blue-600 dark:text-blue-400 mt-3 font-medium hidden"></p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button type="submit" class="btn-gradient flex-1 sm:flex-none flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Analyze Resume
+          </button>
+          <a href="{% url 'analysis:resume_reviewer_history' %}" class="btn-link flex items-center justify-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            View Past Reviews
+          </a>
+        </div>
+      </form>
+    </div>
+
+  </div>
 </div>
+
+<script>
+  (function() {
+    var dropZone = document.getElementById('dropZone');
+    var fileInput = document.getElementById('resume_file');
+    var fileNameEl = document.getElementById('fileName');
+
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileNameEl.textContent = 'Selected: ' + e.dataTransfer.files[0].name;
+        fileNameEl.classList.remove('hidden');
+      }
+    });
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files.length) {
+        fileNameEl.textContent = 'Selected: ' + fileInput.files[0].name;
+        fileNameEl.classList.remove('hidden');
+      }
+    });
+  })();
+</script>
 {% endblock %}

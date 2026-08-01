@@ -3,62 +3,255 @@
 
 {% block title %}Cover Letter Generator{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* ── Page Background ─────────────────────────────────────── */
+  .tool-bg {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
+  }
+  [data-theme="dark"] .tool-bg {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
+  }
+
+  /* ── Glass Card ──────────────────────────────────────────── */
+  .glass-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .glass-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  /* ── Icon Badge ──────────────────────────────────────────── */
+  .icon-badge {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+  }
+
+  /* ── Section Header ──────────────────────────────────────── */
+  .section-header {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  [data-theme="dark"] .section-header h2 {
+    color: #f1f5f9;
+  }
+  .section-header::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    margin-top: 0.5rem;
+  }
+
+  /* ── Form Controls ───────────────────────────────────────── */
+  .glass-input, .glass-select, .glass-textarea {
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: #1e293b;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+  [data-theme="dark"] .glass-input,
+  [data-theme="dark"] .glass-select,
+  [data-theme="dark"] .glass-textarea {
+    background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(148,163,184,0.15);
+    color: #f1f5f9;
+  }
+  .glass-input:focus, .glass-select:focus, .glass-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  .glass-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.375rem;
+  }
+  [data-theme="dark"] .glass-label {
+    color: #94a3b8;
+  }
+  .glass-hint {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 640px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn-gradient {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.75rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+  }
+  .btn-link {
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .btn-link:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+  }
+  [data-theme="dark"] .btn-link {
+    color: #a5b4fc;
+  }
+
+  /* ── Animations ──────────────────────────────────────────── */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.6s ease forwards;
+    opacity: 0;
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+
+  /* ── Alert Override ──────────────────────────────────────── */
+  .glass-alert {
+    border-radius: 0.75rem;
+    border: 1px solid;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Cover Letter Generator</h4>
-                </div>
-                <div class="card-body">
-                    <p class="lead">Generate a professional, AI-crafted cover letter tailored to the job description and your resume.</p>
-                    
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    <form method="post" action="{% url 'analysis:cover_letter_generate' %}">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="job_title" class="form-label fw-bold">Job Title *</label>
-                            <input class="form-control form-control-lg" type="text" id="job_title" name="job_title" required placeholder="e.g. Senior Software Engineer">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="company_name" class="form-label fw-bold">Company Name (Optional)</label>
-                            <input class="form-control" type="text" id="company_name" name="company_name" placeholder="e.g. Acme Corp">
-                        </div>
+<div class="tool-bg">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-                        <div class="mb-3">
-                            <label for="job_description" class="form-label fw-bold">Job Description (Optional)</label>
-                            <textarea class="form-control" id="job_description" name="job_description" rows="4" placeholder="Paste the job requirements or description here for a highly tailored letter..."></textarea>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="resume_review_id" class="form-label fw-bold">Base on your Resume (Optional)</label>
-                            <select class="form-select" id="resume_review_id" name="resume_review_id">
-                                <option value="">Do not use resume context</option>
-                                {% for review in resume_reviews %}
-                                    <option value="{{ review.id }}">{{ review.resume_file.name }} (Analyzed: {{ review.created_at|date:"M d, Y" }})</option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">Select a previously uploaded resume to incorporate your experience.</div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">Generate Cover Letter</button>
-                            <a href="{% url 'analysis:cover_letter_history' %}" class="btn btn-outline-secondary">View Past Cover Letters</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <!-- Header -->
+    <div class="mb-8 animate-slide-up">
+      <a href="{% url 'analysis:individual_dashboard' %}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 mb-4 inline-flex items-center gap-1 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        Back to Dashboard
+      </a>
+      <div class="flex items-center gap-4">
+        <div class="icon-badge bg-gradient-to-br from-indigo-500 to-violet-600">
+          <i class="fas fa-envelope-open-text text-white text-xl"></i>
         </div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">Cover Letter Generator</h1>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Generate a highly tailored cover letter for any job application.</p>
+        </div>
+      </div>
     </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="glass-alert mb-4 animate-slide-up {% if message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300{% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300{% else %}bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Form Card -->
+    <div class="glass-card p-8 animate-slide-up delay-1">
+      <div class="section-header">
+        <h2>Job Details</h2>
+      </div>
+
+      <form method="post" action="{% url 'analysis:cover_letter_generate' %}">
+        {% csrf_token %}
+
+        <!-- Job Title + Company (side by side) -->
+        <div class="form-row mb-5">
+          <div>
+            <label for="job_title" class="glass-label">Job Title *</label>
+            <input class="glass-input" type="text" id="job_title" name="job_title" required placeholder="e.g. Senior Software Engineer" />
+          </div>
+          <div>
+            <label for="company_name" class="glass-label">Company Name (Optional)</label>
+            <input class="glass-input" type="text" id="company_name" name="company_name" placeholder="e.g. Acme Corp" />
+          </div>
+        </div>
+
+        <!-- Job Description -->
+        <div class="mb-5">
+          <label for="job_description" class="glass-label">Job Description (Optional)</label>
+          <textarea class="glass-textarea" id="job_description" name="job_description" rows="5" placeholder="Paste the job requirements or description here for a highly tailored letter..."></textarea>
+          <p class="glass-hint">The more detail you provide, the more tailored your cover letter will be.</p>
+        </div>
+
+        <!-- Resume Context -->
+        <div class="mb-6">
+          <label for="resume_review_id" class="glass-label">Base on your Resume (Optional)</label>
+          <select class="glass-select" id="resume_review_id" name="resume_review_id">
+            <option value="">Do not use resume context</option>
+            {% for review in resume_reviews %}
+              <option value="{{ review.id }}">{{ review.resume_file.name }} (Analyzed: {{ review.created_at|date:"M d, Y" }})</option>
+            {% endfor %}
+          </select>
+          <p class="glass-hint">Select a previously uploaded resume to incorporate your experience into the letter.</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button type="submit" class="btn-gradient flex-1 sm:flex-none flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            Generate Cover Letter
+          </button>
+          <a href="{% url 'analysis:cover_letter_history' %}" class="btn-link flex items-center justify-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            View Past Cover Letters
+          </a>
+        </div>
+      </form>
+    </div>
+
+  </div>
 </div>
 {% endblock %}
