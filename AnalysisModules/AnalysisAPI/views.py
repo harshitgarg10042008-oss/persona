@@ -1314,9 +1314,11 @@ def individual_assessment_question(request, session_id):
             return redirect('analysis:complete_individual_assessment', session_id=session_id)
             
     from UserAPI.models import UserInterviewerPreference
-    from .voice_interviewer import generate_question_audio
+    from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
     persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
     audio_url = generate_question_audio(current_question.question_text, persona_id, session_id) if current_question else None
+    persona_avatar = get_persona_avatar(persona_id)
+    persona_name = PERSONAS.get(persona_id, {}).get('name', 'Interviewer')
     
     # Add time limit for Rapid Fire mode
     time_limit_seconds = 12 if assessment.interview_mode == 'rapid_fire' else None
@@ -1333,6 +1335,9 @@ def individual_assessment_question(request, session_id):
         'adaptive_mode': assessment.adaptive_mode,
         'current_difficulty': assessment.current_difficulty,
         'time_limit_seconds': time_limit_seconds,
+        'persona_avatar': persona_avatar,
+        'persona_name': persona_name,
+        'persona_id': persona_id,
         'analysis_status': {
             'attire_available': ATTIRE_ANALYSIS_AVAILABLE,
             'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE,
@@ -1397,7 +1402,7 @@ def submit_assessment_response(request, session_id):
                         next_q_is_mandatory = next_q.is_mandatory if next_q else False
                         
                     from UserAPI.models import UserInterviewerPreference
-                    from .voice_interviewer import generate_question_audio
+                    from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
                     persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
                     audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                         
@@ -1410,6 +1415,9 @@ def submit_assessment_response(request, session_id):
                         'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                         'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                         'audio_url': audio_url,
+                        'persona_avatar': get_persona_avatar(persona_id),
+                        'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
+                        'persona_id': persona_id,
                         'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                     }
                 return JsonResponse(response_data)
@@ -1516,7 +1524,7 @@ def submit_assessment_response(request, session_id):
                     next_q_is_mandatory = next_q.is_mandatory if next_q else False
                     
                 from UserAPI.models import UserInterviewerPreference
-                from .voice_interviewer import generate_question_audio
+                from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
                 persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
                 audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                     
@@ -1529,6 +1537,9 @@ def submit_assessment_response(request, session_id):
                     'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                     'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                     'audio_url': audio_url,
+                    'persona_avatar': get_persona_avatar(persona_id),
+                    'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
+                    'persona_id': persona_id,
                     'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
                 }
             return JsonResponse(response_data)
@@ -1887,7 +1898,7 @@ def submit_assessment_response(request, session_id):
                 next_q_is_mandatory = next_q.is_mandatory if next_q else False
                 
                 from UserAPI.models import UserInterviewerPreference
-                from .voice_interviewer import generate_question_audio
+                from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
                 persona_id = UserInterviewerPreference.objects.get_or_create(user=request.user)[0].persona_id
                 audio_url = generate_question_audio(next_q_text, persona_id, session_id) if next_q_text else None
                 
@@ -1900,6 +1911,9 @@ def submit_assessment_response(request, session_id):
                 'question_number': f"{assessment.current_question_index} (Follow-up)" if is_follow_up else assessment.current_question_index + 1,
                 'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
                 'audio_url': audio_url,
+                'persona_avatar': get_persona_avatar(persona_id),
+                'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
+                'persona_id': persona_id,
             }
         return JsonResponse(response_data)
         

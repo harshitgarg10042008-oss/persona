@@ -13,21 +13,37 @@ PERSONAS = {
         'id': 'professional_stern',
         'name': 'Professional & Stern',
         'voice': 'en-US-ChristopherNeural',  # deep, authoritative male voice
-        'description': 'Direct, analytical, and maintains a strict professional boundary.'
+        'description': 'Direct, analytical, and maintains a strict professional boundary.',
+        'avatar': '/static/avatars/professional_stern.png',
     },
     'friendly_encouraging': {
         'id': 'friendly_encouraging',
         'name': 'Friendly & Encouraging',
         'voice': 'en-US-AriaNeural',         # warm, friendly female voice
-        'description': 'Supportive, patient, and creates a welcoming atmosphere.'
+        'description': 'Supportive, patient, and creates a welcoming atmosphere.',
+        'avatar': '/static/avatars/friendly_encouraging.png',
     },
     'analytical_direct': {
         'id': 'analytical_direct',
         'name': 'Analytical & Direct',
         'voice': 'en-GB-SoniaNeural',        # crisp, precise British female voice
-        'description': 'Focuses on details, speaks clearly and expects precise answers.'
+        'description': 'Focuses on details, speaks clearly and expects precise answers.',
+        'avatar': '/static/avatars/analytical_direct.png',
     }
 }
+
+# Default avatar shown when a persona has no avatar configured
+DEFAULT_AVATAR = '/static/avatars/default_interviewer.png'
+
+def get_persona_avatar(persona_id):
+    """
+    Returns the avatar URL for a persona. Falls back to DEFAULT_AVATAR
+    if the persona is not found or has no avatar configured.
+    """
+    persona = PERSONAS.get(persona_id)
+    if not persona:
+        return DEFAULT_AVATAR
+    return persona.get('avatar', DEFAULT_AVATAR)
 
 def get_default_persona():
     return 'friendly_encouraging'
