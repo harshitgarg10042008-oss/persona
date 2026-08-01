@@ -200,5 +200,10 @@ class SubscriptionTier(models.Model):
         return self.tier == 'free' or not self.is_premium
 
     @property
+    def is_in_premium_period(self):
+        """Alias for is_premium — kept for backward compatibility."""
+        return self.is_premium
+
+    @property
     def is_institution_member(self):
         return self.tier == 'institution_member'

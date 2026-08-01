@@ -155,7 +155,13 @@ from AnalysisModules.feedback_generator import (
 )
 from django_ratelimit.decorators import ratelimit
 from .upload_validators import validate_audio_b64, validate_image_b64
-from UserAPI.subscription import requires_premium, requires_institution, get_user_subscription_context
+from UserAPI.subscription import (
+    requires_premium, requires_institution, get_user_subscription_context,
+    requires_interview_slot, check_free_interview_limit,
+    check_free_interview_remaining, check_free_job_match_limit,
+    get_free_user_default_persona, user_has_premium,
+    user_has_access as sub_user_has_access, user_is_free as sub_user_is_free,
+)
 
 # Import analysis modules with fallback
 try:
@@ -964,20 +970,31 @@ def individual_dashboard(request):
     
     # Subscription tier context for dashboard badges and locked states
     sub_context = get_user_subscription_context(request.user)
-    
+
+    # Free-tier analysis module restrictions
+    # Free users only get Speech; Attire + Body Language are premium
+    if sub_context['is_free'] and not sub_context.get('is_owner', False):
+        analysis_status['attire_available'] = False
+        analysis_status['body_language_available'] = False
+
+    # Interview usage info for free-tier users
+    interview_usage = check_free_interview_remaining(request.user)
+
     context = {
         'recent_assessments': recent_assessments,
         'job_titles': job_titles,
         'analysis_status': analysis_status,
         'chart_json': json.dumps(chart_data),
         'subscription': sub_context,
+        'interview_usage': interview_usage,
     }
     return render(request, 'analysis/individual_dashboard.html', context)
 
 
 @login_required
+@requires_interview_slot('ai_interview')
 def start_individual_assessment(request):
-    """Start a new individual assessment"""
+    """Start a new individual assessment (gated: 1/month for free users)"""
     if request.method == 'POST':
         job_title_id = request.POST.get('job_title_id')
         
@@ -1013,7 +1030,7 @@ def start_individual_assessment(request):
 
 @login_required
 def individual_assessment_mode_select(request, session_id):
-    """Mode selection page for individual assessment"""
+    """Mode selection page for individual assessment."""
     assessment = get_object_or_404(
         IndividualAssessment,
         session_id=session_id,
@@ -1021,9 +1038,16 @@ def individual_assessment_mode_select(request, session_id):
         status='pending'
     )
 
+    sub_ctx = get_user_subscription_context(request.user)
+    is_premium_or_owner = sub_ctx.get('is_premium', False) or sub_ctx.get('is_owner', False)
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
+        'subscription': sub_ctx,
+        # Free users cannot select rapid_fire or panel modes
+        'rapid_fire_locked': not is_premium_or_owner,
+        'panel_locked': not is_premium_or_owner,
     }
     return render(request, 'analysis/individual_assessment_mode_select.html', context)
 
@@ -1043,6 +1067,11 @@ def individual_assessment_mode_submit(request, session_id):
     if interview_mode not in ['hr', 'technical', 'managerial', 'stress', 'rapid_fire', 'panel']:
         messages.error(request, "Invalid interview mode selected.")
         return redirect('analysis:individual_assessment_mode_select', session_id=session_id)
+
+    # Free-tier gating: rapid_fire and panel are premium-only
+    if interview_mode in ('rapid_fire', 'panel') and not user_has_premium(request.user):
+        messages.info(request, 'This interview mode requires a Premium subscription. Upgrade to unlock.')
+        return redirect('pricing_page')
 
     # Save the selected mode
     assessment.interview_mode = interview_mode
@@ -1181,6 +1210,17 @@ def individual_assessment_setup(request, session_id):
     # Ensure we show the actual number of selected questions, not the pool size
     actual_question_count = len(assessment.selected_questions) if assessment.selected_questions else 0
     
+    # Subscription context for analysis module visibility
+    sub_ctx = get_user_subscription_context(request.user)
+    is_premium_or_owner = sub_ctx.get('is_premium', False) or sub_ctx.get('is_owner', False)
+
+    # Free users only get Speech analysis; Attire + Body Language are premium
+    analysis_status_ctx = {
+        'attire_available': ATTIRE_ANALYSIS_AVAILABLE and is_premium_or_owner,
+        'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE and is_premium_or_owner,
+        'speech_available': SPEECH_ANALYSIS_AVAILABLE,
+    }
+
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -1188,11 +1228,8 @@ def individual_assessment_setup(request, session_id):
         'question_count_display': actual_question_count,
         'estimated_duration': assessment.estimated_duration // 60,  # Convert to minutes
         'resume_uploaded': resume_uploaded,
-        'analysis_status': {
-            'attire_available': ATTIRE_ANALYSIS_AVAILABLE,
-            'body_language_available': BODY_LANGUAGE_ANALYSIS_AVAILABLE,
-            'speech_available': SPEECH_ANALYSIS_AVAILABLE,
-        }
+        'analysis_status': analysis_status_ctx,
+        'subscription': sub_ctx,
     }
     return render(request, 'analysis/individual_assessment_setup.html', context)
 
@@ -1250,6 +1287,14 @@ def start_individual_assessment_session(request, session_id):
         practice_mode = request.POST.get('practice_mode', 'false') == 'true'
         assessment.adaptive_mode = adaptive_mode
         assessment.is_practice_mode = practice_mode
+
+        # Free-tier persona restriction: only 'friendly_encouraging' allowed
+        selected_persona = request.POST.get('persona')
+        if not user_has_premium(request.user):
+            assessment.voice_persona = get_free_user_default_persona()
+        else:
+            assessment.voice_persona = selected_persona or 'friendly_encouraging'
+
         assessment.save()
 
         resume_file = request.FILES.get('resume')
@@ -2985,22 +3030,35 @@ def capture_snapshot_clean(request, session_id):
                 question = PlatformQuestion.objects.get(id=question_id)
             except PlatformQuestion.DoesNotExist:
                 pass
-        
+
+        # Free-tier gating: attire and body_language are premium-only
+        is_premium_or_owner = user_has_premium(assessment.user)
+
         # Perform analysis based on type
         analysis_result = {}
-        if analysis_type == 'body_language' and BODY_LANGUAGE_ANALYSIS_AVAILABLE:
-            try:
-                analysis_result = analyze_body_language_base64(image_data)
-            except Exception as e:
-                print(f"Body language analysis failed: {e}")
-                analysis_result = {"error": str(e)}
-                
-        elif analysis_type == 'attire' and ATTIRE_ANALYSIS_AVAILABLE:
-            try:
-                analysis_result = analyze_attire_base64(image_data)
-            except Exception as e:
-                print(f"Attire analysis failed: {e}")
-                analysis_result = {"error": str(e)}
+        if analysis_type == 'body_language':
+            if not BODY_LANGUAGE_ANALYSIS_AVAILABLE:
+                analysis_result = {"error": "Body language analysis not available"}
+            elif not is_premium_or_owner:
+                analysis_result = {"error": "Body language analysis requires Premium"}
+            else:
+                try:
+                    analysis_result = analyze_body_language_base64(image_data)
+                except Exception as e:
+                    print(f"Body language analysis failed: {e}")
+                    analysis_result = {"error": str(e)}
+                    
+        elif analysis_type == 'attire':
+            if not ATTIRE_ANALYSIS_AVAILABLE:
+                analysis_result = {"error": "Attire analysis not available"}
+            elif not is_premium_or_owner:
+                analysis_result = {"error": "Attire analysis requires Premium"}
+            else:
+                try:
+                    analysis_result = analyze_attire_base64(image_data)
+                except Exception as e:
+                    print(f"Attire analysis failed: {e}")
+                    analysis_result = {"error": str(e)}
         
         # BUG FIX: AssessmentSnapshot does not have fields 'question', 'snapshot_data', or
         # 'analysis_result'.  Use the actual model fields: analysis_data (JSONField) and score.
@@ -3165,21 +3223,34 @@ def capture_snapshot_combined(request, session_id):
             except PlatformQuestion.DoesNotExist:
                 pass
         
+        # Free-tier gating: attire and body_language are premium-only
+        is_premium_or_owner = user_has_premium(assessment.user)
+
         # Perform analysis based on type
         analysis_result = {}
-        if analysis_type == 'body_language' and BODY_LANGUAGE_ANALYSIS_AVAILABLE:
-            try:
-                analysis_result = analyze_body_language_base64(image_data)
-            except Exception as e:
-                print(f"Body language analysis failed: {e}")
-                analysis_result = {"error": str(e)}
-                
-        elif analysis_type == 'attire' and ATTIRE_ANALYSIS_AVAILABLE:
-            try:
-                analysis_result = analyze_attire_base64(image_data)
-            except Exception as e:
-                print(f"Attire analysis failed: {e}")
-                analysis_result = {"error": str(e)}
+        if analysis_type == 'body_language':
+            if not BODY_LANGUAGE_ANALYSIS_AVAILABLE:
+                analysis_result = {"error": "Body language analysis not available"}
+            elif not is_premium_or_owner:
+                analysis_result = {"error": "Body language analysis requires Premium"}
+            else:
+                try:
+                    analysis_result = analyze_body_language_base64(image_data)
+                except Exception as e:
+                    print(f"Body language analysis failed: {e}")
+                    analysis_result = {"error": str(e)}
+                    
+        elif analysis_type == 'attire':
+            if not ATTIRE_ANALYSIS_AVAILABLE:
+                analysis_result = {"error": "Attire analysis not available"}
+            elif not is_premium_or_owner:
+                analysis_result = {"error": "Attire analysis requires Premium"}
+            else:
+                try:
+                    analysis_result = analyze_attire_base64(image_data)
+                except Exception as e:
+                    print(f"Attire analysis failed: {e}")
+                    analysis_result = {"error": str(e)}
         
         # Save snapshot with analysis
         # BUG FIX: Extract numeric score from analysis result for proper aggregation on results page.
@@ -3646,6 +3717,17 @@ def resume_reviewer_upload(request):
         if not resume_file:
             messages.error(request, 'Please upload a resume file.')
             return redirect('analysis:resume_reviewer_upload')
+
+        # Free-tier limit: max 3 resume reviews
+        if not user_has_premium(request.user):
+            from AnalysisAPI.models import ResumeReview as _RR
+            existing_count = _RR.objects.filter(user=request.user).count()
+            if existing_count >= 3:
+                messages.info(
+                    request,
+                    'Free plan allows 3 resume reviews. Upgrade to Premium for unlimited reviews.'
+                )
+                return redirect('pricing_page')
             
         is_valid, error_msg = _validate_resume_upload(resume_file)
         if not is_valid:
@@ -4399,6 +4481,10 @@ def generate_job_matches_api(request):
                 'message': 'We could not generate job matches right now. Please try again in a moment.'
             }, status=200)  # 200 so the UI shows the message rather than treating it as a network failure
             
+        # Free-tier truncation: show only top 3 matches
+        if not user_has_premium(user):
+            matches = matches[:3]
+
         result_data = {'data_hash': data_hash, 'matches': matches}
         cache.set(cache_key, result_data, timeout=86400 * 7)  # Cache for 7 days
         
@@ -4492,6 +4578,12 @@ def placement_readiness_api(request):
             logger.warning(f"placement_readiness_api: Groq call failed: {groq_err}")
             
         readiness_data['insight'] = insight_text
+
+        # Free-tier: hide detailed breakdown, only show total score + tier
+        if not user_has_premium(user):
+            readiness_data['breakdown'] = {}
+            readiness_data['insight'] = "Upgrade to Premium for detailed readiness breakdown and personalized AI insights."
+
         result_data = {'data_hash': data_hash, 'readiness': readiness_data}
         cache.set(cache_key, result_data, timeout=86400 * 7)
         
