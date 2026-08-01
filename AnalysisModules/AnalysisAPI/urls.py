@@ -117,4 +117,8 @@ urlpatterns = [
     path('placement-drive/result/<int:drive_id>/', views.placement_drive_result, name='placement_drive_result'),
     path('placement-drive/advance/', views.placement_drive_advance, name='placement_drive_advance'),
 
+    # Feature #26 — AI Recruiter Dashboard
+    path('recruiter-dashboard/', views.recruiter_dashboard, name='recruiter_dashboard'),
+    path('recruiter-dashboard/verdict/generate/', views.recruiter_dashboard_generate_verdict, name='recruiter_dashboard_generate_verdict'),
+
 ]

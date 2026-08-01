@@ -4839,3 +4839,87 @@ def placement_drive_advance(request):
     if drive.final_outcome != 'in_progress':
         return redirect('analysis:placement_drive_result', drive_id=drive.id)
     return redirect('analysis:placement_drive_status')
+# ---------------------------------------------------------------------------
+# Feature #26 — AI Recruiter Dashboard
+# ---------------------------------------------------------------------------
+
+@login_required
+def recruiter_dashboard(request):
+    """
+    Main dashboard page — Part A: consolidated read-only data view.
+    Pulls all existing data for the current user and renders it in sections.
+    Each section independently handles missing/incomplete data.
+    """
+    from AnalysisModules.recruiter_dashboard import get_recruiter_dashboard_data
+    import logging as _log
+    _logger = _log.getLogger(__name__)
+
+    try:
+        data = get_recruiter_dashboard_data(request.user)
+    except Exception as exc:
+        _logger.error(f"recruiter_dashboard: error gathering data: {exc}")
+        data = {
+            'resume': None,
+            'assessments': [],
+            'job_matches': None,
+            'readiness': None,
+            'panel_interview': None,
+            'placement_drive': None,
+            'completed_sections': 0,
+            'has_sufficient_data': False,
+            'sections_status': {},
+        }
+
+    # Check if there's a cached verdict already
+    from django.core.cache import cache
+    cached_verdict = None
+    try:
+        cached = cache.get(f"user_{request.user.id}_recruiter_verdict_v1")
+        if cached and isinstance(cached, dict) and 'result' in cached:
+            cached_verdict = cached['result']
+    except Exception:
+        pass
+
+    context = {
+        'data': data,
+        'verdict': cached_verdict,
+    }
+    return render(request, 'analysis/recruiter_dashboard.html', context)
+
+
+@login_required
+def recruiter_dashboard_generate_verdict(request):
+    """
+    Part B: Trigger AI recruiter verdict generation.
+    GET with ?refresh=true to force regeneration.
+    Returns JSON.
+    """
+    from django.http import JsonResponse
+    from AnalysisModules.recruiter_dashboard import generate_recruiter_verdict
+    import logging as _log
+    _logger = _log.getLogger(__name__)
+
+    user = request.user
+    force_refresh = request.GET.get('refresh', 'false').lower() == 'true'
+
+    try:
+        result = generate_recruiter_verdict(user, refresh=force_refresh)
+        return JsonResponse({
+            'success': True,
+            'verdict_text': result.get('verdict_text', ''),
+            'recommendation': result.get('recommendation', 'Insufficient Data'),
+            'strengths': result.get('strengths', []),
+            'concerns': result.get('concerns', []),
+            'generated_at': result.get('generated_at', ''),
+            'cached': result.get('cached', False),
+            'not_enough_data': result.get('not_enough_data', False),
+            'fallback': result.get('fallback', False),
+        })
+    except Exception as exc:
+        import traceback as _tb
+        _logger.error(f"recruiter_dashboard_generate_verdict: unexpected error: {exc}\n{_tb.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'server_error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)

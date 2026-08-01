@@ -1,0 +1,638 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}AI Recruiter Dashboard — Persona{% endblock %}
+{% block extra_css %}
+<style>
+  /* ── Dashboard Background ─────────────────────────────────── */
+  .dash-bg {
+    background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
+  }
+  [data-theme="dark"] .dash-bg {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
+  }
+
+  /* ── Glass Card ───────────────────────────────────────────── */
+  .glass-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 1rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .glass-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.1);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+
+  /* ── Section Headers ──────────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+  [data-theme="dark"] .section-header h2 {
+    color: #f9fafb;
+  }
+
+  /* ── Status Badges ────────────────────────────────────────── */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+  }
+  .status-complete { background: #d1fae5; color: #065f46; }
+  .status-incomplete { background: #fef3c7; color: #92400e; }
+  [data-theme="dark"] .status-complete { background: #064e3b; color: #6ee7b7; }
+  [data-theme="dark"] .status-incomplete { background: #78350f; color: #fcd34d; }
+
+  /* ── Recommendation Labels ────────────────────────────────── */
+  .rec-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+  }
+  .rec-strong-hire { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+  .rec-hire-reservations { background: #fef3c7; color: #92400e; border: 2px solid #f59e0b; }
+  .rec-needs-improvement { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+  .rec-insufficient { background: #e5e7eb; color: #374151; border: 2px solid #9ca3af; }
+  [data-theme="dark"] .rec-strong-hire { background: #064e3b; color: #6ee7b7; border-color: #10b981; }
+  [data-theme="dark"] .rec-hire-reservations { background: #78350f; color: #fcd34d; border-color: #f59e0b; }
+  [data-theme="dark"] .rec-needs-improvement { background: #7f1d1d; color: #fca5a5; border-color: #ef4444; }
+  [data-theme="dark"] .rec-insufficient { background: #1f2937; color: #d1d5db; border-color: #6b7280; }
+
+  /* ── Score Display ────────────────────────────────────────── */
+  .score-display {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-display.high { color: #10b981; }
+  .score-display.medium { color: #f59e0b; }
+  .score-display.low { color: #ef4444; }
+
+  /* ── Verdict Section ──────────────────────────────────────── */
+  .verdict-section {
+    background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(20,184,166,0.05) 100%);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 1rem;
+    padding: 1.5rem;
+  }
+  [data-theme="dark"] .verdict-section {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(20,184,166,0.05) 100%);
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+
+  /* ── Data Section Card ────────────────────────────────────── */
+  .data-section-card {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(229,231,235,0.5);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+  }
+  [data-theme="dark"] .data-section-card {
+    background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(55,65,81,0.5);
+  }
+
+  /* ── Refresh Button ───────────────────────────────────────── */
+  .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.05);
+    color: #059669;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .refresh-btn:hover {
+    background: rgba(16,185,129,0.1);
+    border-color: rgba(16,185,129,0.5);
+  }
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ── Spinner ──────────────────────────────────────────────── */
+  .spinner {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgba(16,185,129,0.2);
+    border-top-color: #10b981;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── List Items ───────────────────────────────────────────── */
+  .strength-item, .concern-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .strength-item .icon { color: #10b981; flex-shrink: 0; margin-top: 0.125rem; }
+  .concern-item .icon { color: #f59e0b; flex-shrink: 0; margin-top: 0.125rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-bg min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <a href="{% url 'analysis:individual_dashboard' %}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-2 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back to Dashboard
+        </a>
+        <h1 class="text-2xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">
+          AI Recruiter Dashboard
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Your complete candidate profile as a recruiter would see it.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PART B: AI RECRUITER VERDICT (top, prominent)          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="verdict-section" class="glass-card mb-8">
+      <div class="verdict-section">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Recruiter Verdict</h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" id="verdict-generated-at">{% if verdict %}Generated on {{ verdict.generated_at|default:"" }}{% endif %}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div id="verdict-label-container">
+              {% if verdict and verdict.recommendation %}
+              <span class="rec-label
+                {% if verdict.recommendation == 'Strong Hire' %}rec-strong-hire
+                {% elif verdict.recommendation == 'Hire with Reservations' %}rec-hire-reservations
+                {% elif verdict.recommendation == 'Needs Improvement' %}rec-needs-improvement
+                {% else %}rec-insufficient{% endif %}
+              ">{{ verdict.recommendation }}</span>
+              {% else %}
+              <span id="verdict-label-placeholder" class="text-sm text-gray-400">Not yet generated</span>
+              {% endif %}
+            </div>
+            <button id="verdict-refresh-btn" class="refresh-btn" onclick="loadVerdict(true)">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              {% if verdict %}Refresh{% else %}Generate{% endif %}
+            </button>
+          </div>
+        </div>
+
+        <!-- Verdict Loading State -->
+        <div id="verdict-loading" class="{% if verdict %}hidden{% else %}{% endif %} py-8 text-center">
+          <div class="spinner mx-auto mb-3"></div>
+          <p class="text-sm text-gray-500 dark:text-gray-400">AI is analysing your profile&hellip;</p>
+        </div>
+
+        <!-- Verdict Content -->
+        <div id="verdict-content" class="{% if verdict %}{% else %}hidden{% endif %}">
+          <div class="prose prose-sm dark:prose-invert max-w-none mb-6">
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line" id="verdict-text">{% if verdict %}{{ verdict.verdict_text }}{% endif %}</p>
+          </div>
+
+          <!-- Strengths -->
+          <div class="mb-4" id="verdict-strengths-section">
+            <h4 class="text-sm font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">Key Strengths</h4>
+            <div id="verdict-strengths-list">
+              {% if verdict and verdict.strengths %}
+              {% for s in verdict.strengths %}
+              <div class="strength-item">
+                <svg class="w-4 h-4 icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-gray-700 dark:text-gray-300">{{ s }}</span>
+              </div>
+              {% endfor %}
+              {% else %}
+              <p class="text-sm text-gray-400 dark:text-gray-500">No strengths identified yet.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Concerns -->
+          <div id="verdict-concerns-section">
+            <h4 class="text-sm font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">Key Concerns</h4>
+            <div id="verdict-concerns-list">
+              {% if verdict and verdict.concerns %}
+              {% for c in verdict.concerns %}
+              <div class="concern-item">
+                <svg class="w-4 h-4 icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.75-1.732-.75-2.5 0L4.314 15.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                <span class="text-gray-700 dark:text-gray-300">{{ c }}</span>
+              </div>
+              {% endfor %}
+              {% else %}
+              <p class="text-sm text-gray-400 dark:text-gray-500">No concerns identified yet.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Verdict Error State -->
+        <div id="verdict-error" class="hidden py-6 text-center">
+          <p class="text-sm text-red-600 dark:text-red-400">Failed to generate verdict. Please try again.</p>
+          <button onclick="loadVerdict(true)" class="refresh-btn mt-2">Retry</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PART A: CONSOLIDATED DATA VIEW                         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- ── Resume Section ─────────────────────────────────── -->
+    <div id="section-resume" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>Resume Analysis</h2>
+        </div>
+        {% if data.sections_status.resume %}
+        <span class="status-badge status-complete">Completed</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Completed</span>
+        {% endif %}
+      </div>
+      {% if data.resume %}
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="data-section-card">
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Overall Score</p>
+          <p class="score-display {% if data.resume.overall_score >= 75 %}high{% elif data.resume.overall_score >= 50 %}medium{% else %}low{% endif %}">{{ data.resume.overall_score|floatformat:1 }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">out of 100</p>
+        </div>
+        {% if data.resume.ats_score %}
+        <div class="data-section-card">
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">ATS Score</p>
+          <p class="score-display {% if data.resume.ats_score >= 75 %}high{% elif data.resume.ats_score >= 50 %}medium{% else %}low{% endif %}">{{ data.resume.ats_score|floatformat:1 }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">out of 100</p>
+        </div>
+        {% endif %}
+      </div>
+      {% if data.resume.feedback_summary %}
+      <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Feedback Summary</p>
+        <p class="text-sm text-gray-700 dark:text-gray-300">{{ data.resume.feedback_summary }}</p>
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">No resume analysis yet.</p>
+        <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-block mt-2 text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium">Upload your resume &rarr;</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Assessments Section ────────────────────────────── -->
+    <div id="section-assessments" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>Interview Assessments</h2>
+        </div>
+        {% if data.sections_status.assessments %}
+        <span class="status-badge status-complete">{{ data.assessments|length }} completed</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Completed</span>
+        {% endif %}
+      </div>
+      {% if data.assessments %}
+      <div class="space-y-3">
+        {% for a in data.assessments %}
+        <div class="data-section-card flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-gray-800 dark:text-gray-200 text-sm">{{ a.role }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ a.interview_mode|capfirst }} Interview</p>
+          </div>
+          <div class="text-right">
+            <span class="score-display text-sm {% if a.overall_score >= 75 %}high{% elif a.overall_score >= 50 %}medium{% else %}low{% endif %}">{{ a.overall_score|floatformat:1 }}</span>
+            <p class="text-xs text-gray-400 dark:text-gray-500">/100</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">No interview assessments completed yet.</p>
+        <a href="{% url 'analysis:individual_dashboard' %}" class="inline-block mt-2 text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium">Start an assessment &rarr;</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Job Matches Section ────────────────────────────── -->
+    <div id="section-job-matches" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>AI Job Matches</h2>
+        </div>
+        {% if data.sections_status.job_matches %}
+        <span class="status-badge status-complete">Available</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Generated</span>
+        {% endif %}
+      </div>
+      {% if data.job_matches %}
+      <div class="space-y-2">
+        {% for m in data.job_matches %}
+        <div class="data-section-card flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ m.job_title|default:m.title|default:"Unknown" }}</span>
+          <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">{{ m.score|default:m.match_score|default:"N/A" }}% match</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Job matches not yet generated.</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Complete an assessment or upload a resume to see matches.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Placement Readiness Section ────────────────────── -->
+    <div id="section-readiness" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>Placement Readiness</h2>
+        </div>
+        {% if data.sections_status.readiness %}
+        <span class="status-badge status-complete">Calculated</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Calculated</span>
+        {% endif %}
+      </div>
+      {% if data.readiness %}
+      <div class="flex items-center gap-6">
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Score</p>
+          <p class="score-display {% if data.readiness.total_score >= 75 %}high{% elif data.readiness.total_score >= 45 %}medium{% else %}low{% endif %}">{{ data.readiness.total_score|floatformat:1 }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">out of 100</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Tier</p>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
+            {% if data.readiness.tier == 'Interview Ready' %}bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300
+            {% elif data.readiness.tier == 'Getting There' %}bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300
+            {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}
+          ">{{ data.readiness.tier }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Placement readiness not yet calculated.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Panel Interview Section ────────────────────────── -->
+    <div id="section-panel" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>Panel Interview</h2>
+        </div>
+        {% if data.sections_status.panel_interview %}
+        <span class="status-badge status-complete">Completed</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Completed</span>
+        {% endif %}
+      </div>
+      {% if data.panel_interview %}
+      <div class="space-y-3">
+        <div class="data-section-card">
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Aggregated Score</p>
+          <p class="score-display {% if data.panel_interview.aggregated_score >= 75 %}high{% elif data.panel_interview.aggregated_score >= 50 %}medium{% else %}low{% endif %}">{{ data.panel_interview.aggregated_score|floatformat:1 }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">/100</p>
+        </div>
+        {% if data.panel_interview.personas %}
+        <div class="space-y-2">
+          {% for pid, pdata in data.panel_interview.personas.items %}
+          <div class="data-section-card flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ pdata.name }}</span>
+            <span class="text-sm font-bold {% if pdata.score >= 75 %}text-emerald-600 dark:text-emerald-400{% elif pdata.score >= 50 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ pdata.score|floatformat:1 }}/100</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.panel_interview.synthesis_summary %}
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">AI Synthesis</p>
+          <p class="text-sm text-gray-700 dark:text-gray-300">{{ data.panel_interview.synthesis_summary }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">No panel interview completed yet.</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Start a panel interview from an assessment to see results here.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Placement Drive Section ────────────────────────── -->
+    <div id="section-drive" class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-header">
+          <h2>Mock Placement Drive</h2>
+        </div>
+        {% if data.sections_status.placement_drive %}
+        <span class="status-badge status-complete">Completed</span>
+        {% else %}
+        <span class="status-badge status-incomplete">Not Started</span>
+        {% endif %}
+      </div>
+      {% if data.placement_drive %}
+      <div class="space-y-3">
+        <div class="flex items-center justify-between data-section-card">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Final Outcome</p>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold
+              {% if data.placement_drive.final_outcome == 'offer' %}bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300
+              {% elif 'eliminated' in data.placement_drive.final_outcome %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300
+              {% else %}bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300{% endif %}
+            ">{{ data.placement_drive.final_outcome|title }}</span>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Stage Reached</p>
+            <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ data.placement_drive.current_stage|title }}</span>
+          </div>
+        </div>
+        {% if data.placement_drive.stage_results %}
+        <div class="space-y-2">
+          {% for stage, result in data.placement_drive.stage_results.items %}
+          <div class="data-section-card flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ stage|title }}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold">{{ result.score|floatformat:1 }}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium {% if result.passed %}bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300{% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
+                {% if result.passed %}PASSED{% else %}FAILED{% endif %}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if data.placement_drive.ai_feedback_summary %}
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">AI Feedback</p>
+          <p class="text-sm text-gray-700 dark:text-gray-300">{{ data.placement_drive.ai_feedback_summary }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="py-8 text-center">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">No placement drive started yet.</p>
+        <a href="{% url 'analysis:placement_drive_status' %}" class="inline-block mt-2 text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium">Start a placement drive &rarr;</a>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ────────────────────────────────────────────────────────────
+  // FEATURE #26 — AI RECRUITER VERDICT LOADING
+  // Defensive script isolation: this entire block is wrapped so
+  // a failure here CANNOT break the page or other sections.
+  // ────────────────────────────────────────────────────────────
+  (function() {
+    'use strict';
+
+    var VERDICT_URL = "{% url 'analysis:recruiter_dashboard_generate_verdict' %}";
+    var CSRF_TOKEN = '{{ csrf_token }}';
+
+    function getCSRFToken() {
+      var cs = document.cookie.match(/csrftoken=([^;]+)/);
+      return cs ? cs[1] : CSRF_TOKEN;
+    }
+
+    function showState(state) {
+      var ids = ['verdict-loading', 'verdict-content', 'verdict-error'];
+      ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      var target = document.getElementById('verdict-' + state);
+      if (target) target.classList.remove('hidden');
+    }
+
+    function renderVerdict(data) {
+      // Recommendation label
+      var labelContainer = document.getElementById('verdict-label-container');
+      if (labelContainer) {
+        var recClass = 'rec-insufficient';
+        if (data.recommendation === 'Strong Hire') recClass = 'rec-strong-hire';
+        else if (data.recommendation === 'Hire with Reservations') recClass = 'rec-hire-reservations';
+        else if (data.recommendation === 'Needs Improvement') recClass = 'rec-needs-improvement';
+        labelContainer.innerHTML = '<span class="rec-label ' + recClass + '">' + data.recommendation + '</span>';
+      }
+
+      // Verdict text
+      var textEl = document.getElementById('verdict-text');
+      if (textEl) textEl.textContent = data.verdict_text || '';
+
+      // Generated at
+      var atEl = document.getElementById('verdict-generated-at');
+      if (atEl) atEl.textContent = 'Generated ' + (data.generated_at ? new Date(data.generated_at).toLocaleString() : 'just now');
+
+      // Strengths
+      var strengthsList = document.getElementById('verdict-strengths-list');
+      if (strengthsList) {
+        if (data.strengths && data.strengths.length) {
+          strengthsList.innerHTML = data.strengths.map(function(s) {
+            return '<div class="strength-item"><svg class="w-4 h-4 icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="text-gray-700 dark:text-gray-300">' + s.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>';
+          }).join('');
+        } else {
+          strengthsList.innerHTML = '<p class="text-sm text-gray-400 dark:text-gray-500">No strengths identified yet.</p>';
+        }
+      }
+
+      // Concerns
+      var concernsList = document.getElementById('verdict-concerns-list');
+      if (concernsList) {
+        if (data.concerns && data.concerns.length) {
+          concernsList.innerHTML = data.concerns.map(function(c) {
+            return '<div class="concern-item"><svg class="w-4 h-4 icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.75-1.732-.75-2.5 0L4.314 15.5c-.77.833.192 2.5 1.732 2.5z"/></svg><span class="text-gray-700 dark:text-gray-300">' + c.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>';
+          }).join('');
+        } else {
+          concernsList.innerHTML = '<p class="text-sm text-gray-400 dark:text-gray-500">No concerns identified yet.</p>';
+        }
+      }
+
+      // Update refresh button text
+      var refreshBtn = document.getElementById('verdict-refresh-btn');
+      if (refreshBtn) refreshBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Refresh';
+
+      showState('content');
+    }
+
+    window.loadVerdict = function(forceRefresh) {
+      showState('loading');
+      var btn = document.getElementById('verdict-refresh-btn');
+      if (btn) btn.disabled = true;
+
+      var url = VERDICT_URL + (forceRefresh ? '?refresh=true' : '');
+      fetch(url, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCSRFToken()
+        }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (btn) btn.disabled = false;
+        if (data.success) {
+          renderVerdict(data);
+        } else {
+          showState('error');
+        }
+      })
+      .catch(function(err) {
+        console.error('Verdict fetch error:', err);
+        if (btn) btn.disabled = false;
+        showState('error');
+      });
+    };
+  })();
+</script>
+{% endblock %}
