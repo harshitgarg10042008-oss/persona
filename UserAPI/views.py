@@ -11,6 +11,7 @@ from django_ratelimit.decorators import ratelimit
 from django.core.mail import send_mail
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
 from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership, SalesInquiry
+from .subscription import requires_premium
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +263,7 @@ from .models import UserInterviewerPreference
 
 
 @login_required
+@requires_premium('voice_personas_avatars')
 def get_personas_view(request):
     """Return available personas and the user's current preference."""
     try:
@@ -277,6 +279,7 @@ def get_personas_view(request):
 
 
 @login_required
+@requires_premium('voice_personas_avatars')
 def update_persona_preference(request):
     """Save the user's chosen interviewer persona."""
     if request.method == 'POST':

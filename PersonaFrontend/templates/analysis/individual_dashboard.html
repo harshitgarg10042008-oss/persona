@@ -1,9 +1,11 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block extra_css %}
+{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block
+extra_css %}
 <style>
   /* ── Dashboard Background ─────────────────────────────────── */
   .dash-bg {
     background: linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #fdf4ff 70%, #faf5ff 100%);
   }
+
   [data-theme="dark"] .dash-bg {
     background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #1e1040 70%, #1a1025 100%);
   }
@@ -16,6 +18,7 @@
     padding: 1.5rem;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
   .stat-card::before {
     content: '';
     position: absolute;
@@ -24,10 +27,12 @@
     opacity: 0;
     transition: opacity 0.4s;
   }
+
   .stat-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
   }
+
   .stat-card:hover::before {
     opacity: 1;
   }
@@ -37,25 +42,37 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
   }
-  .stat-sessions::before { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+
+  .stat-sessions::before {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  }
 
   .stat-completed {
     background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: white;
   }
-  .stat-completed::before { background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%); }
+
+  .stat-completed::before {
+    background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+  }
 
   .stat-score {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: white;
   }
-  .stat-score::before { background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); }
+
+  .stat-score::before {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  }
 
   .stat-streak {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
   }
-  .stat-streak::before { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); }
+
+  .stat-streak::before {
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  }
 
   .stat-number {
     font-size: 2.5rem;
@@ -63,6 +80,7 @@
     line-height: 1;
     letter-spacing: -0.02em;
   }
+
   .stat-label {
     font-size: 0.75rem;
     font-weight: 600;
@@ -71,6 +89,7 @@
     opacity: 0.85;
     margin-bottom: 0.25rem;
   }
+
   .stat-sub {
     font-size: 0.8rem;
     opacity: 0.75;
@@ -79,25 +98,28 @@
 
   /* ── Glass Card ───────────────────────────────────────────── */
   .glass-card {
-    background: rgba(255,255,255,0.7);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 1rem;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
     transition: all 0.3s ease;
   }
+
   [data-theme="dark"] .glass-card {
-    background: rgba(30,41,59,0.7);
-    border: 1px solid rgba(148,163,184,0.1);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
   }
+
   .glass-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
+
   [data-theme="dark"] .glass-card:hover {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
   /* ── Section Headers ──────────────────────────────────────── */
@@ -105,14 +127,17 @@
     position: relative;
     margin-bottom: 1.5rem;
   }
+
   .section-header h2 {
     font-size: 1.25rem;
     font-weight: 700;
     color: #1e293b;
   }
+
   [data-theme="dark"] .section-header h2 {
     color: #f1f5f9;
   }
+
   .section-header::after {
     content: '';
     display: block;
@@ -128,29 +153,33 @@
     position: relative;
     overflow: hidden;
     border-radius: 1rem;
-    background: rgba(255,255,255,0.6);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
   }
+
   [data-theme="dark"] .job-card {
-    background: rgba(30,41,59,0.6);
-    border: 1px solid rgba(148,163,184,0.1);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
   }
+
   .job-card:hover {
     transform: translateY(-3px);
     border-color: #667eea;
-    box-shadow: 0 12px 40px -8px rgba(102,126,234,0.2);
+    box-shadow: 0 12px 40px -8px rgba(102, 126, 234, 0.2);
   }
+
   .job-card.selected {
     border-color: #667eea;
-    background: rgba(102,126,234,0.05);
-    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+    background: rgba(102, 126, 234, 0.05);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
   }
+
   [data-theme="dark"] .job-card.selected {
-    background: rgba(102,126,234,0.1);
+    background: rgba(102, 126, 234, 0.1);
   }
 
   /* ── Tool Cards ───────────────────────────────────────────── */
@@ -159,19 +188,22 @@
     overflow: hidden;
     border-radius: 1rem;
     padding: 1.5rem;
-    background: rgba(255,255,255,0.6);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     transition: all 0.3s ease;
   }
+
   [data-theme="dark"] .tool-card {
-    background: rgba(30,41,59,0.6);
-    border: 1px solid rgba(148,163,184,0.1);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
   }
+
   .tool-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px -8px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.1);
   }
+
   .tool-icon {
     width: 3rem;
     height: 3rem;
@@ -181,29 +213,34 @@
     justify-content: center;
     margin-bottom: 1rem;
   }
-  .tool-icon svg, .tool-icon i {
+
+  .tool-icon svg,
+  .tool-icon i {
     color: white;
   }
 
   /* ── Assessment History ───────────────────────────────────── */
   .history-item {
     border-radius: 0.75rem;
-    background: rgba(255,255,255,0.5);
+    background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.4);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     padding: 1rem 1.25rem;
     transition: all 0.3s ease;
   }
+
   [data-theme="dark"] .history-item {
-    background: rgba(30,41,59,0.5);
-    border: 1px solid rgba(148,163,184,0.08);
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.08);
   }
+
   .history-item:hover {
-    background: rgba(255,255,255,0.75);
-    border-color: rgba(102,126,234,0.2);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(102, 126, 234, 0.2);
   }
+
   [data-theme="dark"] .history-item:hover {
-    background: rgba(30,41,59,0.7);
+    background: rgba(30, 41, 59, 0.7);
   }
 
   /* ── Status Badges ────────────────────────────────────────── */
@@ -218,10 +255,12 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+
   .status-badge-available {
     background: linear-gradient(135deg, #10b981, #34d399);
     color: white;
   }
+
   .status-badge-unavailable {
     background: linear-gradient(135deg, #ef4444, #f87171);
     color: white;
@@ -231,21 +270,24 @@
   .persona-card {
     border-radius: 1rem;
     padding: 1.25rem;
-    background: rgba(255,255,255,0.6);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
     border: 2px solid transparent;
     transition: all 0.3s ease;
   }
+
   [data-theme="dark"] .persona-card {
-    background: rgba(30,41,59,0.6);
+    background: rgba(30, 41, 59, 0.6);
   }
+
   .persona-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(102,126,234,0.3);
+    border-color: rgba(102, 126, 234, 0.3);
   }
+
   .persona-card.selected {
     border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
   }
 
   /* ── Placement Drive CTA ──────────────────────────────────── */
@@ -259,39 +301,64 @@
     align-items: center;
     gap: 0.5rem;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 24px -8px rgba(102,126,234,0.4);
+    box-shadow: 0 8px 24px -8px rgba(102, 126, 234, 0.4);
   }
+
   .placement-cta:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px -8px rgba(102,126,234,0.5);
+    box-shadow: 0 12px 32px -8px rgba(102, 126, 234, 0.5);
   }
 
   /* ── Animated Entrance ────────────────────────────────────── */
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
   .animate-slide-up {
     animation: slideUp 0.6s ease forwards;
     opacity: 0;
   }
-  .delay-1 { animation-delay: 0.1s; }
-  .delay-2 { animation-delay: 0.2s; }
-  .delay-3 { animation-delay: 0.3s; }
-  .delay-4 { animation-delay: 0.4s; }
-  .delay-5 { animation-delay: 0.5s; }
+
+  .delay-1 {
+    animation-delay: 0.1s;
+  }
+
+  .delay-2 {
+    animation-delay: 0.2s;
+  }
+
+  .delay-3 {
+    animation-delay: 0.3s;
+  }
+
+  .delay-4 {
+    animation-delay: 0.4s;
+  }
+
+  .delay-5 {
+    animation-delay: 0.5s;
+  }
 
   /* ── Chart Container ──────────────────────────────────────── */
   .chart-container {
-    background: rgba(255,255,255,0.7);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 1rem;
     padding: 1.5rem;
   }
+
   [data-theme="dark"] .chart-container {
-    background: rgba(30,41,59,0.7);
-    border: 1px solid rgba(148,163,184,0.1);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.1);
   }
 
   /* ── Feature #20 – Placement Readiness ────────────────────── */
@@ -306,14 +373,47 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
-  .readiness-tier-interview-ready { background: #d1fae5; color: #065f46; }
-  .readiness-tier-getting-there   { background: #fef3c7; color: #78350f; }
-  .readiness-tier-needs-practice  { background: #fee2e2; color: #7f1d1d; }
-  .dark .readiness-tier-interview-ready { background: rgba(6,95,70,0.35); color: #6ee7b7; }
-  .dark .readiness-tier-getting-there   { background: rgba(120,53,15,0.35); color: #fde68a; }
-  .dark .readiness-tier-needs-practice  { background: rgba(127,29,29,0.35); color: #fca5a5; }
-  .readiness-bar-track { background-color: #e5e7eb; border-radius: 9999px; height: 6px; overflow: hidden; }
-  .dark .readiness-bar-track { background-color: #374151; }
+
+  .readiness-tier-interview-ready {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .readiness-tier-getting-there {
+    background: #fef3c7;
+    color: #78350f;
+  }
+
+  .readiness-tier-needs-practice {
+    background: #fee2e2;
+    color: #7f1d1d;
+  }
+
+  .dark .readiness-tier-interview-ready {
+    background: rgba(6, 95, 70, 0.35);
+    color: #6ee7b7;
+  }
+
+  .dark .readiness-tier-getting-there {
+    background: rgba(120, 53, 15, 0.35);
+    color: #fde68a;
+  }
+
+  .dark .readiness-tier-needs-practice {
+    background: rgba(127, 29, 29, 0.35);
+    color: #fca5a5;
+  }
+
+  .readiness-bar-track {
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .dark .readiness-bar-track {
+    background-color: #374151;
+  }
 
   /* Feature #21 — AI Career Mentor */
   .mentor-chat-container {
@@ -321,9 +421,20 @@
     overflow-y: auto;
     scrollbar-width: thin;
   }
-  .mentor-chat-container::-webkit-scrollbar { width: 4px; }
-  .mentor-chat-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-  .dark .mentor-chat-container::-webkit-scrollbar-thumb { background: #475569; }
+
+  .mentor-chat-container::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .mentor-chat-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+
+  .dark .mentor-chat-container::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+
   .focus-chip {
     display: inline-block;
     padding: 2px 10px;
@@ -333,7 +444,11 @@
     background: linear-gradient(135deg, #ede9fe, #ddd6fe);
     color: #5b21b6;
   }
-  .dark .focus-chip { background: rgba(124,58,237,0.25); color: #c4b5fd; }
+
+  .dark .focus-chip {
+    background: rgba(124, 58, 237, 0.25);
+    color: #c4b5fd;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="dash-bg min-h-screen">
@@ -349,13 +464,21 @@
         {% if subscription %}
         <div class="mt-2 flex items-center gap-2">
           {% if subscription.is_premium %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-sm">
-              <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.293z"/></svg>
-              {{ subscription.tier_display }}
-            </span>
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-sm">
+            <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.293z" />
+            </svg>
+            {{ subscription.tier_display }}
+          </span>
           {% else %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Free Plan</span>
-            <a href="{% url 'pricing_page' %}" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-colors shadow-sm">Upgrade to Premium</a>
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Free
+            Plan</span>
+          <a href="{% url 'pricing_page' %}"
+            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-colors shadow-sm">Upgrade
+            to Premium</a>
           {% endif %}
         </div>
         {% endif %}
@@ -364,13 +487,18 @@
         {% if subscription and subscription.is_premium %}
         <a href="{% url 'analysis:placement_drive_status' %}" class="placement-cta">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
           Mock Placement Drive
         </a>
         {% else %}
-        <a href="{% url 'pricing_page' %}" class="placement-cta bg-gradient-to-r from-gray-400 to-gray-500 text-white opacity-70 hover:opacity-90">
-          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <a href="{% url 'pricing_page' %}"
+          class="placement-cta bg-gradient-to-r from-gray-400 to-gray-500 text-white opacity-70 hover:opacity-90">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
           Premium Only
         </a>
         {% endif %}
@@ -384,7 +512,10 @@
         <div class="stat-number">{{ total_sessions|default:"0" }}</div>
         <div class="stat-sub">Total assessments taken</div>
         <div class="absolute top-4 right-4 opacity-20">
-          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
         </div>
       </div>
       <div class="stat-card stat-completed animate-slide-up delay-2">
@@ -392,15 +523,20 @@
         <div class="stat-number">{{ completed_sessions|default:"0" }}</div>
         <div class="stat-sub">Successfully completed</div>
         <div class="absolute top-4 right-4 opacity-20">
-          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+          </svg>
         </div>
       </div>
       <div class="stat-card stat-score animate-slide-up delay-3">
         <div class="stat-label">Average Score</div>
-        <div class="stat-number">{% if avg_score %}{{ avg_score }}{% else %}--{% endif %}<span class="text-lg opacity-70">/10</span></div>
+        <div class="stat-number">{% if avg_score %}{{ avg_score }}{% else %}--{% endif %}<span
+            class="text-lg opacity-70">/10</span></div>
         <div class="stat-sub">Overall performance</div>
         <div class="absolute top-4 right-4 opacity-20">
-          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
         </div>
       </div>
       <div class="stat-card stat-streak animate-slide-up delay-4">
@@ -408,7 +544,10 @@
         <div class="stat-number">{% if current_streak %}🔥 {{ current_streak }}{% else %}--{% endif %}</div>
         <div class="stat-sub">Day streak (Best: {{ best_streak|default:"0" }})</div>
         <div class="absolute top-4 right-4 opacity-20">
-          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>
+          <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z" />
+          </svg>
         </div>
       </div>
     </div>
@@ -429,9 +568,11 @@
         <h2>AI Analysis Modules</h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
+        <div
+          class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+            <div
+              class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
               <i class="fas fa-tshirt text-white text-sm"></i>
             </div>
             <div>
@@ -441,17 +582,23 @@
           </div>
           <div class="flex items-center gap-2">
             {% if subscription and not subscription.is_premium %}
-            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
             {% endif %}
-            <span class="status-badge {% if analysis_status.attire_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+            <span
+              class="status-badge {% if analysis_status.attire_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
               {% if analysis_status.attire_available %}Available{% else %}Unavailable{% endif %}
             </span>
           </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
+        <div
+          class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 relative">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+            <div
+              class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
               <i class="fas fa-hand-paper text-white text-sm"></i>
             </div>
             <div>
@@ -461,17 +608,23 @@
           </div>
           <div class="flex items-center gap-2">
             {% if subscription and not subscription.is_premium %}
-            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
             {% endif %}
-            <span class="status-badge {% if analysis_status.body_language_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+            <span
+              class="status-badge {% if analysis_status.body_language_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
               {% if analysis_status.body_language_available %}Available{% else %}Unavailable{% endif %}
             </span>
           </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
+        <div
+          class="flex items-center justify-between p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+            <div
+              class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
               <i class="fas fa-microphone text-white text-sm"></i>
             </div>
             <div>
@@ -479,7 +632,8 @@
               <p class="text-xs text-gray-500 dark:text-gray-400">Fluency & content</p>
             </div>
           </div>
-          <span class="status-badge {% if analysis_status.speech_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
+          <span
+            class="status-badge {% if analysis_status.speech_available %}status-badge-available{% else %}status-badge-unavailable{% endif %}">
             {% if analysis_status.speech_available %}Available{% else %}Unavailable{% endif %}
           </span>
         </div>
@@ -491,12 +645,18 @@
       <div class="section-header">
         <h2>Interviewer Voice Persona</h2>
       </div>
-      <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm">Select the voice and personality of your AI interviewer for future assessments.</p>
-      
+      <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm">Select the voice and personality of your AI interviewer
+        for future assessments.</p>
+
       <div id="persona-loading" class="py-4 text-gray-500">
-        <svg class="animate-spin w-5 h-5 inline-block mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading voices...
+        <svg class="animate-spin w-5 h-5 inline-block mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg> Loading voices...
       </div>
-      
+
       <div id="persona-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
         <!-- Populated by JS -->
       </div>
@@ -520,7 +680,8 @@
             </div>
             <p class="text-gray-500 dark:text-gray-400 text-sm mb-4 leading-relaxed">{{ job_title.description }}</p>
             <div class="flex items-center justify-between">
-              <span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+              <span
+                class="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
                 {{ job_title.get_category_display }}
               </span>
               <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
@@ -532,7 +693,8 @@
         </div>
 
         <div class="mt-8 text-center">
-          <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-3.5 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-lg">
+          <button type="submit"
+            class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-3.5 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-lg">
             Start Assessment
           </button>
         </div>
@@ -549,7 +711,7 @@
       <div class="section-header">
         <h2>Career Tools</h2>
       </div>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Resume Reviewer -->
         <div class="tool-card">
@@ -557,20 +719,24 @@
             <i class="fas fa-file-alt text-xl"></i>
           </div>
           <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">Resume Analyzer</h3>
-          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Upload your resume for instant ATS and recruiter feedback with detailed actionable suggestions.</p>
-          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="block w-full text-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Upload your resume for instant ATS
+            and recruiter feedback with detailed actionable suggestions.</p>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}"
+            class="block w-full text-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
             Analyze Resume
           </a>
         </div>
-        
+
         <!-- Cover Letter Generator -->
         <div class="tool-card">
           <div class="tool-icon bg-gradient-to-br from-indigo-500 to-indigo-600">
             <i class="fas fa-envelope-open-text text-xl"></i>
           </div>
           <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">Cover Letter Generator</h3>
-          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Generate a highly tailored cover letter based on a job description and your resume context.</p>
-          <a href="{% url 'analysis:cover_letter_generate' %}" class="block w-full text-center bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2.5 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Generate a highly tailored cover
+            letter based on a job description and your resume context.</p>
+          <a href="{% url 'analysis:cover_letter_generate' %}"
+            class="block w-full text-center bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2.5 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
             Generate Letter
           </a>
         </div>
@@ -581,8 +747,10 @@
             <i class="fab fa-linkedin-in text-xl"></i>
           </div>
           <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">LinkedIn Post Creator</h3>
-          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Create engaging, professional LinkedIn posts to build your personal brand and network.</p>
-          <a href="{% url 'analysis:linkedin_post_generate' %}" class="block w-full text-center bg-gradient-to-r from-blue-400 to-cyan-500 text-white px-4 py-2.5 rounded-lg hover:from-blue-500 hover:to-cyan-600 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+          <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm leading-relaxed">Create engaging, professional
+            LinkedIn posts to build your personal brand and network.</p>
+          <a href="{% url 'analysis:linkedin_post_generate' %}"
+            class="block w-full text-center bg-gradient-to-r from-blue-400 to-cyan-500 text-white px-4 py-2.5 rounded-lg hover:from-blue-500 hover:to-cyan-600 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
             Generate Post
           </a>
         </div>
@@ -593,16 +761,21 @@
     <div id="job-matches-card" class="glass-card p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Job Matches</h2>
         </div>
-        <button id="job-matches-refresh-btn" onclick="loadJobMatches(true)" class="hidden text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium flex items-center gap-1 transition-colors" title="Refresh job matches">
+        <button id="job-matches-refresh-btn" onclick="loadJobMatches(true)"
+          class="hidden text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium flex items-center gap-1 transition-colors"
+          title="Refresh job matches">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Refresh
         </button>
@@ -610,7 +783,12 @@
 
       <div id="job-matches-loading" class="py-8">
         <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-          <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
           <span class="text-sm">Analysing your profile for role matches&hellip;</span>
         </div>
       </div>
@@ -618,28 +796,42 @@
       <div id="job-matches-empty" class="hidden py-8 text-center">
         <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
           <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="job-matches-empty-message">Complete an assessment or upload a resume to see your personalised job matches.</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised recommendations will appear here once you have some data.</p>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="job-matches-empty-message">Complete an
+          assessment or upload a resume to see your personalised job matches.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised recommendations will appear here once
+          you have some data.</p>
         <div class="flex items-center justify-center gap-3 flex-wrap">
-          <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium">Start an Assessment</a>
-          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload Resume</a>
+          <a href="{% url 'analysis:start_individual_assessment' %}"
+            class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium">Start
+            an Assessment</a>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}"
+            class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload
+            Resume</a>
         </div>
       </div>
 
       <div id="job-matches-error" class="hidden py-6 text-center">
         <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
         </div>
         <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load job matches</p>
-        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
-        <button onclick="loadJobMatches(false)" class="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium underline">Try again</button>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try
+          again.</p>
+        <button onclick="loadJobMatches(false)"
+          class="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 font-medium underline">Try
+          again</button>
       </div>
 
       <div id="job-matches-results" class="hidden">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on your resume and assessment history, these roles are your best fits right now.</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on your resume and assessment history, these
+          roles are your best fits right now.</p>
         <div id="job-matches-list" class="space-y-3"></div>
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 text-right" id="job-matches-cache-note"></p>
       </div>
@@ -649,42 +841,66 @@
     <div id="readiness-card" class="glass-card p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">Placement Readiness</h2>
         </div>
-        <button id="readiness-refresh-btn" onclick="loadReadiness(true)" class="hidden text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium flex items-center gap-1 transition-colors" title="Refresh readiness score">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <button id="readiness-refresh-btn" onclick="loadReadiness(true)"
+          class="hidden text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium flex items-center gap-1 transition-colors"
+          title="Refresh readiness score">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           Refresh
         </button>
       </div>
 
       <div id="readiness-loading" class="py-8">
         <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-          <svg class="animate-spin w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <svg class="animate-spin w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
           <span class="text-sm">Calculating your placement readiness&hellip;</span>
         </div>
       </div>
 
       <div id="readiness-empty" class="hidden py-8 text-center">
         <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Complete at least one assessment to see your placement readiness score.</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised readiness score will appear here once you have assessment data.</p>
-        <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">Start an Assessment</a>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Complete at least one assessment to see your
+          placement readiness score.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your personalised readiness score will appear here once
+          you have assessment data.</p>
+        <a href="{% url 'analysis:start_individual_assessment' %}"
+          class="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">Start
+          an Assessment</a>
       </div>
 
       <div id="readiness-error" class="hidden py-6 text-center">
         <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
         </div>
         <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load readiness score</p>
-        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the service. Please try again.</p>
-        <button onclick="loadReadiness(false)" class="text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium underline">Try again</button>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the service. Please try
+          again.</p>
+        <button onclick="loadReadiness(false)"
+          class="text-xs text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-medium underline">Try
+          again</button>
       </div>
 
       <div id="readiness-results" class="hidden">
@@ -692,15 +908,19 @@
           <div class="flex items-center gap-4">
             <div class="relative w-20 h-20 flex-shrink-0">
               <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="8"/>
-                <circle id="readiness-ring" cx="40" cy="40" r="34" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" style="transition: stroke-dashoffset 1s ease, stroke 0.4s ease"/>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="8" />
+                <circle id="readiness-ring" cx="40" cy="40" r="34" fill="none" stroke="#10b981" stroke-width="8"
+                  stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                  style="transition: stroke-dashoffset 1s ease, stroke 0.4s ease" />
               </svg>
               <div class="absolute inset-0 flex items-center justify-center">
-                <span id="readiness-score-label" class="text-lg font-extrabold text-gray-800 dark:text-gray-100">--</span>
+                <span id="readiness-score-label"
+                  class="text-lg font-extrabold text-gray-800 dark:text-gray-100">--</span>
               </div>
             </div>
             <div>
-              <div id="readiness-tier-badge" class="readiness-tier-badge readiness-tier-getting-there mb-2">Getting There</div>
+              <div id="readiness-tier-badge" class="readiness-tier-badge readiness-tier-getting-there mb-2">Getting
+                There</div>
               <p id="readiness-insight" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-xs"></p>
             </div>
           </div>
@@ -713,31 +933,49 @@
     <!-- ── Feature #21: AI Career Mentor ──────────────────── -->
     <div id="career-mentor-card" class="glass-card p-6 mb-8 relative">
       {% if subscription and not subscription.is_premium %}
-      <div class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+      <div
+        class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
         <div class="text-center">
-          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
           <p class="text-gray-700 dark:text-gray-300 font-semibold mb-2">Premium Feature</p>
           <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">AI Career Mentor requires a Premium subscription.</p>
-          <a href="{% url 'pricing_page' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade to Premium</a>
+          <a href="{% url 'pricing_page' %}"
+            class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade
+            to Premium</a>
         </div>
       </div>
       {% endif %}
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Career Mentor</h2>
         </div>
         <div class="flex items-center gap-3">
-          <button id="mentor-intake-btn" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Set your target role and timeline">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          <button id="mentor-intake-btn"
+            class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors"
+            title="Set your target role and timeline">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             Set target
           </button>
-          <button id="mentor-refresh-btn" onclick="loadMentor(true)" class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors" title="Refresh career mentor summary">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          <button id="mentor-refresh-btn" onclick="loadMentor(true)"
+            class="hidden text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors"
+            title="Refresh career mentor summary">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             Refresh
           </button>
         </div>
@@ -745,66 +983,115 @@
 
       <div id="mentor-loading" class="py-8">
         <div class="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-          <svg class="animate-spin w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <svg class="animate-spin w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
           <span class="text-sm">Generating your career mentor summary&hellip;</span>
         </div>
       </div>
 
       <div id="mentor-empty" class="hidden py-8 text-center">
         <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+          <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="mentor-empty-message">Complete an assessment or upload a resume to receive your personalised career mentor summary.</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your AI career mentor will appear here once you have some data.</p>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1" id="mentor-empty-message">Complete an assessment or
+          upload a resume to receive your personalised career mentor summary.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your AI career mentor will appear here once you have
+          some data.</p>
         <div class="flex items-center justify-center gap-3 flex-wrap">
-          <a href="{% url 'analysis:start_individual_assessment' %}" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">Start an Assessment</a>
-          <a href="{% url 'analysis:resume_reviewer_upload' %}" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload Resume</a>
+          <a href="{% url 'analysis:start_individual_assessment' %}"
+            class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">Start
+            an Assessment</a>
+          <a href="{% url 'analysis:resume_reviewer_upload' %}"
+            class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">Upload
+            Resume</a>
         </div>
       </div>
 
       <div id="mentor-error" class="hidden py-6 text-center">
         <div class="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-3">
-          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
         </div>
         <p class="text-red-600 dark:text-red-400 font-medium text-sm mb-1">Could not load career mentor summary</p>
-        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try again.</p>
-        <button onclick="loadMentor(false)" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium underline">Try again</button>
+        <p class="text-gray-500 dark:text-gray-400 text-xs mb-3">There was a problem reaching the AI service. Please try
+          again.</p>
+        <button onclick="loadMentor(false)"
+          class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium underline">Try
+          again</button>
+      </div>
+
+      <div id="mentor-premium_required" class="hidden py-8 text-center">
+        <div
+          class="w-14 h-14 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">AI Career Mentor is a Premium feature</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Upgrade to Premium to unlock personalized career
+          guidance and mentorship.</p>
+        <a href="{% url 'pricing_page' %}"
+          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">Upgrade
+          to Premium</a>
       </div>
 
       <div id="mentor-results" class="hidden">
         <p id="mentor-summary" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4"></p>
 
         <div id="mentor-focus-areas" class="mb-4 hidden">
-          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Focus Areas</h3>
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Focus Areas
+          </h3>
           <div id="mentor-focus-chips" class="flex flex-wrap gap-2"></div>
         </div>
 
         <div id="mentor-next-steps" class="mb-4 hidden">
-          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Next Steps</h3>
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Next Steps
+          </h3>
           <ul id="mentor-next-steps-list" class="space-y-1"></ul>
         </div>
 
         <div id="mentor-intake-prompt" class="hidden mb-4 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
-          <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2"><strong>Sharpen your advice:</strong> Tell us your target role and timeline for more tailored guidance.</p>
+          <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2"><strong>Sharpen your advice:</strong> Tell us
+            your target role and timeline for more tailored guidance.</p>
           <div class="flex flex-wrap gap-2">
-            <input type="text" id="mentor-target-role-input" placeholder="Target role (e.g. Software Engineer)" class="flex-1 min-w-[180px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <input type="text" id="mentor-timeline-input" placeholder="Timeline (e.g. 3 months)" class="flex-1 min-w-[120px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onclick="saveMentorIntake()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Save</button>
+            <input type="text" id="mentor-target-role-input" placeholder="Target role (e.g. Software Engineer)"
+              class="flex-1 min-w-[180px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input type="text" id="mentor-timeline-input" placeholder="Timeline (e.g. 3 months)"
+              class="flex-1 min-w-[120px] text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <button onclick="saveMentorIntake()"
+              class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Save</button>
           </div>
         </div>
 
         <p class="text-xs text-gray-400 dark:text-gray-500 mb-4 text-right" id="mentor-cache-note"></p>
 
         <div id="mentor-chat-section" class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <button id="mentor-chat-toggle" onclick="toggleMentorChat()" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          <button id="mentor-chat-toggle" onclick="toggleMentorChat()"
+            class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium flex items-center gap-1 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
             Ask the mentor
           </button>
           <div id="mentor-chat-body" class="hidden mt-3">
             <div id="mentor-chat-messages" class="mentor-chat-container mb-3 space-y-2"></div>
             <div class="flex gap-2">
-              <input type="text" id="mentor-chat-input" placeholder="Ask your mentor a question&hellip;" class="flex-1 text-xs px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" onkeydown="if(event.key==='Enter')sendMentorChat()" />
-              <button onclick="sendMentorChat()" class="text-xs bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Send</button>
+              <input type="text" id="mentor-chat-input" placeholder="Ask your mentor a question&hellip;"
+                class="flex-1 text-xs px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onkeydown="if(event.key==='Enter')sendMentorChat()" />
+              <button onclick="sendMentorChat()"
+                class="text-xs bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium">Send</button>
             </div>
           </div>
         </div>
@@ -814,29 +1101,42 @@
     <!-- ── Feature #26: AI Recruiter Dashboard ──────────── -->
     <div class="glass-card p-6 mb-8 relative">
       {% if subscription and not subscription.is_premium %}
-      <div class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+      <div
+        class="absolute inset-0 z-10 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center">
         <div class="text-center">
-          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
           <p class="text-gray-700 dark:text-gray-300 font-semibold mb-2">Premium Feature</p>
-          <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">AI Recruiter Dashboard requires a Premium subscription.</p>
-          <a href="{% url 'pricing_page' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade to Premium</a>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">AI Recruiter Dashboard requires a Premium
+            subscription.</p>
+          <a href="{% url 'pricing_page' %}"
+            class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all font-semibold text-sm shadow-md">Upgrade
+            to Premium</a>
         </div>
       </div>
       {% endif %}
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50">AI Recruiter Dashboard</h2>
         </div>
       </div>
-      <p class="text-gray-500 dark:text-gray-400 text-sm mb-4 leading-relaxed">See how a recruiter would evaluate your complete profile — resume, assessments, interviews, and placement drive results — all in one view with an AI-generated hiring verdict.</p>
-      <a href="{% url 'analysis:recruiter_dashboard' %}" class="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-2.5 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+      <p class="text-gray-500 dark:text-gray-400 text-sm mb-4 leading-relaxed">See how a recruiter would evaluate your
+        complete profile — resume, assessments, interviews, and placement drive results — all in one view with an
+        AI-generated hiring verdict.</p>
+      <a href="{% url 'analysis:recruiter_dashboard' %}"
+        class="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-2.5 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
         </svg>
         View Recruiter Dashboard
       </a>
@@ -847,7 +1147,9 @@
         <div class="section-header mb-0">
           <h2>Assessment History</h2>
         </div>
-        <a href="{% url 'analysis:assessment_history' %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold transition-colors">View All →</a>
+        <a href="{% url 'analysis:assessment_history' %}"
+          class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold transition-colors">View
+          All →</a>
       </div>
 
       {% if recent_assessments %}
@@ -856,25 +1158,32 @@
         <div class="history-item">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ assessment.platform_job_title.title|default:"Assessment" }}</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{
+                assessment.platform_job_title.title|default:"Assessment" }}</h3>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
             </div>
             <div class="text-right">
-              <span class="inline-block px-3 py-1 text-xs rounded-full font-semibold {% if assessment.status == 'completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300{% elif assessment.status == 'in_progress' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400{% endif %}">
+              <span
+                class="inline-block px-3 py-1 text-xs rounded-full font-semibold {% if assessment.status == 'completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300{% elif assessment.status == 'in_progress' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400{% endif %}">
                 {{ assessment.get_status_display }}
               </span>
               {% if assessment.overall_score %}
-              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Score: {{ assessment.overall_score|floatformat:1 }}/10</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Score: {{
+                assessment.overall_score|floatformat:1 }}/10</div>
               {% endif %}
             </div>
           </div>
           {% if assessment.status == 'completed' %}
           <div class="mt-3">
-            <a href="{% url 'analysis:complete_individual_assessment' session_id=assessment.session_id %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">View Results →</a>
+            <a href="{% url 'analysis:complete_individual_assessment' session_id=assessment.session_id %}"
+              class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">View Results
+              →</a>
           </div>
           {% elif assessment.status == 'in_progress' %}
           <div class="mt-3">
-            <a href="{% url 'analysis:individual_assessment_question' session_id=assessment.session_id %}" class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">Continue Assessment →</a>
+            <a href="{% url 'analysis:individual_assessment_question' session_id=assessment.session_id %}"
+              class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-semibold">Continue
+              Assessment →</a>
           </div>
           {% endif %}
         </div>
@@ -882,14 +1191,20 @@
       </div>
       {% else %}
       <div class="text-center py-12 text-gray-500 dark:text-gray-400">
-        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
         <p class="mb-1 font-medium">No assessments yet.</p>
         <p class="text-sm">Complete your first practice interview above to see results here.</p>
       </div>
       {% endif %}
 
       <div class="mt-6 text-center">
-        <a href="{% url 'analysis:assessment_history' %}" class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">View All Assessments</a>
+        <a href="{% url 'analysis:assessment_history' %}"
+          class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">View
+          All Assessments</a>
       </div>
     </div>
 
@@ -904,56 +1219,57 @@
 <script>
   /* ── Score Chart (Chart.js) ──────────────────────────────── */
   {% if chart_json %}
-  (function() {
+  (function () {
     try {
-      var data = {{ chart_json|safe }};
-      if (!data.labels || data.labels.length === 0) return;
-      var ctx = document.getElementById('scoreChart');
-      if (!ctx) return;
-      var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
-      gradient.addColorStop(0, 'rgba(102,126,234,0.2)');
-      gradient.addColorStop(1, 'rgba(102,126,234,0)');
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: 'Score',
-            data: data.scores,
-            borderColor: '#667eea',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#667eea',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(30,41,59,0.9)',
-              titleFont: { size: 13 },
-              bodyFont: { size: 13 },
-              padding: 10,
-              cornerRadius: 8
-            }
-          },
-          scales: {
-            y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } }
-          }
+      var data = {{ chart_json| safe
+    }};
+  if (!data.labels || data.labels.length === 0) return;
+  var ctx = document.getElementById('scoreChart');
+  if (!ctx) return;
+  var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+  gradient.addColorStop(0, 'rgba(102,126,234,0.2)');
+  gradient.addColorStop(1, 'rgba(102,126,234,0)');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: 'Score',
+        data: data.scores,
+        borderColor: '#667eea',
+        backgroundColor: gradient,
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#667eea',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(30,41,59,0.9)',
+          titleFont: { size: 13 },
+          bodyFont: { size: 13 },
+          padding: 10,
+          cornerRadius: 8
         }
-      });
-    } catch (e) {
-      console.error("Chart initialization failed:", e);
+      },
+      scales: {
+        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
     }
-  })();
+  });
+    } catch (e) {
+    console.error("Chart initialization failed:", e);
+  }
+  }) ();
   {% endif %}
 </script>
 
@@ -964,9 +1280,24 @@
   }
 
   function loadPersonas() {
-    fetch('/auth/voice-interviewer/personas/')
-      .then(r => r.json())
+    fetch('/auth/voice-interviewer/personas/', { headers: { 'Accept': 'application/json' } })
+      .then(r => {
+        if (!r.ok) {
+          if (r.status === 403) {
+            return r.json().then(data => {
+              if (data.error === 'premium_required') {
+                showPersonaPremiumLock();
+                return null;
+              }
+              throw new Error(data.message || 'Server error');
+            });
+          }
+          throw new Error('Server error');
+        }
+        return r.json();
+      })
       .then(data => {
+        if (!data) return; // Already handled (premium_required case)
         document.getElementById('persona-loading').classList.add('hidden');
         const list = document.getElementById('persona-list');
         list.classList.remove('hidden');
@@ -993,9 +1324,50 @@
   function savePersona(id) {
     fetch('/auth/voice-interviewer/preference/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-      body: JSON.stringify({persona_id: id})
-    }).then(r => r.json()).then(data => { if(data.status === 'success') loadPersonas(); });
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), 'Accept': 'application/json' },
+      body: JSON.stringify({ persona_id: id })
+    })
+      .then(r => {
+        if (!r.ok) {
+          if (r.status === 403) {
+            return r.json().then(data => {
+              if (data.error === 'premium_required') {
+                showPersonaPremiumLock();
+                return null;
+              }
+              throw new Error(data.message || 'Server error');
+            });
+          }
+          throw new Error('Server error');
+        }
+        return r.json();
+      })
+      .then(data => {
+        if (!data) return; // Already handled (premium_required case)
+        if (data.status === 'success') loadPersonas();
+      })
+      .catch(e => { console.error('Failed to save persona:', e); });
+  }
+
+  function showPersonaPremiumLock() {
+    document.getElementById('persona-loading').classList.add('hidden');
+    const list = document.getElementById('persona-list');
+    list.classList.remove('hidden');
+    list.innerHTML = `
+      <div class="text-center py-8">
+        <div class="w-14 h-14 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Voice Personas is a Premium feature</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Upgrade to Premium to unlock multiple interviewer personas and avatars.</p>
+        <a href="{% url 'pricing_page' %}"
+          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">Upgrade
+          to Premium</a>
+      </div>
+    `;
   }
 
   document.addEventListener('DOMContentLoaded', loadPersonas);
@@ -1011,11 +1383,11 @@
 <script>
   /* ── Feature #20 – Placement Readiness ─────────────────── */
   function showReadinessState(state) {
-    ['loading','empty','error','results'].forEach(s => document.getElementById('readiness-'+s).classList.add('hidden'));
-    document.getElementById('readiness-'+state).classList.remove('hidden');
+    ['loading', 'empty', 'error', 'results'].forEach(s => document.getElementById('readiness-' + s).classList.add('hidden'));
+    document.getElementById('readiness-' + state).classList.remove('hidden');
   }
-  var READINESS_LABELS = { performance_base:'Performance', performance_trend:'Trend', resume_quality:'Resume Quality', practice_volume:'Practice Volume', practice_recency:'Recency', coach_gaps:'Weaknesses' };
-  function readinessBarColor(pct) { if(pct>=75) return '#10b981'; if(pct>=45) return '#f59e0b'; return '#ef4444'; }
+  var READINESS_LABELS = { performance_base: 'Performance', performance_trend: 'Trend', resume_quality: 'Resume Quality', practice_volume: 'Practice Volume', practice_recency: 'Recency', coach_gaps: 'Weaknesses' };
+  function readinessBarColor(pct) { if (pct >= 75) return '#10b981'; if (pct >= 45) return '#f59e0b'; return '#ef4444'; }
 
   function renderReadiness(readiness, cached) {
     var score = Math.round(readiness.total_score || 0);
@@ -1024,28 +1396,28 @@
     var ring = document.getElementById('readiness-ring');
     ring.style.strokeDashoffset = circumference;
     ring.style.stroke = score >= 75 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
-    setTimeout(function(){ ring.style.strokeDashoffset = circumference - (score/100)*circumference; }, 60);
+    setTimeout(function () { ring.style.strokeDashoffset = circumference - (score / 100) * circumference; }, 60);
     document.getElementById('readiness-score-label').textContent = score;
     var badge = document.getElementById('readiness-tier-badge');
     badge.className = 'readiness-tier-badge';
-    if(tier === 'Interview Ready') badge.classList.add('readiness-tier-interview-ready');
-    else if(tier === 'Getting There') badge.classList.add('readiness-tier-getting-there');
+    if (tier === 'Interview Ready') badge.classList.add('readiness-tier-interview-ready');
+    else if (tier === 'Getting There') badge.classList.add('readiness-tier-getting-there');
     else badge.classList.add('readiness-tier-needs-practice');
     badge.textContent = tier;
     document.getElementById('readiness-insight').textContent = readiness.insight || '';
     var bk = readiness.breakdown || {};
     var bkEl = document.getElementById('readiness-breakdown');
     bkEl.innerHTML = '';
-    Object.keys(bk).forEach(function(key) {
+    Object.keys(bk).forEach(function (key) {
       var comp = bk[key];
-      var pct = comp.max > 0 ? Math.round((comp.score/comp.max)*100) : 0;
+      var pct = comp.max > 0 ? Math.round((comp.score / comp.max) * 100) : 0;
       var color = readinessBarColor(pct);
       var label = READINESS_LABELS[key] || key;
       bkEl.insertAdjacentHTML('beforeend',
         '<div>'
-        + '<div class="flex justify-between items-center mb-1"><span class="text-xs font-medium text-gray-700 dark:text-gray-300">'+label+'</span><span class="text-xs text-gray-500 dark:text-gray-400">'+comp.score+'/'+comp.max+'</span></div>'
-        + '<div class="readiness-bar-track"><div style="width:'+pct+'%;background-color:'+color+';height:6px;border-radius:9999px;transition:width 0.8s ease"></div></div>'
-        + '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">'+(comp.description||'')+'</p></div>');
+        + '<div class="flex justify-between items-center mb-1"><span class="text-xs font-medium text-gray-700 dark:text-gray-300">' + label + '</span><span class="text-xs text-gray-500 dark:text-gray-400">' + comp.score + '/' + comp.max + '</span></div>'
+        + '<div class="readiness-bar-track"><div style="width:' + pct + '%;background-color:' + color + ';height:6px;border-radius:9999px;transition:width 0.8s ease"></div></div>'
+        + '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">' + (comp.description || '') + '</p></div>');
     });
     document.getElementById('readiness-cache-note').textContent = cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
     document.getElementById('readiness-refresh-btn').classList.remove('hidden');
@@ -1059,36 +1431,36 @@
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => r.json())
       .then(data => {
-        if(!data.success) { if(data.error==='not_enough_data') showReadinessState('empty'); else showReadinessState('error'); return; }
+        if (!data.success) { if (data.error === 'not_enough_data') showReadinessState('empty'); else showReadinessState('error'); return; }
         renderReadiness(data.readiness, data.cached === true);
       })
       .catch(err => { console.error('Readiness fetch error:', err); showReadinessState('error'); });
   }
-  document.addEventListener('DOMContentLoaded', function(){ loadReadiness(false); });
+  document.addEventListener('DOMContentLoaded', function () { loadReadiness(false); });
 </script>
 
 <script>
   /* ── Feature #19 – AI Job Matches ──────────────────────── */
   function showMatchesState(state) {
-    ['loading','empty','error','results'].forEach(s => document.getElementById('job-matches-'+s).classList.add('hidden'));
-    document.getElementById('job-matches-'+state).classList.remove('hidden');
+    ['loading', 'empty', 'error', 'results'].forEach(s => document.getElementById('job-matches-' + s).classList.add('hidden'));
+    document.getElementById('job-matches-' + state).classList.remove('hidden');
   }
-  function scoreColor(score) { if(score>=75) return 'bg-green-500'; if(score>=50) return 'bg-yellow-400'; if(score>=25) return 'bg-orange-400'; return 'bg-red-400'; }
-  function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(String(str||''))); return d.innerHTML; }
+  function scoreColor(score) { if (score >= 75) return 'bg-green-500'; if (score >= 50) return 'bg-yellow-400'; if (score >= 25) return 'bg-orange-400'; return 'bg-red-400'; }
+  function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(String(str || ''))); return d.innerHTML; }
 
   function renderMatches(matches, cached) {
     var list = document.getElementById('job-matches-list');
     list.innerHTML = '';
-    matches.forEach(function(m, idx) {
+    matches.forEach(function (m, idx) {
       var score = parseInt(m.match_score) || 0;
       var bar = scoreColor(score);
       var html = '<div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-violet-400 transition-colors bg-white/50 dark:bg-white/5">'
         + '<div class="flex items-start justify-between gap-4 mb-2">'
-        + '<div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center flex-shrink-0">'+(idx+1)+'</span>'
-        + '<h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">'+escapeHtml(m.job_title)+'</h3></div>'
-        + '<span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-shrink-0">'+score+'%</span></div>'
-        + '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2"><div class="'+bar+' h-1.5 rounded-full transition-all duration-700" style="width:'+score+'%"></div></div>'
-        + '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">'+escapeHtml(m.reason)+'</p></div>';
+        + '<div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center flex-shrink-0">' + (idx + 1) + '</span>'
+        + '<h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">' + escapeHtml(m.job_title) + '</h3></div>'
+        + '<span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-shrink-0">' + score + '%</span></div>'
+        + '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2"><div class="' + bar + ' h-1.5 rounded-full transition-all duration-700" style="width:' + score + '%"></div></div>'
+        + '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">' + escapeHtml(m.reason) + '</p></div>';
       list.insertAdjacentHTML('beforeend', html);
     });
     document.getElementById('job-matches-cache-note').textContent = cached ? 'Cached result — click Refresh to regenerate.' : 'Generated fresh just now.';
@@ -1103,19 +1475,19 @@
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => r.json())
       .then(data => {
-        if(!data.success) {
-          if(data.error==='not_enough_data' || data.error==='ai_failed') {
+        if (!data.success) {
+          if (data.error === 'not_enough_data' || data.error === 'ai_failed') {
             var msg = document.getElementById('job-matches-empty-message');
-            if(msg && data.message) msg.textContent = data.message;
+            if (msg && data.message) msg.textContent = data.message;
             showMatchesState('empty');
           } else showMatchesState('error');
           return;
         }
-        renderMatches(data.matches||[], data.cached === true);
+        renderMatches(data.matches || [], data.cached === true);
       })
       .catch(err => { console.error('Job matches fetch error:', err); showMatchesState('error'); });
   }
-  document.addEventListener('DOMContentLoaded', function(){ loadJobMatches(false); });
+  document.addEventListener('DOMContentLoaded', function () { loadJobMatches(false); });
 </script>
 
 <script>
@@ -1123,46 +1495,61 @@
   var mentorChatHistory = [];
   function getMentorCsrfToken() {
     var token = document.querySelector('[name=csrfmiddlewaretoken]');
-    if(token) return token.value;
+    if (token) return token.value;
     var name = 'csrftoken'; var cookieValue = null;
-    if(document.cookie && document.cookie !== '') {
+    if (document.cookie && document.cookie !== '') {
       var cookies = document.cookie.split(';');
-      for(var i=0;i<cookies.length;i++){
+      for (var i = 0; i < cookies.length; i++) {
         var cookie = cookies[i].trim();
-        if(cookie.substring(0,name.length+1)===(name+'=')){ cookieValue = decodeURIComponent(cookie.substring(name.length+1)); break; }
+        if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; }
       }
     }
     return cookieValue;
   }
   function showMentorState(state) {
-    ['loading','empty','error','results'].forEach(s => { var el = document.getElementById('mentor-'+s); if(el) el.classList.add('hidden'); });
-    var el = document.getElementById('mentor-'+state); if(el) el.classList.remove('hidden');
+    ['loading', 'empty', 'error', 'results', 'premium_required'].forEach(s => { var el = document.getElementById('mentor-' + s); if (el) el.classList.add('hidden'); });
+    var el = document.getElementById('mentor-' + state); if (el) el.classList.remove('hidden');
     var refreshBtn = document.getElementById('mentor-refresh-btn'); var intakeBtn = document.getElementById('mentor-intake-btn');
-    if(refreshBtn) { if(state==='results') refreshBtn.classList.remove('hidden'); else refreshBtn.classList.add('hidden'); }
-    if(intakeBtn) { if(state==='results') intakeBtn.classList.remove('hidden'); else intakeBtn.classList.add('hidden'); }
+    if (refreshBtn) { if (state === 'results') refreshBtn.classList.remove('hidden'); else refreshBtn.classList.add('hidden'); }
+    if (intakeBtn) { if (state === 'results') intakeBtn.classList.remove('hidden'); else intakeBtn.classList.add('hidden'); }
   }
   function renderMentor(data) {
     document.getElementById('mentor-summary').textContent = data.summary || '';
     var focusEl = document.getElementById('mentor-focus-areas'); var chipsEl = document.getElementById('mentor-focus-chips');
-    if(data.focus_areas && data.focus_areas.length > 0) { focusEl.classList.remove('hidden'); chipsEl.innerHTML = ''; data.focus_areas.forEach(function(f){ var chip = document.createElement('span'); chip.className = 'focus-chip'; chip.textContent = f; chipsEl.appendChild(chip); }); }
+    if (data.focus_areas && data.focus_areas.length > 0) { focusEl.classList.remove('hidden'); chipsEl.innerHTML = ''; data.focus_areas.forEach(function (f) { var chip = document.createElement('span'); chip.className = 'focus-chip'; chip.textContent = f; chipsEl.appendChild(chip); }); }
     else { focusEl.classList.add('hidden'); }
     var stepsEl = document.getElementById('mentor-next-steps'); var stepsList = document.getElementById('mentor-next-steps-list');
-    if(data.next_steps && data.next_steps.length > 0) { stepsEl.classList.remove('hidden'); stepsList.innerHTML = ''; data.next_steps.forEach(function(n){ var li = document.createElement('li'); li.className = 'text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 leading-relaxed'; li.innerHTML = '<span class="text-indigo-500 font-bold flex-shrink-0 mt-0.5">&#8250;</span><span>'+escapeHtml(n)+'</span>'; stepsList.appendChild(li); }); }
+    if (data.next_steps && data.next_steps.length > 0) { stepsEl.classList.remove('hidden'); stepsList.innerHTML = ''; data.next_steps.forEach(function (n) { var li = document.createElement('li'); li.className = 'text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 leading-relaxed'; li.innerHTML = '<span class="text-indigo-500 font-bold flex-shrink-0 mt-0.5">&#8250;</span><span>' + escapeHtml(n) + '</span>'; stepsList.appendChild(li); }); }
     else { stepsEl.classList.add('hidden'); }
     var cached = data.cached === true;
     document.getElementById('mentor-cache-note').textContent = cached ? 'Cached — click Refresh to regenerate.' : 'Generated fresh just now.';
-    var chatSection = document.getElementById('mentor-chat-section'); if(chatSection) chatSection.classList.remove('hidden');
+    var chatSection = document.getElementById('mentor-chat-section'); if (chatSection) chatSection.classList.remove('hidden');
     showMentorState('results');
   }
   function loadMentor(forceRefresh) {
     showMentorState('loading');
     document.getElementById('mentor-refresh-btn').classList.add('hidden');
     var url = "{% url 'analysis:career_mentor_generate' %}" + (forceRefresh ? '?refresh=true' : '');
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(r => r.json())
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+      .then(r => {
+        if (!r.ok) {
+          if (r.status === 403) {
+            return r.json().then(data => {
+              if (data.error === 'premium_required') {
+                showMentorState('premium_required');
+                return null;
+              }
+              throw new Error(data.message || 'Server error');
+            });
+          }
+          throw new Error('Server error');
+        }
+        return r.json();
+      })
       .then(data => {
-        if(!data.success) {
-          if(data.error==='not_enough_data') { var msg = document.getElementById('mentor-empty-message'); if(msg && data.message) msg.textContent = data.message; showMentorState('empty'); }
+        if (!data) return; // Already handled (premium_required case)
+        if (!data.success) {
+          if (data.error === 'not_enough_data') { var msg = document.getElementById('mentor-empty-message'); if (msg && data.message) msg.textContent = data.message; showMentorState('empty'); }
           else showMentorState('error');
           return;
         }
@@ -1172,57 +1559,57 @@
   }
   function toggleMentorChat() {
     var body = document.getElementById('mentor-chat-body');
-    if(body.classList.contains('hidden')) {
+    if (body.classList.contains('hidden')) {
       body.classList.remove('hidden');
       var messagesEl = document.getElementById('mentor-chat-messages');
-      if(messagesEl.children.length === 0) {
+      if (messagesEl.children.length === 0) {
         var welcome = document.createElement('div'); welcome.className = 'flex items-start gap-2';
         welcome.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">Ask me anything about your career journey — your strengths, areas to improve, or next steps!</div>';
         messagesEl.appendChild(welcome);
       }
-      var input = document.getElementById('mentor-chat-input'); if(input) input.focus();
+      var input = document.getElementById('mentor-chat-input'); if (input) input.focus();
     } else { body.classList.add('hidden'); }
   }
   function appendChatMessage(role, content) {
     var messagesEl = document.getElementById('mentor-chat-messages'); var div = document.createElement('div');
     div.className = 'flex items-start gap-2 ' + (role === 'user' ? 'flex-row-reverse' : '');
-    if(role === 'user') { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div><div class="text-xs text-white bg-indigo-600 rounded-lg px-3 py-2 max-w-[80%]">'+escapeHtml(content)+'</div>'; }
-    else { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">'+escapeHtml(content)+'</div>'; }
+    if (role === 'user') { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div><div class="text-xs text-white bg-indigo-600 rounded-lg px-3 py-2 max-w-[80%]">' + escapeHtml(content) + '</div>'; }
+    else { div.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 max-w-[80%]">' + escapeHtml(content) + '</div>'; }
     messagesEl.appendChild(div); messagesEl.scrollTop = messagesEl.scrollHeight;
   }
   function sendMentorChat() {
-    var input = document.getElementById('mentor-chat-input'); var message = input.value.trim(); if(!message) return;
+    var input = document.getElementById('mentor-chat-input'); var message = input.value.trim(); if (!message) return;
     appendChatMessage('user', message); input.value = '';
     mentorChatHistory.push({ role: 'user', content: message });
     var typingDiv = document.createElement('div'); typingDiv.id = 'mentor-typing'; typingDiv.className = 'flex items-start gap-2';
     typingDiv.innerHTML = '<div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">Typing...</div>';
     document.getElementById('mentor-chat-messages').appendChild(typingDiv);
-    var scrollEl = document.querySelector('.mentor-chat-container'); if(scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
+    var scrollEl = document.querySelector('.mentor-chat-container'); if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
     fetch("{% url 'analysis:career_mentor_chat' %}", {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getMentorCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
       credentials: 'same-origin', body: JSON.stringify({ message: message, history: mentorChatHistory.slice(-10) }),
     })
-    .then(r => r.json()).then(data => {
-      var typing = document.getElementById('mentor-typing'); if(typing) typing.remove();
-      if(data.success && data.reply) { appendChatMessage('assistant', data.reply); mentorChatHistory.push({ role: 'assistant', content: data.reply }); }
-      else { appendChatMessage('assistant', 'Sorry, I had trouble processing that. Could you try again?'); }
-    }).catch(err => { var typing = document.getElementById('mentor-typing'); if(typing) typing.remove(); appendChatMessage('assistant', 'There was a network error. Please try again.'); });
+      .then(r => r.json()).then(data => {
+        var typing = document.getElementById('mentor-typing'); if (typing) typing.remove();
+        if (data.success && data.reply) { appendChatMessage('assistant', data.reply); mentorChatHistory.push({ role: 'assistant', content: data.reply }); }
+        else { appendChatMessage('assistant', 'Sorry, I had trouble processing that. Could you try again?'); }
+      }).catch(err => { var typing = document.getElementById('mentor-typing'); if (typing) typing.remove(); appendChatMessage('assistant', 'There was a network error. Please try again.'); });
   }
   function saveMentorIntake() {
     var roleInput = document.getElementById('mentor-target-role-input'); var timelineInput = document.getElementById('mentor-timeline-input');
-    if(!roleInput || !timelineInput) return;
+    if (!roleInput || !timelineInput) return;
     var btn = event.currentTarget; var origText = btn.textContent; btn.textContent = 'Saving...'; btn.disabled = true;
     fetch("{% url 'analysis:career_mentor_intake' %}", {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getMentorCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
       credentials: 'same-origin', body: JSON.stringify({ target_role: roleInput.value.trim() || null, timeline: timelineInput.value.trim() || null, concern: null }),
     })
-    .then(r => r.json()).then(data => {
-      btn.textContent = origText; btn.disabled = false;
-      if(data.success) { roleInput.value = ''; timelineInput.value = ''; var prompt = document.getElementById('mentor-intake-prompt'); if(prompt) prompt.classList.add('hidden'); loadMentor(true); }
-      else { alert('Failed to save. Please try again.'); }
-    }).catch(err => { btn.textContent = origText; btn.disabled = false; console.error('Intake save error:', err); alert('Failed to save. Please try again.'); });
+      .then(r => r.json()).then(data => {
+        btn.textContent = origText; btn.disabled = false;
+        if (data.success) { roleInput.value = ''; timelineInput.value = ''; var prompt = document.getElementById('mentor-intake-prompt'); if (prompt) prompt.classList.add('hidden'); loadMentor(true); }
+        else { alert('Failed to save. Please try again.'); }
+      }).catch(err => { btn.textContent = origText; btn.disabled = false; console.error('Intake save error:', err); alert('Failed to save. Please try again.'); });
   }
-  document.getElementById('mentor-intake-btn').addEventListener('click', function() { var prompt = document.getElementById('mentor-intake-prompt'); if(prompt) prompt.classList.toggle('hidden'); });
-  document.addEventListener('DOMContentLoaded', function(){ loadMentor(false); });
+  document.getElementById('mentor-intake-btn').addEventListener('click', function () { var prompt = document.getElementById('mentor-intake-prompt'); if (prompt) prompt.classList.toggle('hidden'); });
+  document.addEventListener('DOMContentLoaded', function () { loadMentor(false); });
 </script>
 {% endblock %}
