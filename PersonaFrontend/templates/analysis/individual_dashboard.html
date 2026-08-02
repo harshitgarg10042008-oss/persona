@@ -1,5 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block
-extra_css %}
+{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block extra_css %}
 <style>
   /* ── Dashboard Background ─────────────────────────────────── */
   .dash-bg {
@@ -673,7 +672,7 @@ extra_css %}
         {% csrf_token %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {% for job_title in job_titles %}
-          <div class="job-card" onclick="selectJobTitle({{ job_title.id }})">
+          <div class="job-card" onclick="selectJobTitle({{job_title.id}})">
             <div class="flex items-start justify-between mb-3">
               <h3 class="font-bold text-gray-800 dark:text-gray-100 text-lg">{{ job_title.title }}</h3>
               <input type="radio" name="job_title_id" value="{{ job_title.id }}" class="sr-only" />
@@ -1612,4 +1611,5 @@ extra_css %}
   document.getElementById('mentor-intake-btn').addEventListener('click', function () { var prompt = document.getElementById('mentor-intake-prompt'); if (prompt) prompt.classList.toggle('hidden'); });
   document.addEventListener('DOMContentLoaded', function () { loadMentor(false); });
 </script>
+
 {% endblock %}
