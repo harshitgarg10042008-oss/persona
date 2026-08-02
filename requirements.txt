@@ -16,7 +16,6 @@ Pillow==11.3.0
 
 # Machine Learning, NLP & AI APIs
 groq==1.5.0
-# edge-tts==0.0.15
 edge-tts
 nltk
 openai-whisper
@@ -36,4 +35,6 @@ requests==2.34.2
 seaborn==0.13.2
 tqdm==4.68.3
 xhtml2pdf==0.2.16
+
+# Payment Integration
 razorpay==2.0.1
