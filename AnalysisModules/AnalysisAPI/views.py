@@ -1584,6 +1584,7 @@ def individual_assessment_question(request, session_id):
 def submit_assessment_response(request, session_id):
     """Submit response for current question and move to next"""
     try:
+        logger.info(f"[SUBMIT] submit_assessment_response called: session_id={session_id}, user={request.user.email}")
         assessment = get_object_or_404(
             IndividualAssessment,
             session_id=session_id,
@@ -1992,7 +1993,8 @@ def submit_assessment_response(request, session_id):
                 body_score = None
                 
                 if response.analysis_data and 'content_evaluation' in response.analysis_data:
-                    content_score = response.analysis_data['content_evaluation'].get('content_correctness_score')
+                    content_eval = response.analysis_data['content_evaluation']
+                    content_score = content_eval.get('content_correctness_score') if content_eval else None
                 
                 if response.confidence_score is not None:
                     voice_score = response.confidence_score
@@ -2049,20 +2051,22 @@ def submit_assessment_response(request, session_id):
                         adaptive_decision = {
                             'question_order': assessment.current_question_index + 1,
                             'previous_difficulty': assessment.current_difficulty,
-                            'performance_score': adaptive_result['performance_score'],
-                            'next_difficulty': adaptive_result['next_difficulty'],
-                            'reason': adaptive_result['reason']
+                            'performance_score': adaptive_result.get('performance_score'),
+                            'next_difficulty': adaptive_result.get('next_difficulty'),
+                            'reason': adaptive_result.get('reason')
                         }
                         assessment.adaptive_path.append(adaptive_decision)
                         
                         # Update current difficulty
-                        assessment.current_difficulty = adaptive_result['next_difficulty']
+                        assessment.current_difficulty = adaptive_result.get('next_difficulty', assessment.current_difficulty)
                         
                         # Swap out upcoming unasked non-mandatory questions
                         assessment.adjust_upcoming_questions_for_difficulty()
                         
                         # Log the adaptive decision
-                        print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {adaptive_result["next_difficulty"]} (score: {adaptive_result["performance_score"]:.1f})')
+                        next_diff = adaptive_result.get('next_difficulty', 'unknown')
+                        perf_score = adaptive_result.get('performance_score', 0)
+                        print(f'[ADAPTIVE] Q{assessment.current_question_index + 1}: {assessment.current_difficulty} → {next_diff} (score: {perf_score:.1f})')
                         
                         # Clear any pending follow-ups just in case
                         assessment.pending_follow_up_text = None
