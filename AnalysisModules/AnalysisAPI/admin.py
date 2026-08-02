@@ -183,13 +183,13 @@ class IndividualAssessmentResponseAdmin(admin.ModelAdmin):
     list_display = (
         'user_email',
         'question_order',
-        'difficulty_level',
+        'question_difficulty',
         'response_duration',
         'relevance_score',
         'confidence_score',
         'created_at',
     )
-    list_filter = ('difficulty_level', 'created_at')
+    list_filter = ('question__difficulty_level', 'created_at')
     search_fields = ('assessment__user__email',)
     readonly_fields = ('created_at',)
     ordering = ('assessment', 'question_order')
@@ -197,6 +197,10 @@ class IndividualAssessmentResponseAdmin(admin.ModelAdmin):
     def user_email(self, obj):
         return obj.assessment.user.email
     user_email.short_description = 'User'
+
+    def question_difficulty(self, obj):
+        return obj.question.difficulty_level
+    question_difficulty.short_description = 'Difficulty'
 
 
 # ─── PanelSession ─────────────────────────────────────────────────────────────
