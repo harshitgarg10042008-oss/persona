@@ -89,6 +89,10 @@ def user_has_institution(user) -> bool:
     """Check if user is an active institution member."""
     if _is_owner(user):
         return True
+    # Check if user is directly linked to an active institution
+    if hasattr(user, 'institution') and user.institution and user.institution.is_active:
+        return True
+    # Fallback: check SubscriptionTier.is_institution_member for backward compatibility
     sub = _get_subscription(user)
     if sub is None:
         return False
