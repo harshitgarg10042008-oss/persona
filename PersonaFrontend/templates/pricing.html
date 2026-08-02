@@ -246,10 +246,10 @@
                 clip-rule="evenodd" />
             </svg> Usage analytics & reports</li>
         </ul>
-        <a href="mailto:harshit77.edu@gmail.com?subject=Institution%20Plan%20Enquiry&body=Hi,%20I'm%20interested%20in%20the%20Institution%20Plan%20for%20Persona."
+        <button onclick="openSalesModal('institution')"
           class="block w-full py-3 px-6 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center">
           Talk to Sales
-        </a>
+        </button>
       </div>
 
       <!-- Institution Annual -->
@@ -297,10 +297,10 @@
                 clip-rule="evenodd" />
             </svg> Priority support SLA</li>
         </ul>
-        <a href="mailto:harshit77.edu@gmail.com?subject=Institution%20Annual%20Plan%20Enquiry&body=Hi,%20I'm%20interested%20in%20the%20Institution%20Annual%20Plan%20for%20Persona."
+        <button onclick="openSalesModal('institution_annual')"
           class="block w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors text-center">
           Talk to Sales
-        </a>
+        </button>
       </div>
 
       <!-- Enterprise -->
@@ -343,10 +343,10 @@
                 clip-rule="evenodd" />
             </svg> Training & onboarding</li>
         </ul>
-        <a href="mailto:harshit77.edu@gmail.com?subject=Enterprise%20Plan%20Enquiry&body=Hi,%20I'm%20interested%20in%20the%20Enterprise%20Plan%20for%20Persona."
+        <button onclick="openSalesModal('enterprise')"
           class="block w-full py-3 px-6 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center">
           Talk to Sales
-        </a>
+        </button>
       </div>
     </div>
 
@@ -442,6 +442,53 @@
   </div>
 </div>
 
+<!-- Sales Inquiry Modal -->
+<div id="salesModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Contact Sales</h2>
+      <button onclick="closeSalesModal()"
+        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form id="salesForm" onsubmit="submitSalesInquiry(event)">
+      <input type="hidden" id="planInterest" name="plan_interest" value="">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
+        <input type="text" id="salesName" name="name" required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
+        <input type="email" id="salesEmail" name="email" required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Institution Name *</label>
+        <input type="text" id="salesInstitution" name="institution_name" required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone (optional)</label>
+        <input type="tel" id="salesPhone" name="phone"
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message (optional)</label>
+        <textarea id="salesMessage" name="message" rows="3"
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"></textarea>
+      </div>
+      <button type="submit" id="salesSubmitBtn"
+        class="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+        Submit Inquiry
+      </button>
+    </form>
+  </div>
+</div>
+
 <!-- Razorpay Checkout Script + Payment Logic -->
 <script>
   const RAZORPAY_KEY_ID = "{{ razorpay_key_id }}";
@@ -466,6 +513,58 @@
       institutionToggle.classList.remove('text-gray-600', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
       studentToggle.classList.remove('bg-white', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white', 'shadow');
       studentToggle.classList.add('text-gray-600', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+    }
+  }
+
+  function openSalesModal(planInterest) {
+    document.getElementById('planInterest').value = planInterest;
+    document.getElementById('salesModal').classList.remove('hidden');
+  }
+
+  function closeSalesModal() {
+    document.getElementById('salesModal').classList.add('hidden');
+    document.getElementById('salesForm').reset();
+  }
+
+  async function submitSalesInquiry(event) {
+    event.preventDefault();
+    const btn = document.getElementById('salesSubmitBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Submitting...';
+    btn.disabled = true;
+
+    const formData = {
+      name: document.getElementById('salesName').value,
+      email: document.getElementById('salesEmail').value,
+      institution_name: document.getElementById('salesInstitution').value,
+      phone: document.getElementById('salesPhone').value,
+      plan_interest: document.getElementById('planInterest').value,
+      message: document.getElementById('salesMessage').value
+    };
+
+    try {
+      const response = await fetch('/auth/sales/inquiry/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        closeSalesModal();
+        showModal('success', result.message);
+      } else {
+        showModal('error', result.error || 'Failed to submit inquiry. Please try again.');
+      }
+    } catch (error) {
+      showModal('error', 'Failed to connect to server. Please check your connection and try again.');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
     }
   }
 
