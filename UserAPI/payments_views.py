@@ -11,7 +11,6 @@ import json
 import logging
 from datetime import timedelta
 
-import razorpay
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -26,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 def _get_razorpay_client():
     """Create a Razorpay client using configured credentials."""
+    try:
+        import razorpay
+    except ImportError:
+        logger.error("Razorpay SDK not installed. Run 'pip install razorpay'")
+        raise ImportError("Razorpay SDK not installed. Please contact support.")
+        
     return razorpay.Client(
         auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
     )
@@ -157,6 +162,8 @@ def create_order(request):
             'plan_label': plan_config['label'],
         })
 
+    except ImportError as e:
+        return JsonResponse({'error': str(e)}, status=500)
     except Exception as e:
         # Log the EXACT exception with full context for debugging
         error_type = type(e).__name__
