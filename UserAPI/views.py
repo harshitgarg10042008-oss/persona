@@ -321,6 +321,7 @@ def pricing_page_view(request):
         expires_at = None
 
     context = {
+        'user': request.user,
         'plans': settings.PLAN_PRICING,
         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
         'is_premium': is_premium,

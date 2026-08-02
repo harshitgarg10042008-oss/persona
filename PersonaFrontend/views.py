@@ -20,6 +20,7 @@ def pricing_page_view(request):
     """Pricing page — show plans and upgrade CTA."""
     context = {}
     if request.user.is_authenticated:
+        context['user'] = request.user
         from UserAPI.subscription import get_user_subscription_context, _is_owner
         context['subscription'] = get_user_subscription_context(request.user)
         context['is_owner'] = _is_owner(request.user)

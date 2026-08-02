@@ -1006,6 +1006,7 @@ def individual_dashboard(request):
     interview_usage = check_free_interview_remaining(request.user)
 
     context = {
+        'user': request.user,
         'recent_assessments': recent_assessments,
         'job_titles': job_titles,
         'analysis_status': analysis_status,
