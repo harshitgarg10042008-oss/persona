@@ -1,3 +1,2 @@
 from django.contrib import admin
-
-# Register your models here.
+# PersonaFrontend has no models — admin is handled by UserAPI and AnalysisAPI.
