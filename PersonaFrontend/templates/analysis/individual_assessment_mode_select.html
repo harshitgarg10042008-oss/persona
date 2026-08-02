@@ -88,6 +88,30 @@
   .mode-card.selected .selection-indicator {
     display: flex;
   }
+
+  .mode-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .mode-card.locked .mode-icon {
+    filter: grayscale(100%);
+  }
+
+  .premium-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -149,7 +173,12 @@
     </div>
 
     <!-- Rapid Fire Mode -->
-    <div class="mode-card relative" data-mode="rapid_fire" onclick="selectMode('rapid_fire')">
+    <div class="mode-card relative {% if rapid_fire_locked %}locked{% endif %}" data-mode="rapid_fire"
+      data-locked="{% if rapid_fire_locked %}true{% else %}false{% endif %}"
+      onclick="handleModeClick(this, 'rapid_fire')">
+      {% if rapid_fire_locked %}
+      <div class="premium-badge">Premium</div>
+      {% endif %}
       <div class="selection-indicator">✓</div>
       <div class="mode-icon rapid-fire-icon">🔥</div>
       <h2 class="mode-title">Rapid Fire</h2>
@@ -158,9 +187,13 @@
         to think and respond concisely under time pressure.
       </p>
     </div>
-    
+
     <!-- Panel Interview Mode -->
-    <div class="mode-card relative" data-mode="panel" onclick="selectMode('panel')">
+    <div class="mode-card relative {% if panel_locked %}locked{% endif %}" data-mode="panel"
+      data-locked="{% if panel_locked %}true{% else %}false{% endif %}" onclick="handleModeClick(this, 'panel')">
+      {% if panel_locked %}
+      <div class="premium-badge">Premium</div>
+      {% endif %}
       <div class="selection-indicator">✓</div>
       <div class="mode-icon panel-icon" style="background-color: #dcfce7; color: #166534;">🤝</div>
       <h2 class="mode-title">Panel Interview</h2>
@@ -186,6 +219,15 @@
 
 <script>
   let selectedMode = null;
+
+  function handleModeClick(element, mode) {
+    const isLocked = element.getAttribute('data-locked') === 'true';
+    if (isLocked) {
+      window.location.href = '/pricing/';
+      return;
+    }
+    selectMode(mode);
+  }
 
   function selectMode(mode) {
     selectedMode = mode;
