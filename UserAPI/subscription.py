@@ -105,7 +105,7 @@ FEATURE_REGISTRY = {
     'job_matches':         {'tier': 'free'},
     'ai_interview':        {'tier': 'free', 'free_interview_limit': 2},
     'voice_interviewer':   {'tier': 'free', 'free_interview_limit': 2},
-    'rapid_fire':          {'tier': 'free', 'free_interview_limit': 2},
+    'rapid_fire':          {'tier': 'premium'},
     'placement_readiness':         {'tier': 'free'},
     'placement_readiness_score':   {'tier': 'free'},
     'placement_readiness_detail':  {'tier': 'premium'},  # detailed breakdown
