@@ -5,6 +5,7 @@ from datetime import timedelta
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
+    institution = models.ForeignKey('Institution', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -104,20 +105,19 @@ class UserInterviewerPreference(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.persona_id}"
 class Institution(models.Model):
-    """B2B Institution account — universities, colleges, training providers."""
     PLAN_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('annual', 'Annual'),
-        ('enterprise', 'Enterprise'),
+        ("Monthly", "Monthly"),
+        ("Yearly", "Yearly"),
+        ("Enterprise", "Enterprise"),
     ]
     name = models.CharField(max_length=255)
     contact_email = models.EmailField()
-    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
-    seat_limit = models.IntegerField(
-        null=True, blank=True,
-        help_text='Max linked students. NULL = unlimited.'
-    )
-    subscription_expires_at = models.DateTimeField(null=True, blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
+    code = models.CharField(max_length=8, unique=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    max_seats = models.IntegerField(null=True, blank=True, help_text="Blank means unlimited")
+    sales_lead = models.ForeignKey('SalesInquiry', on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -125,32 +125,23 @@ class Institution(models.Model):
         verbose_name_plural = 'Institutions'
         ordering = ['-created_at']
 
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.generate_unique_code()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_unique_code():
+        import secrets
+        import string
+        alphabet = string.ascii_uppercase + string.digits
+        while True:
+            code = ''.join(secrets.choice(alphabet) for _ in range(8))
+            if not Institution.objects.filter(code=code).exists():
+                return code
+
     def __str__(self):
         return self.name
-
-    @property
-    def is_active(self):
-        if not self.subscription_expires_at:
-            return True
-        return self.subscription_expires_at > timezone.now()
-
-    @property
-    def has_unlimited_seats(self):
-        return self.seat_limit is None
-
-    def current_seat_count(self):
-        """Return number of active institution_member subscriptions."""
-        return SubscriptionTier.objects.filter(
-            institution=self,
-            tier='institution_member',
-            is_active=True
-        ).count()
-
-    def can_add_member(self):
-        """Check if institution can add another member."""
-        if self.seat_limit is None:
-            return True  # unlimited
-        return self.current_seat_count() < self.seat_limit
 
 
 class SubscriptionTier(models.Model):

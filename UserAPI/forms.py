@@ -12,6 +12,10 @@ class IndividualSignUpForm(UserCreationForm):
         'class': 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white',
         'placeholder': 'Email Address'
     }))
+    institution_code = forms.CharField(max_length=8, required=False, widget=forms.TextInput(attrs={
+        'class': 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white',
+        'placeholder': 'Institution Code (Optional)'
+    }))
     password1 = forms.CharField(widget=forms.PasswordInput(attrs={
         'class': 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white',
         'placeholder': 'Password'
@@ -23,12 +27,27 @@ class IndividualSignUpForm(UserCreationForm):
 
     class Meta:
         model = CustomUser
-        fields = ('name', 'email', 'password1', 'password2')
+        fields = ('name', 'email', 'institution_code', 'password1', 'password2')
+
+    def clean_institution_code(self):
+        code = self.cleaned_data.get('institution_code')
+        if code:
+            from .models import Institution
+            try:
+                inst = Institution.objects.get(code=code, is_active=True)
+                if inst.max_seats is not None:
+                    if inst.students.count() >= inst.max_seats:
+                        raise forms.ValidationError("This institution has reached its maximum seat limit.")
+                return inst
+            except Institution.DoesNotExist:
+                raise forms.ValidationError("Invalid or inactive institution code.")
+        return None
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
         user.username = self.cleaned_data['email']
+        user.institution = self.cleaned_data.get('institution_code')
         if commit:
             user.save()
             IndividualUser.objects.create(

@@ -21,19 +21,20 @@ class CustomUserAdmin(UserAdmin):
         'email',
         'username',
         'first_name',
+        'institution',
         'is_active',
         'is_staff',
         'date_joined',
         'tier_display',
     )
-    list_filter = ('is_staff', 'is_active', 'date_joined')
+    list_filter = ('institution', 'is_staff', 'is_active', 'date_joined')
     search_fields = ('email', 'username', 'first_name', 'last_name')
     ordering = ('-date_joined',)
     readonly_fields = ('date_joined', 'last_login')
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'institution')}),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
@@ -107,18 +108,29 @@ class BusinessUserAdmin(admin.ModelAdmin):
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = (
         'name',
-        'contact_email',
+        'code',
         'plan',
-        'seat_limit',
-        'current_seat_count',
+        'max_seats',
         'is_active',
-        'subscription_expires_at',
         'created_at',
+        'student_count',
     )
-    list_filter = ('plan', 'created_at')
-    search_fields = ('name', 'contact_email')
+    list_filter = ('plan', 'is_active', 'created_at')
+    search_fields = ('name', 'code', 'contact_email')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)
+    actions = ['generate_new_code']
+
+    def student_count(self, obj):
+        return obj.students.count()
+    student_count.short_description = 'Students'
+
+    @admin.action(description='Generate new code for selected institutions')
+    def generate_new_code(self, request, queryset):
+        for inst in queryset:
+            inst.code = inst.generate_unique_code()
+            inst.save()
+        self.message_user(request, f"New codes generated for {queryset.count()} institutions.")
 
 
 # ─── SubscriptionTier ─────────────────────────────────────────────────────────

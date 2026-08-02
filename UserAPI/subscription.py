@@ -74,6 +74,11 @@ def user_has_premium(user) -> bool:
     """Check if user has active premium access."""
     if _is_owner(user):
         return True
+    
+    # Institution membership grants premium access
+    if hasattr(user, 'institution') and user.institution and user.institution.is_active:
+        return True
+        
     sub = _get_subscription(user)
     if sub is None:
         return False
