@@ -5,7 +5,8 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Welcome, {{ user.first_name|default:user.username }}!</h1>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Welcome, {{
+            user.first_name|default:user.username }}!</h1>
         <p class="text-gray-600 dark:text-gray-400">Practice your interview skills and improve your confidence.</p>
     </div>
 
@@ -34,7 +35,8 @@
                 {% if current_streak > 0 %}🔥 {{ current_streak }}{% else %}--{% endif %}
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-500">
-                {% if current_streak == 1 %}Day streak{% elif current_streak > 1 %}Day streak{% else %}No active streak{% endif %}
+                {% if current_streak == 1 %}Day streak{% elif current_streak > 1 %}Day streak{% else %}No active
+                streak{% endif %}
                 {% if longest_streak > 1 %}(Best: {{ longest_streak }}){% endif %}
             </p>
         </div>
@@ -45,7 +47,8 @@
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Your Progress</h2>
         <div id="chartContainer" class="relative w-full h-64 flex items-center justify-center">
             <canvas id="progressChart"></canvas>
-            <p id="chartFallbackMessage" class="text-gray-500 dark:text-gray-500 hidden">Complete more assessments to see your progress.</p>
+            <p id="chartFallbackMessage" class="text-gray-500 dark:text-gray-500 hidden">Complete more assessments to
+                see your progress.</p>
         </div>
     </div>
 
@@ -55,38 +58,48 @@
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Practice Interview</h2>
             <p class="text-gray-600 dark:text-gray-400 mb-6">
-                Improve your interview skills with AI-powered practice sessions. Get personalized feedback on your communication style, confidence, and responses.
+                Improve your interview skills with AI-powered practice sessions. Get personalized feedback on your
+                communication style, confidence, and responses.
             </p>
-            
+
             <div class="space-y-4">
                 <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
                         </svg>
                     </div>
                     <div>
                         <h3 class="font-semibold text-gray-800 dark:text-gray-100">Video Practice</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Record yourself answering common interview questions</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Record yourself answering common interview
+                            questions</p>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div class="w-8 h-8 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center">
+                    <div
+                        class="w-8 h-8 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center">
                         <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
                         </svg>
                     </div>
                     <div>
                         <h3 class="font-semibold text-gray-800 dark:text-gray-100">AI Analysis</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Get detailed feedback on your performance</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Get detailed feedback on your performance
+                        </p>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900/40 rounded-full flex items-center justify-center">
+                    <div
+                        class="w-8 h-8 bg-purple-100 dark:bg-purple-900/40 rounded-full flex items-center justify-center">
                         <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                         </svg>
                     </div>
                     <div>
@@ -95,8 +108,9 @@
                     </div>
                 </div>
             </div>
-            
-            <a href="{% url 'analysis:individual_dashboard' %}" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold block text-center">
+
+            <a href="{% url 'analysis:individual_dashboard' %}"
+                class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold block text-center">
                 Start Practice Interview
             </a>
         </div>
@@ -107,28 +121,33 @@
             <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Recent Activity</h2>
                 {% if recent_assessments %}
-                    <div class="space-y-4">
-                        {% for assessment in recent_assessments %}
-                        <div class="border-l-4 border-blue-500 pl-4 py-2">
-                            <h3 class="font-semibold text-gray-700 dark:text-gray-400">{{ assessment.platform_job_title.title }}</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
-                            <span class="inline-block px-2 py-1 text-xs rounded-full mt-1
+                <div class="space-y-4">
+                    {% for assessment in recent_assessments %}
+                    <div class="border-l-4 border-blue-500 pl-4 py-2">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-400">{{
+                            assessment.platform_job_title.title }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}
+                        </p>
+                        <span class="inline-block px-2 py-1 text-xs rounded-full mt-1
                                 {% if assessment.status == 'completed' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
                                 {% elif assessment.status == 'in_progress' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
                                 {% else %}bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100{% endif %}">
-                                {{ assessment.get_status_display }}
-                            </span>
-                        </div>
-                        {% endfor %}
+                            {{ assessment.get_status_display }}
+                        </span>
                     </div>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    <div class="text-center py-8 text-gray-500 dark:text-gray-500">
-                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                        <p>No practice sessions yet.</p>
-                        <p class="text-sm">Start your first practice session to see your activity here.</p>
-                    </div>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                        </path>
+                    </svg>
+                    <p>No practice sessions yet.</p>
+                    <p class="text-sm">Start your first practice session to see your activity here.</p>
+                </div>
                 {% endif %}
             </div>
 
@@ -138,15 +157,18 @@
                 <div class="space-y-4">
                     <div class="border-l-4 border-blue-500 pl-4">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-400">Body Language</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Maintain good posture and make eye contact with the camera.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Maintain good posture and make eye contact
+                            with the camera.</p>
                     </div>
                     <div class="border-l-4 border-green-500 pl-4">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-400">STAR Method</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Structure your answers using Situation, Task, Action, Result.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Structure your answers using Situation,
+                            Task, Action, Result.</p>
                     </div>
                     <div class="border-l-4 border-purple-500 pl-4">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-400">Practice Regularly</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Consistent practice leads to better performance and confidence.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Consistent practice leads to better
+                            performance and confidence.</p>
                     </div>
                 </div>
             </div>
@@ -158,37 +180,49 @@
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">AI Career Tools</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Resume Reviewer -->
-            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-blue-500 hover:shadow-lg transition-shadow">
-                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mb-4">
+            <div
+                class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-blue-500 hover:shadow-lg transition-shadow">
+                <div
+                    class="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mb-4">
                     <i class="fas fa-file-alt text-blue-600 dark:text-blue-400 text-xl"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Resume Analyzer</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Get AI-powered feedback on your resume to improve your ATS score and impact.</p>
-                <a href="{% url 'analysis:resume_reviewer_upload' %}" class="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Get AI-powered feedback on your resume to
+                    improve your ATS score and impact.</p>
+                <a href="{% url 'analysis:resume_reviewer_upload' %}"
+                    class="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center">
                     Analyze Resume <i class="fas fa-arrow-right ml-2 text-sm"></i>
                 </a>
             </div>
-            
+
             <!-- Cover Letter Generator -->
-            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-green-500 hover:shadow-lg transition-shadow">
-                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mb-4">
+            <div
+                class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-green-500 hover:shadow-lg transition-shadow">
+                <div
+                    class="w-12 h-12 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mb-4">
                     <i class="fas fa-envelope-open-text text-green-600 dark:text-green-400 text-xl"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Cover Letter Generator</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Generate highly tailored cover letters based on your resume and job descriptions.</p>
-                <a href="{% url 'analysis:cover_letter_generate' %}" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Generate highly tailored cover letters based on
+                    your resume and job descriptions.</p>
+                <a href="{% url 'analysis:cover_letter_generate' %}"
+                    class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
                     Create Cover Letter <i class="fas fa-arrow-right ml-2 text-sm"></i>
                 </a>
             </div>
 
             <!-- LinkedIn Post Generator -->
-            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-purple-500 hover:shadow-lg transition-shadow">
-                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/40 rounded-full flex items-center justify-center mb-4">
+            <div
+                class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border-t-4 border-purple-500 hover:shadow-lg transition-shadow">
+                <div
+                    class="w-12 h-12 bg-purple-100 dark:bg-purple-900/40 rounded-full flex items-center justify-center mb-4">
                     <i class="fab fa-linkedin-in text-purple-600 dark:text-purple-400 text-xl"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">LinkedIn Post Creator</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Build your personal brand with engaging LinkedIn posts based on your experience.</p>
-                <a href="{% url 'analysis:linkedin_post_generate' %}" class="text-purple-600 hover:text-purple-700 font-medium inline-flex items-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Build your personal brand with engaging
+                    LinkedIn posts based on your experience.</p>
+                <a href="{% url 'analysis:linkedin_post_generate' %}"
+                    class="text-purple-600 hover:text-purple-700 font-medium inline-flex items-center">
                     Draft Post <i class="fas fa-arrow-right ml-2 text-sm"></i>
                 </a>
             </div>
@@ -199,8 +233,11 @@
     <div class="mt-12">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-6">Assessment History</h2>
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8 text-center">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
             </svg>
             <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">No Assessments Yet</h3>
             <p class="text-gray-500 dark:text-gray-500 mb-4">
@@ -212,44 +249,37 @@
     <!-- Institution Memberships -->
     <div class="mt-12">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-6">Institution Memberships</h2>
-        
+
         <!-- Join Institution Form -->
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8 mb-6">
             <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Join an Institution</h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-                Enter an institution code to join a company or school's assessment program. This will allow them to view your assessment results.
+                Enter an institution code to join a company or school's assessment program. This will allow them to view
+                your assessment results.
             </p>
             <form method="post" action="{% url 'join_institution' %}" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label for="institution_code" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                    <label for="institution_code"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                         Institution Code
                     </label>
-                    <input
-                        type="text"
-                        id="institution_code"
-                        name="institution_code"
-                        placeholder="e.g., INST-000001"
+                    <input type="text" id="institution_code" name="institution_code" placeholder="e.g., INST-000001"
                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                        required
-                    />
+                        required />
                 </div>
                 <div class="flex items-start">
-                    <input
-                        type="checkbox"
-                        id="consent_granted"
-                        name="consent_granted"
+                    <input type="checkbox" id="consent_granted" name="consent_granted"
                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded mt-1"
-                        required
-                    />
+                        required />
                     <label for="consent_granted" class="ml-3 block text-sm text-gray-700 dark:text-gray-400">
-                        <span class="font-semibold">I consent</span> to share my assessment results with this institution. I understand that my scores and feedback will be visible to their administrators, but my video/audio recordings will remain private unless explicitly authorized.
+                        <span class="font-semibold">I consent</span> to share my assessment results with this
+                        institution. I understand that my scores and feedback will be visible to their administrators,
+                        but my video/audio recordings will remain private unless explicitly authorized.
                     </label>
                 </div>
-                <button
-                    type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold"
-                >
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition duration-200 font-semibold">
                     Join Institution
                 </button>
             </form>
@@ -263,7 +293,8 @@
                 {% for membership in institution_memberships %}
                 <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div>
-                        <h4 class="font-semibold text-gray-800 dark:text-gray-100">{{ membership.business.company_name|default:membership.business.name }}</h4>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-100">{{
+                            membership.business.company_name|default:membership.business.name }}</h4>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
                             Joined on {{ membership.joined_at|date:"M d, Y" }}
                             {% if membership.consent_granted %}
@@ -271,7 +302,8 @@
                             {% endif %}
                         </p>
                     </div>
-                    <span class="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm">
+                    <span
+                        class="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm">
                         Active
                     </span>
                 </div>
@@ -280,11 +312,15 @@
         </div>
         {% else %}
         <div class="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-md p-8 text-center">
-            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-400" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                </path>
             </svg>
             <p class="text-gray-500 dark:text-gray-500">No institution memberships yet.</p>
-            <p class="text-sm text-gray-400 dark:text-gray-500">Join an institution to participate in their assessment programs.</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500">Join an institution to participate in their assessment
+                programs.</p>
         </div>
         {% endif %}
     </div>
@@ -292,13 +328,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         const chartDataStr = '{{ chart_json|escapejs }}';
         if (chartDataStr) {
             const chartData = JSON.parse(chartDataStr);
             const ctx = document.getElementById('progressChart');
             const fallbackMsg = document.getElementById('chartFallbackMessage');
-            
+
             if (chartData.scores && chartData.scores.length >= 1) {
                 // We have enough data to show a progress chart
                 const chartType = chartData.scores.length === 1 ? 'bar' : 'line';
