@@ -120,7 +120,8 @@
           Dashboard
         </a>
         {% endif %}
-        <span class="text-gray-700 dark:text-gray-400 text-sm">Welcome, {{ user.first_name|default:user.username }}!</span>
+        <span class="text-gray-700 dark:text-gray-400 text-sm">Welcome, {{ user.first_name|default:user.username
+          }}!</span>
         <a href="{% url 'logout' %}"
           class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-300 text-sm font-medium">
           Logout
@@ -180,10 +181,6 @@
       <p class="text-gray-700 dark:text-gray-400 text-lg font-medium">Persona — Your AI Interviewer</p>
       <div class="flex items-center justify-center space-x-2 mt-1">
         <span class="text-gray-600 dark:text-gray-400 text-sm">by Harshit Garg</span>
-        <a href="https://github.com/harshitgarg10042008-oss/persona" target="_blank"
-          class="text-gray-600 dark:text-gray-400 hover:text-accent transition-colors duration-300">
-          <i class="fab fa-github text-lg"></i>
-        </a>
       </div>
     </div>
   </footer>
