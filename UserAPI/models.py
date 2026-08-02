@@ -241,3 +241,34 @@ class PaymentTransaction(models.Model):
 
     def __str__(self):
         return f"{self.user.email} — {self.get_plan_display()} ({self.get_status_display()})"
+
+
+class SalesInquiry(models.Model):
+    """Lead capture for Institution/Enterprise pricing inquiries."""
+    PLAN_CHOICES = [
+        ('institution', 'Institution'),
+        ('institution_annual', 'Institution Annual'),
+        ('enterprise', 'Enterprise'),
+    ]
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('contacted', 'Contacted'),
+        ('closed', 'Closed'),
+    ]
+
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    institution_name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    plan_interest = models.CharField(max_length=30, choices=PLAN_CHOICES)
+    message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Sales Inquiry'
+        verbose_name_plural = 'Sales Inquiries'
+
+    def __str__(self):
+        return f"{self.name} ({self.institution_name}) - {self.get_plan_interest_display()}"

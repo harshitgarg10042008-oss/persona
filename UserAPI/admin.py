@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, IndividualUser, BusinessUser
+from .models import CustomUser, IndividualUser, BusinessUser, SalesInquiry
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -30,7 +30,16 @@ class BusinessUserAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('name', 'company_name', 'user__email')
     readonly_fields = ('created_at', 'updated_at')
-    
+
     def user__email(self, obj):
         return obj.user.email
     user__email.short_description = 'Email'
+
+
+@admin.register(SalesInquiry)
+class SalesInquiryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'institution_name', 'plan_interest', 'status', 'created_at')
+    list_filter = ('plan_interest', 'status', 'created_at')
+    search_fields = ('name', 'email', 'institution_name')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
