@@ -87,7 +87,7 @@ def user_has_institution(user) -> bool:
     sub = _get_subscription(user)
     if sub is None:
         return False
-    return sub.is_institution_member and sub.is_premium
+    return sub.is_institution_member
 
 
 def user_is_free(user) -> bool:
@@ -290,6 +290,7 @@ def requires_premium(feature_name=''):
     """
     Decorator that blocks non-premium users from accessing a view.
     Free users get redirected to /pricing/ with a flash message.
+    Institution members also have access to premium features.
     Owner (project admin) bypasses all checks.
     """
     def decorator(view_func):
@@ -299,7 +300,8 @@ def requires_premium(feature_name=''):
                 return redirect(f"{settings.LOGIN_URL}?next={request.path}")
             if _is_owner(request.user):
                 return view_func(request, *args, **kwargs)
-            if not user_has_premium(request.user):
+            # Allow access if user has premium OR is an institution member
+            if not user_has_premium(request.user) and not user_has_institution(request.user):
                 feature = FEATURE_REGISTRY.get(feature_name, {})
                 feature_desc = feature.get('description', 'this premium feature')
                 if request.headers.get('Accept', '').startswith('application/json'):
