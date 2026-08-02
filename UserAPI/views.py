@@ -393,7 +393,7 @@ Submitted at: {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}
                 subject=subject,
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=['harshit77.edu@gmail.com'],
+                recipient_list=getattr(settings, 'SUBSCRIPTION_OWNER_EMAILS', ['admin@persona.com']),
                 fail_silently=True  # Don't raise exception on email failure
             )
             logger.info(f"Sales inquiry email sent successfully for {email} - {institution_name}")

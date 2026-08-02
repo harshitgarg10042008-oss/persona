@@ -1,15 +1,18 @@
 """
 Management command to:
-1. Delete all CustomUser accounts except the owner (harshit77.edu@gmail.com)
+1. Delete all CustomUser accounts except the owner
 2. Ensure the owner has a SubscriptionTier with tier='premium' and is_active=True
 
 Usage:
     python manage.py clean_users_and_set_premium
     python manage.py clean_users_and_set_premium --dry-run
     python manage.py clean_users_and_set_premium --owner-email admin@example.com
+
+The owner email defaults to the first entry in SUBSCRIPTION_OWNER_EMAILS from .env.
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 User = get_user_model()
 
@@ -25,13 +28,25 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--owner-email',
-            default='harshit77.edu@gmail.com',
-            help='Email of the owner account to keep (default: harshit77.edu@gmail.com)',
+            default=None,
+            help='Email of the owner account to keep (default: first from SUBSCRIPTION_OWNER_EMAILS)',
         )
 
     def handle(self, *args, **options):
         owner_email = options['owner_email']
         dry_run = options['dry_run']
+
+        # Fall back to SUBSCRIPTION_OWNER_EMAILS if not specified
+        if not owner_email:
+            owner_emails = getattr(settings, 'SUBSCRIPTION_OWNER_EMAILS', [])
+            if owner_emails:
+                owner_email = owner_emails[0]
+            else:
+                self.stderr.write(self.style.ERROR(
+                    "No owner email specified and SUBSCRIPTION_OWNER_EMAILS not configured. "
+                    "Use --owner-email or set SUBSCRIPTION_OWNER_EMAILS in .env."
+                ))
+                return
 
         self.stdout.write(f"Owner email: {owner_email}")
 

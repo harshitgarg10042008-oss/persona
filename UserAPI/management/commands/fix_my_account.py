@@ -1,18 +1,28 @@
 """
 Run this directly from PowerShell to:
-1. Delete ALL other users (keep only harshit77.edu@gmail.com)
+1. Delete ALL other users (keep only the SUBSCRIPTION_OWNER_EMAILS[0] account)
 2. Delete ALL old assessments for that account
 3. Set the account to lifetime Premium
 4. Print final state
 
 Usage:
     python manage.py fix_my_account
+
+Configure SUBSCRIPTION_OWNER_EMAILS in .env first.
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-OWNER_EMAIL = 'harshit77.edu@gmail.com'
+from django.conf import settings
+
+
+def _get_owner_email():
+    """Get the first owner email from SUBSCRIPTION_OWNER_EMAILS setting."""
+    owner_emails = getattr(settings, 'SUBSCRIPTION_OWNER_EMAILS', [])
+    if owner_emails:
+        return owner_emails[0]
+    return None
 
 
 class Command(BaseCommand):
@@ -29,23 +39,30 @@ class Command(BaseCommand):
 
         # Find the owner
         try:
-            owner = User.objects.get(email=OWNER_EMAIL)
+            owner_email = _get_owner_email()
+            if not owner_email:
+                self.stderr.write(self.style.ERROR(
+                    "SUBSCRIPTION_OWNER_EMAILS not configured. "
+                    "Set it in .env, e.g.: SUBSCRIPTION_OWNER_EMAILS=your@email.com"
+                ))
+                return
+            owner = User.objects.get(email=owner_email)
             self.stdout.write(self.style.SUCCESS(f"Owner found: {owner.email} (id={owner.id})"))
         except User.DoesNotExist:
-            self.stderr.write(self.style.ERROR(f"Owner account {OWNER_EMAIL} does not exist!"))
+            self.stderr.write(self.style.ERROR(f"Owner account {owner_email} does not exist!"))
             self.stdout.write("Available users:")
             for u in User.objects.all():
                 self.stdout.write(f"  - {u.email} (id={u.id})")
             return
 
         # Delete all other users
-        others = User.objects.exclude(email=OWNER_EMAIL)
+        others = User.objects.exclude(email=owner_email)
         count = others.count()
         if count > 0:
             for u in others:
                 self.stdout.write(f"  Deleting: {u.email}")
                 u.delete()
-            self.stdout.write(self.style.SUCCESS(f"Deleted {count} other user(s). Only {OWNER_EMAIL} remains."))
+            self.stdout.write(self.style.SUCCESS(f"Deleted {count} other user(s). Only {owner_email} remains."))
         else:
             self.stdout.write(self.style.SUCCESS("No other users to delete."))
 
@@ -68,7 +85,7 @@ class Command(BaseCommand):
         IndividualAssessment.objects.filter(user=owner).delete()
         self.stdout.write(f"  Deleted {assessments_deleted} assessments.")
 
-        self.stdout.write(self.style.SUCCESS(f"All old assessment data wiped for {OWNER_EMAIL}."))
+        self.stdout.write(self.style.SUCCESS(f"All old assessment data wiped for {owner_email}."))
 
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write("STEP 3: Set lifetime Premium")
@@ -80,7 +97,7 @@ class Command(BaseCommand):
             sub.is_active = True
             sub.premium_expires_at = None  # lifetime
             sub.save()
-            self.stdout.write(self.style.SUCCESS(f"{OWNER_EMAIL} set to lifetime Premium."))
+            self.stdout.write(self.style.SUCCESS(f"{owner_email} set to lifetime Premium."))
         except SubscriptionTier.DoesNotExist:
             SubscriptionTier.objects.create(
                 user=owner,
@@ -88,7 +105,7 @@ class Command(BaseCommand):
                 is_active=True,
                 premium_expires_at=None,
             )
-            self.stdout.write(self.style.SUCCESS(f"Created lifetime Premium for {OWNER_EMAIL}."))
+            self.stdout.write(self.style.SUCCESS(f"Created lifetime Premium for {owner_email}."))
 
         # Verify
         sub = owner.subscription
