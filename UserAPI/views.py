@@ -3,11 +3,16 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
+import logging
 from django.conf import settings
 from django_ratelimit.decorators import ratelimit
+from django.core.mail import send_mail
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
-from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership
+from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership, SalesInquiry
+
+logger = logging.getLogger(__name__)
 
 
 def _apply_session_preference(request, remember_me):
@@ -328,3 +333,77 @@ def debug_urls(request):
     resolver = get_resolver()
     keys = [k for k in resolver.reverse_dict.keys() if isinstance(k, str)]
     return HttpResponse("<br>".join(keys))
+
+
+@csrf_exempt
+@ratelimit(key='ip', rate='5/h', block=True, method='POST')
+def sales_inquiry(request):
+    """Handle B2B sales inquiry submissions for Institution/Enterprise plans."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST requests allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+        institution_name = data.get('institution_name', '').strip()
+        phone = data.get('phone', '').strip() or None
+        plan_interest = data.get('plan_interest', '').strip()
+        message = data.get('message', '').strip() or None
+
+        # Validate required fields
+        if not name or not email or not institution_name or not plan_interest:
+            return JsonResponse({'success': False, 'error': 'Missing required fields: name, email, institution_name, plan_interest'}, status=400)
+
+        if plan_interest not in ['institution', 'institution_annual', 'enterprise']:
+            return JsonResponse({'success': False, 'error': 'Invalid plan_interest value'}, status=400)
+
+        # Save to database first (critical - never lose the lead)
+        inquiry = SalesInquiry.objects.create(
+            name=name,
+            email=email,
+            institution_name=institution_name,
+            phone=phone,
+            plan_interest=plan_interest,
+            message=message
+        )
+
+        # Send email notification (best-effort - failure should not block success response)
+        try:
+            subject = f"New Sales Inquiry: {plan_interest.replace('_', ' ').title()} - {institution_name}"
+            body = f"""
+New Sales Inquiry from Persona Pricing Page
+
+Name: {name}
+Email: {email}
+Institution: {institution_name}
+Phone: {phone or 'Not provided'}
+Plan Interest: {plan_interest.replace('_', ' ').title()}
+
+Message:
+{message or 'No message provided'}
+
+Submitted at: {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}
+"""
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['harshit77.edu@gmail.com'],
+                fail_silently=True  # Don't raise exception on email failure
+            )
+            logger.info(f"Sales inquiry email sent successfully for {email} - {institution_name}")
+        except Exception as e:
+            logger.error(f"Failed to send sales inquiry email for {email} - {institution_name}: {str(e)}")
+            # Email failed but inquiry is saved - continue with success response
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Thanks! We\'ll be in touch within 1 business day.'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON in request body'}, status=400)
+    except Exception as e:
+        logger.exception(f"Unexpected error in sales_inquiry: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An unexpected error occurred. Please try again.'}, status=500)

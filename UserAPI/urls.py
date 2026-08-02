@@ -40,4 +40,7 @@ urlpatterns = [
     path('payments/create-order/', payments_views.create_order, name='create_order'),
     path('payments/verify/', payments_views.verify_payment, name='verify_payment'),
     path('payments/', views.pricing_page_view, name='pricing_page'),
+
+    # ─── Sales Inquiry (B2B) ───────────────────────────────────────────────
+    path('sales/inquiry/', views.sales_inquiry, name='sales_inquiry'),
 ]
