@@ -303,6 +303,10 @@ class IndividualAssessment(models.Model):
     warnings_given = models.PositiveIntegerField(default=0)
     browser_focus_lost = models.PositiveIntegerField(default=0)
     
+    # Environment integrity tracking
+    integrity_strike_count = models.PositiveIntegerField(default=0, help_text="Count of flagged events (fullscreen exit, tab switch)")
+    is_high_risk = models.BooleanField(default=False, help_text="Marked as high-risk due to repeated integrity violations")
+    
     # Analysis scores (filled after completion)
     overall_score = models.FloatField(null=True, blank=True)
     body_language_score = models.FloatField(null=True, blank=True)
@@ -632,6 +636,35 @@ class IndividualAssessmentResponse(models.Model):
     
     def __str__(self):
         return f"{self.assessment.user.email} - Q{self.question_order}"
+
+
+class EnvironmentIntegrityEvent(models.Model):
+    """Environment/behavior integrity events during assessments"""
+    
+    EVENT_TYPE_CHOICES = [
+        ('fullscreen_exit', 'Fullscreen Exit'),
+        ('tab_switch', 'Tab Switch/Window Blur'),
+        ('copy_attempt', 'Copy Attempt'),
+        ('paste_attempt', 'Paste Attempt'),
+        ('devtools_opened', 'DevTools Opened'),
+    ]
+    
+    assessment = models.ForeignKey(
+        IndividualAssessment,
+        on_delete=models.CASCADE,
+        related_name='integrity_events'
+    )
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.JSONField(default=dict, blank=True, help_text="Additional event details")
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Environment Integrity Event'
+        verbose_name_plural = 'Environment Integrity Events'
+    
+    def __str__(self):
+        return f"{self.assessment.session_id} - {self.event_type} at {self.timestamp}"
 
 
 class PanelSession(models.Model):

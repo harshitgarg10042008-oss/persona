@@ -5075,3 +5075,53 @@ def recruiter_dashboard_generate_verdict(request):
             'error': 'server_error',
             'message': 'An unexpected error occurred. Please try again later.'
         }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def log_integrity_event(request, session_id):
+    """Log environment integrity events (fullscreen exit, tab switch, copy/paste, devtools)"""
+    from .models import IndividualAssessment, EnvironmentIntegrityEvent
+    
+    try:
+        assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
+        
+        data = json.loads(request.body)
+        event_type = data.get('event_type')
+        details = data.get('details', {})
+        
+        # Validate event type
+        valid_event_types = [choice[0] for choice in EnvironmentIntegrityEvent.EVENT_TYPE_CHOICES]
+        if event_type not in valid_event_types:
+            return JsonResponse({'success': False, 'error': 'invalid_event_type'}, status=400)
+        
+        # Create the integrity event
+        event = EnvironmentIntegrityEvent.objects.create(
+            assessment=assessment,
+            event_type=event_type,
+            details=details
+        )
+        
+        # Update strike count for fullscreen exit and tab switch events
+        if event_type in ['fullscreen_exit', 'tab_switch']:
+            assessment.integrity_strike_count += 1
+            
+            # Mark as high-risk if 3+ strikes
+            if assessment.integrity_strike_count >= 3:
+                assessment.is_high_risk = True
+            
+            assessment.save()
+        
+        return JsonResponse({
+            'success': True,
+            'event_id': event.id,
+            'strike_count': assessment.integrity_strike_count,
+            'is_high_risk': assessment.is_high_risk
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'invalid_json'}, status=400)
+    except Exception as e:
+        logger.error(f"Error logging integrity event: {e}")
+        return JsonResponse({'success': False, 'error': 'server_error'}, status=500)

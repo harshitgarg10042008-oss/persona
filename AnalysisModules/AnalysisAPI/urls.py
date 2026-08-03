@@ -46,6 +46,7 @@ urlpatterns = [
     path('individual/<uuid:session_id>/hint/', views.get_question_hint, name='get_question_hint'),
     path('individual/<uuid:session_id>/submit/', views.submit_assessment_response, name='submit_assessment_response'),
     path('individual/<uuid:session_id>/snapshot/', views.capture_assessment_snapshot, name='capture_assessment_snapshot'),
+    path('individual/<uuid:session_id>/log-integrity-event/', views.log_integrity_event, name='log_integrity_event'),
     path('individual/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),
     path('individual/<uuid:session_id>/processing-status/', views.check_processing_status, name='check_processing_status'),
     path('individual/<uuid:session_id>/complete/', views.complete_individual_assessment, name='complete_individual_assessment'),

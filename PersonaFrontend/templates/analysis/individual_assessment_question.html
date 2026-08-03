@@ -294,6 +294,26 @@
     padding: 1.5rem;
   }
 
+  .integrity-warning {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    padding: 16px 24px;
+    z-index: 10002;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .integrity-warning .warning-message {
+    text-align: center;
+  }
+
   .assessment-start-gate {
     display: flex;
     position: fixed;
@@ -412,6 +432,12 @@
   let _proctorAbandonTriggered = false;
   let _proctorDebounceTimer = null;
   let _proctorSuppressed = false;
+
+  // Environment integrity tracking
+  let integrityStrikeCount = 0;
+  let integrityWarningShown = false;
+  const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
+
   let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
   let timeLeft = 0;
   let timeLimitInterval = null;
@@ -422,6 +448,117 @@
 
   function isFullscreenActive() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+  }
+
+  async function logIntegrityEvent(eventType, details = {}) {
+    if (!assessmentActive || _assessmentEnded) return;
+
+    try {
+      const response = await fetch(INTEGRITY_LOG_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          event_type: eventType,
+          details: details
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        integrityStrikeCount = data.strike_count;
+
+        // Handle strike system
+        if (eventType === 'fullscreen_exit' || eventType === 'tab_switch') {
+          handleStrikeWarning(data.strike_count, data.is_high_risk);
+        }
+
+        console.log(`[Integrity] Logged ${eventType}, strike count: ${data.strike_count}`);
+      }
+    } catch (error) {
+      console.error('[Integrity] Failed to log event:', error);
+    }
+  }
+
+  function handleStrikeWarning(strikeCount, isHighRisk) {
+    if (strikeCount === 1 && !integrityWarningShown) {
+      // First strike - show warning
+      const warningEl = document.getElementById('integrity-warning');
+      if (warningEl) {
+        warningEl.style.display = 'flex';
+        warningEl.querySelector('.warning-message').textContent =
+          'Warning: You exited fullscreen or switched tabs. Please stay in fullscreen and keep this tab active.';
+        integrityWarningShown = true;
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          warningEl.style.display = 'none';
+        }, 5000);
+      }
+    } else if (strikeCount === 2 && !isHighRisk) {
+      // Second strike - lighter reminder
+      const warningEl = document.getElementById('integrity-warning');
+      if (warningEl) {
+        warningEl.style.display = 'flex';
+        warningEl.querySelector('.warning-message').textContent =
+          'Reminder: This is your second violation. Continued violations may flag your assessment for review.';
+
+        setTimeout(() => {
+          warningEl.style.display = 'none';
+        }, 5000);
+      }
+    }
+    // Third+ strike - marked as high-risk in backend, no visible warning needed
+  }
+
+  // DevTools detection
+  let devtoolsDetected = false;
+  function detectDevTools() {
+    if (!assessmentActive || _assessmentEnded || devtoolsDetected) return;
+
+    const threshold = 160;
+    const widthDiff = window.outerWidth - window.innerWidth > threshold;
+    const heightDiff = window.outerHeight - window.innerHeight > threshold;
+
+    if (widthDiff || heightDiff) {
+      devtoolsDetected = true;
+      logIntegrityEvent('devtools_opened', {
+        timestamp: Date.now(),
+        outer_width: window.outerWidth,
+        inner_width: window.innerWidth,
+        outer_height: window.outerHeight,
+        inner_height: window.innerHeight
+      });
+    }
+  }
+
+  // Copy/paste disable
+  function handleCopyPaste(e) {
+    if (!assessmentActive || _assessmentEnded) return;
+
+    const eventType = e.type === 'copy' ? 'copy_attempt' : 'paste_attempt';
+    logIntegrityEvent(eventType, {
+      timestamp: Date.now(),
+      target: e.target.tagName
+    });
+
+    // Prevent the action
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show brief warning
+    const warningEl = document.getElementById('integrity-warning');
+    if (warningEl) {
+      warningEl.style.display = 'flex';
+      warningEl.querySelector('.warning-message').textContent =
+        'Copy and paste are disabled during the assessment.';
+
+      setTimeout(() => {
+        warningEl.style.display = 'none';
+      }, 2000);
+    }
   }
 
   function startAssessmentFromGate() {
@@ -847,6 +984,11 @@
     <span id="warning-text">⚠️ Please ensure you're in a quiet environment</span>
   </div>
 
+  <!-- Integrity Warning Banner (initially hidden) -->
+  <div id="integrity-warning" class="integrity-warning" style="display: none">
+    <span class="warning-message"></span>
+  </div>
+
   <!-- Assessment Header -->
   <div class="assessment-header">
     <div class="flex items-center">
@@ -905,9 +1047,13 @@
         <audio id="question-audio" src="{{ audio_url|default:'' }}" preload="auto" style="display: none"></audio>
         <!-- Feature #23: Interviewer Avatar Display -->
         <div id="interviewer-avatar-container" class="flex items-center gap-3">
-          <img id="interviewer-avatar" src="{{ persona_avatar|default:'' }}" alt="{{ persona_name|default:'Interviewer' }}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400" onerror="this.style.display='none'" />
+          <img id="interviewer-avatar" src="{{ persona_avatar|default:'' }}"
+            alt="{{ persona_name|default:'Interviewer' }}"
+            class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400"
+            onerror="this.style.display='none'" />
           <div>
-            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ persona_name|default:'Interviewer' }}</span>
+            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{
+              persona_name|default:'Interviewer' }}</span>
             <p class="text-xs text-gray-500 dark:text-gray-400">Asking the question…</p>
           </div>
         </div>
@@ -1114,14 +1260,16 @@
   function handleFullscreenChange() {
     if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered || _proctorSuppressed) return;
     if (!isFullscreenActive()) {
-      scheduleProctorAbandon('fullscreen');
+      // Log fullscreen exit event instead of immediately ending assessment
+      logIntegrityEvent('fullscreen_exit', { timestamp: Date.now() });
     }
   }
 
   function handleVisibilityChange() {
     if (!assessmentActive || _assessmentEnded || _proctorAbandonTriggered || _proctorSuppressed) return;
     if (document.hidden) {
-      scheduleProctorAbandon('visibility');
+      // Log tab switch event instead of immediately ending assessment
+      logIntegrityEvent('tab_switch', { timestamp: Date.now() });
     }
   }
 
@@ -1214,6 +1362,9 @@
     attireInterval = setInterval(() => {
       captureSnapshot('attire');
     }, 10000);
+
+    // DevTools detection every 1 second
+    setInterval(detectDevTools, 1000);
   }
 
   function captureSnapshot(analysisType) {
@@ -1527,7 +1678,8 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
+    const isMandatory = {{ question.is_mandatory| yesno: "true,false"
+  }};
 
   let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
   if (isMandatory) {
@@ -1931,6 +2083,18 @@
         { type: 'application/json' }
       );
       navigator.sendBeacon(ABANDON_URL + '?_method=POST', blob);
+    }
+  });
+
+  // Copy/paste prevention
+  document.addEventListener('copy', handleCopyPaste);
+  document.addEventListener('paste', handleCopyPaste);
+
+  // Also prevent context menu (right-click) during assessment
+  document.addEventListener('contextmenu', function (e) {
+    if (assessmentActive && !_assessmentEnded) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   });
 
