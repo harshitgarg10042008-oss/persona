@@ -1,5 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block
-extra_css %}
+{% extends 'base.html' %} {% load static %} {% block title %}Individual Practice Dashboard{% endblock %} {% block extra_css %}
 <style>
   /* ── Dashboard Background ─────────────────────────────────── */
   .dash-bg {
@@ -1158,8 +1157,7 @@ extra_css %}
         <div class="history-item">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{
-                assessment.platform_job_title.title|default:"Assessment" }}</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ assessment.platform_job_title.title|default:"Assessment" }}</h3>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ assessment.created_at|date:"M d, Y" }}</p>
             </div>
             <div class="text-right">
@@ -1168,8 +1166,7 @@ extra_css %}
                 {{ assessment.get_status_display }}
               </span>
               {% if assessment.overall_score %}
-              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Score: {{
-                assessment.overall_score|floatformat:1 }}/10</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Score: {{ assessment.overall_score|floatformat:1 }}/10</div>
               {% endif %}
             </div>
           </div>
@@ -1221,8 +1218,7 @@ extra_css %}
   {% if chart_json %}
   (function () {
     try {
-      var data = {{ chart_json| safe
-    }};
+      var data = {{ chart_json| safe }};
   if (!data.labels || data.labels.length === 0) return;
   var ctx = document.getElementById('scoreChart');
   if (!ctx) return;
@@ -1612,5 +1608,4 @@ extra_css %}
   document.getElementById('mentor-intake-btn').addEventListener('click', function () { var prompt = document.getElementById('mentor-intake-prompt'); if (prompt) prompt.classList.toggle('hidden'); });
   document.addEventListener('DOMContentLoaded', function () { loadMentor(false); });
 </script>
-
 {% endblock %}
