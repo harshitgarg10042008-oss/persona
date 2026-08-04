@@ -610,6 +610,15 @@ class IndividualAssessmentResponse(models.Model):
     response_duration = models.PositiveIntegerField(null=True, blank=True, help_text="Duration in seconds")
     time_to_start = models.PositiveIntegerField(null=True, blank=True, help_text="Time taken to start speaking in seconds")
     
+    # Skip reason (if question was skipped)
+    skip_reason = models.CharField(max_length=50, null=True, blank=True, choices=[
+        ('manual', 'Manual Skip'),
+        ('timeout', 'Time Limit Exceeded'),
+        ('camera_mic_unavailable', 'Camera/Microphone Unavailable'),
+        ('microphone_unavailable', 'Microphone Unavailable'),
+        ('rapid_fire_timeout', 'Rapid Fire Timeout'),
+    ], help_text="Reason why this question was skipped")
+    
     # Analysis results
     fluency_score = models.FloatField(null=True, blank=True)
     pronunciation_score = models.FloatField(null=True, blank=True)
@@ -647,6 +656,9 @@ class EnvironmentIntegrityEvent(models.Model):
         ('copy_attempt', 'Copy Attempt'),
         ('paste_attempt', 'Paste Attempt'),
         ('devtools_opened', 'DevTools Opened'),
+        ('face_mismatch', 'Face Mismatch'),
+        ('no_face_detected', 'No Face Detected'),
+        ('multiple_faces_detected', 'Multiple Faces Detected'),
     ]
     
     assessment = models.ForeignKey(

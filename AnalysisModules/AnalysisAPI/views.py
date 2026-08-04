@@ -1552,8 +1552,8 @@ def individual_assessment_question(request, session_id):
     persona_avatar = get_persona_avatar(persona_id)
     persona_name = PERSONAS.get(persona_id, {}).get('name', 'Interviewer')
     
-    # Add time limit for Rapid Fire mode
-    time_limit_seconds = 12 if assessment.interview_mode == 'rapid_fire' else None
+    # Use question's expected_duration as hard time limit (default 120s if not set)
+    time_limit_seconds = current_question.expected_duration if current_question.expected_duration else 120
     
     context = {
         'audio_url': audio_url,
@@ -1650,7 +1650,7 @@ def submit_assessment_response(request, session_id):
                         'persona_avatar': get_persona_avatar(persona_id),
                         'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
                         'persona_id': persona_id,
-                        'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
+                        'time_limit_seconds': current_question.expected_duration if current_question.expected_duration else 120,
                     }
                 return JsonResponse(response_data)
             question_text_for_analysis = current_question.question_text
@@ -1708,7 +1708,7 @@ def submit_assessment_response(request, session_id):
                         'persona_avatar': get_persona_avatar(next_persona_id),
                         'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                         'persona_id': next_persona_id,
-                        'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
+                        'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
                     }
                 return JsonResponse(response_data)
         
@@ -1722,6 +1722,12 @@ def submit_assessment_response(request, session_id):
         if data.get('skipped'):
             if not is_answering_follow_up:
                 persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
+                skip_reason = data.get('skip_reason', 'manual')
+                # Validate skip_reason against model choices
+                valid_skip_reasons = [choice[0] for choice in IndividualAssessmentResponse._meta.get_field('skip_reason').choices]
+                if skip_reason not in valid_skip_reasons:
+                    skip_reason = 'manual'
+                
                 IndividualAssessmentResponse.objects.create(
                     assessment=assessment,
                     question=current_question,
@@ -1732,9 +1738,10 @@ def submit_assessment_response(request, session_id):
                     response_duration=0,
                     time_to_start=0,
                     interviewer_persona_id=persona_id,
+                    skip_reason=skip_reason,
                     analysis_data={
                         'skipped': True,
-                        'skip_reason': data.get('skip_reason', 'user_skipped'),
+                        'skip_reason': skip_reason,
                         'fullscreen_violations': data.get('fullscreen_violations', 0),
                     }
                 )
@@ -1781,7 +1788,7 @@ def submit_assessment_response(request, session_id):
                     'persona_avatar': get_persona_avatar(next_persona_id),
                     'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                     'persona_id': next_persona_id,
-                    'time_limit_seconds': 12 if assessment.interview_mode == 'rapid_fire' else None,
+                    'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
                 }
             return JsonResponse(response_data)
 
@@ -1799,6 +1806,43 @@ def submit_assessment_response(request, session_id):
             response = None
         else:
             persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
+            
+            # Server-side time limit validation
+            response_duration = int(float(data.get('response_duration', 0) or 0))
+            if current_question and current_question.expected_duration:
+                max_duration = current_question.expected_duration
+                if response_duration > max_duration:
+                    # Reject late submissions - mark as timeout skip
+                    skip_reason = 'timeout'
+                    IndividualAssessmentResponse.objects.create(
+                        assessment=assessment,
+                        question=current_question,
+                        question_order=assessment.current_question_index + 1,
+                        question_started_at=timezone.now(),
+                        response_started_at=timezone.now(),
+                        response_ended_at=timezone.now(),
+                        response_duration=0,
+                        time_to_start=0,
+                        interviewer_persona_id=persona_id,
+                        skip_reason=skip_reason,
+                        analysis_data={
+                            'skipped': True,
+                            'skip_reason': skip_reason,
+                            'fullscreen_violations': data.get('fullscreen_violations', 0),
+                            'late_submission_duration': response_duration,
+                        }
+                    )
+                    assessment.current_question_index += 1
+                    assessment.save()
+                    is_complete = assessment.current_question_index >= assessment.total_questions
+                    return JsonResponse({
+                        'success': True,
+                        'is_complete': is_complete,
+                        'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
+                        'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
+                        'timeout_rejected': True,
+                    })
+            
             response = IndividualAssessmentResponse.objects.create(
                 assessment=assessment,
                 question=current_question,
@@ -1808,7 +1852,7 @@ def submit_assessment_response(request, session_id):
                 response_ended_at=timezone.now(),
                 # FormData sends all values as strings (e.g. "10.482"); parse through
                 # float() first so fractional-second values don't crash the PositiveIntegerField.
-                response_duration=int(float(data.get('response_duration', 0) or 0)),
+                response_duration=response_duration,
                 time_to_start=int(float(data.get('time_to_start', 0) or 0)),
                 interviewer_persona_id=persona_id
             )
@@ -5074,6 +5118,261 @@ def recruiter_dashboard_generate_verdict(request):
             'success': False,
             'error': 'server_error',
             'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def capture_face_reference(request):
+    """Capture and store reference photo for face verification"""
+    from .models import IndividualUser
+    from django.core.files.base import ContentFile
+    import base64
+    from django.utils import timezone
+    
+    try:
+        data = json.loads(request.body)
+        image_data = data.get('image_data')
+        
+        if not image_data:
+            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
+        
+        # Validate base64 image
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+        
+        # Get or create individual profile
+        individual_profile = getattr(request.user, 'individual_profile', None)
+        if not individual_profile:
+            individual_profile = IndividualUser.objects.create(user=request.user, name=request.user.username)
+        
+        # Decode and store image
+        image_bytes = base64.b64decode(image_data.split(',')[1])
+        filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
+        
+        individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
+        individual_profile.face_reference_captured_at = timezone.now()
+        individual_profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Reference photo captured successfully'
+        })
+        
+    except Exception as e:
+        logger.exception("Error capturing face reference")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def verify_face_on_start(request, session_id):
+    """Verify face on assessment start against reference photo"""
+    from .models import IndividualAssessment, IndividualUser, EnvironmentIntegrityEvent
+    import base64
+    import cv2
+    import mediapipe as mp
+    from django.utils import timezone
+    from django.core.files.base import ContentFile
+    import numpy as np
+    
+    try:
+        assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
+        data = json.loads(request.body)
+        image_data = data.get('image_data')
+        
+        if not image_data:
+            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
+        
+        # Validate base64 image
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+        
+        # Get individual profile
+        individual_profile = getattr(request.user, 'individual_profile', None)
+        
+        # If no reference photo exists, use current as reference (first-time capture)
+        if not individual_profile or not individual_profile.face_reference_photo:
+            if not individual_profile:
+                individual_profile = IndividualUser.objects.create(user=request.user, name=request.user.username)
+            
+            image_bytes = base64.b64decode(image_data.split(',')[1])
+            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
+            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
+            individual_profile.face_reference_captured_at = timezone.now()
+            individual_profile.save()
+            
+            return JsonResponse({
+                'success': True,
+                'match': True,
+                'message': 'First-time reference photo captured'
+            })
+        
+        # Perform face detection and comparison using MediaPipe
+        mp_face_detection = mp.solutions.face_detection
+        mp_drawing = mp.solutions.drawing_utils
+        
+        # Decode current image
+        current_image_bytes = base64.b64decode(image_data.split(',')[1])
+        current_image_array = np.frombuffer(current_image_bytes, dtype=np.uint8)
+        current_image = cv2.imdecode(current_image_array, cv2.IMREAD_COLOR)
+        
+        # Load reference image
+        with open(individual_profile.face_reference_photo.path, 'rb') as f:
+            reference_image_bytes = f.read()
+        reference_image_array = np.frombuffer(reference_image_bytes, dtype=np.uint8)
+        reference_image = cv2.imdecode(reference_image_array, cv2.IMREAD_COLOR)
+        
+        # Detect faces in both images
+        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
+            current_results = face_detection.process(cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))
+            reference_results = face_detection.process(cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB))
+        
+        # Check if faces detected
+        current_faces = current_results.detections if current_results.detections else []
+        reference_faces = reference_results.detections if reference_results.detections else []
+        
+        if len(current_faces) == 0:
+            # No face in current image - log event but don't block
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='no_face_detected',
+                details={'timestamp': timezone.now().isoformat()}
+            )
+            return JsonResponse({
+                'success': True,
+                'match': False,
+                'event_logged': 'no_face_detected',
+                'message': 'No face detected - event logged'
+            })
+        
+        if len(reference_faces) == 0:
+            # No reference face - use current as new reference
+            image_bytes = base64.b64decode(image_data.split(',')[1])
+            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
+            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
+            individual_profile.face_reference_captured_at = timezone.now()
+            individual_profile.save()
+            
+            return JsonResponse({
+                'success': True,
+                'match': True,
+                'message': 'Reference photo updated (no face in old reference)'
+            })
+        
+        # Simple face matching based on face count and approximate location
+        # For production, consider using face_recognition library for actual face embeddings
+        face_count_match = len(current_faces) == len(reference_faces)
+        
+        if not face_count_match:
+            # Face count mismatch - log event but don't block
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='face_mismatch',
+                details={
+                    'current_face_count': len(current_faces),
+                    'reference_face_count': len(reference_faces),
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return JsonResponse({
+                'success': True,
+                'match': False,
+                'event_logged': 'face_mismatch',
+                'message': 'Face count mismatch - event logged'
+            })
+        
+        # If we get here, basic checks passed
+        return JsonResponse({
+            'success': True,
+            'match': True,
+            'message': 'Face verification passed'
+        })
+        
+    except Exception as e:
+        logger.exception("Error in face verification")
+        # Don't block assessment on verification errors
+        return JsonResponse({
+            'success': True,
+            'match': True,
+            'message': 'Verification error - proceeding anyway',
+            'error': str(e)
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def periodic_face_check(request, session_id):
+    """Periodic face presence check during assessment"""
+    from .models import IndividualAssessment, EnvironmentIntegrityEvent
+    import base64
+    import cv2
+    import mediapipe as mp
+    from django.utils import timezone
+    import numpy as np
+    
+    try:
+        assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
+        data = json.loads(request.body)
+        image_data = data.get('image_data')
+        
+        if not image_data:
+            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
+        
+        # Validate base64 image
+        is_valid, error_msg = validate_image_b64(image_data)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+        
+        # Decode image
+        image_bytes = base64.b64decode(image_data.split(',')[1])
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+        
+        # Detect faces using MediaPipe
+        mp_face_detection = mp.solutions.face_detection
+        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
+            results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        
+        faces = results.detections if results.detections else []
+        face_count = len(faces)
+        
+        # Log events based on face count
+        event_logged = None
+        if face_count == 0:
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='no_face_detected',
+                details={'timestamp': timezone.now().isoformat()}
+            )
+            event_logged = 'no_face_detected'
+        elif face_count > 1:
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='multiple_faces_detected',
+                details={
+                    'face_count': face_count,
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            event_logged = 'multiple_faces_detected'
+        
+        return JsonResponse({
+            'success': True,
+            'face_count': face_count,
+            'event_logged': event_logged
+        })
+        
+    except Exception as e:
+        logger.exception("Error in periodic face check")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
         }, status=500)
 
 

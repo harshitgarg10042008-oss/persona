@@ -35,6 +35,19 @@ class IndividualUser(models.Model):
         help_text="Timestamp when user consented to video recording and analysis"
     )
     
+    # Face verification reference photo
+    face_reference_photo = models.ImageField(
+        upload_to='face_references/',
+        null=True,
+        blank=True,
+        help_text="Reference photo for face verification during assessments"
+    )
+    face_reference_captured_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when reference photo was captured"
+    )
+    
     def update_streak(self):
         """Update streak based on assessment completion"""
         today = timezone.now().date()

@@ -437,14 +437,19 @@
   let integrityStrikeCount = 0;
   let integrityWarningShown = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-
-  let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
+  let timeLimitSeconds = {% if time_limit_seconds %}{{time_limit_seconds}}{% else %}null{% endif %};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
   const ABANDON_URL = "{% url 'analysis:abandon_assessment' session_id=session_id %}";
   const DASHBOARD_URL = "{% url 'analysis:individual_dashboard' %}";
   let currentQuestionNumber = parseInt('{{ question_number }}');
+
+  // Face verification
+  let faceCheckInterval = null;
+  const FACE_CHECK_INTERVAL_MS = 50000; // 50 seconds
+  const VERIFY_FACE_URL = "{% url 'analysis:verify_face_on_start' session_id=session_id %}";
+  const FACE_CHECK_URL = "{% url 'analysis:periodic_face_check' session_id=session_id %}";
 
   function isFullscreenActive() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
@@ -633,6 +638,9 @@
       questionStartTime = Date.now();
       startPreparationTimer();
       startBackgroundAnalysis();
+
+      // Verify face on assessment start
+      verifyFaceOnStart();
     }
 
     function failFullscreen(message) {
@@ -881,7 +889,7 @@
       await stopRecording();
       await nextQuestion();
     } else if (!submitPromise && !submissionInFlight) {
-      await forceSkipQuestion();
+      await forceSkipQuestion('timeout');
     } else {
       await nextQuestion();
     }
@@ -897,6 +905,9 @@
     attireInterval = setInterval(() => {
       captureSnapshot('attire');
     }, 10000);
+
+    // Start periodic face checks
+    startPeriodicFaceChecks();
   }
 
   function captureSnapshot(analysisType) {
@@ -937,6 +948,112 @@
       .catch(error => {
         console.error(`${analysisType} analysis failed:`, error);
       });
+  }
+
+  function captureFaceSnapshot() {
+    const video = document.getElementById('video-feed');
+    const canvas = document.getElementById('snapshot-canvas');
+
+    if (!video || video.readyState !== 4) {
+      console.log('Video not ready for face snapshot');
+      return null;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    return canvas.toDataURL('image/jpeg', 0.8);
+  }
+
+  async function verifyFaceOnStart() {
+    if (!videoStream) {
+      console.log('No camera available for face verification');
+      return;
+    }
+
+    try {
+      const imageData = captureFaceSnapshot();
+      if (!imageData) {
+        console.log('Failed to capture face snapshot');
+        return;
+      }
+
+      const response = await fetch(VERIFY_FACE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          image_data: imageData
+        })
+      });
+
+      const data = await response.json();
+      console.log('Face verification result:', data);
+
+      if (data.event_logged) {
+        console.log(`Face verification event logged: ${data.event_logged}`);
+      }
+    } catch (error) {
+      console.error('Face verification error:', error);
+    }
+  }
+
+  async function performPeriodicFaceCheck() {
+    if (!videoStream || !assessmentActive || _assessmentEnded) {
+      return;
+    }
+
+    try {
+      const imageData = captureFaceSnapshot();
+      if (!imageData) {
+        console.log('Failed to capture face snapshot for periodic check');
+        return;
+      }
+
+      const response = await fetch(FACE_CHECK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          image_data: imageData
+        })
+      });
+
+      const data = await response.json();
+      console.log('Periodic face check result:', data);
+
+      if (data.event_logged) {
+        console.log(`Face check event logged: ${data.event_logged}`);
+      }
+    } catch (error) {
+      console.error('Periodic face check error:', error);
+    }
+  }
+
+  function startPeriodicFaceChecks() {
+    if (faceCheckInterval) {
+      clearInterval(faceCheckInterval);
+    }
+
+    faceCheckInterval = setInterval(() => {
+      performPeriodicFaceCheck();
+    }, FACE_CHECK_INTERVAL_MS);
+
+    console.log('Started periodic face checks');
+  }
+
+  function stopPeriodicFaceChecks() {
+    if (faceCheckInterval) {
+      clearInterval(faceCheckInterval);
+      faceCheckInterval = null;
+      console.log('Stopped periodic face checks');
+    }
   }
 
   function getCookie(name) {
@@ -1064,7 +1181,8 @@
             class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400"
             onerror="this.style.display='none'" />
           <div>
-            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ persona_name|default:'Interviewer' }}</span>
+            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{
+              persona_name|default:'Interviewer' }}</span>
             <p class="text-xs text-gray-500 dark:text-gray-400">Asking the question…</p>
           </div>
         </div>
@@ -1301,6 +1419,7 @@
 
     if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
     if (attireInterval) clearInterval(attireInterval);
+    stopPeriodicFaceChecks();
     if (videoStream) {
       videoStream.getTracks().forEach(function (track) { track.stop(); });
     }
@@ -1661,6 +1780,7 @@
         // Clear background analysis intervals
         if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
         if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
 
         if (videoStream) {
           videoStream.getTracks().forEach(track => track.stop());
@@ -1681,6 +1801,7 @@
         // Clear background analysis intervals before transitioning
         if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
         if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
 
         updateQuestionUI(result.next_question);
       }
@@ -1689,7 +1810,8 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
+    const isMandatory = {{ question.is_mandatory| yesno: "true,false"
+  }};
 
   let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
   if (isMandatory) {
@@ -1770,6 +1892,7 @@
         // Clear background analysis intervals
         if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
         if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
 
         if (videoStream) videoStream.getTracks().forEach(t => t.stop());
         const transitionText = document.getElementById('transition-text');
@@ -1789,6 +1912,7 @@
         // Clear background analysis intervals before transitioning
         if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
         if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
 
         updateQuestionUI(result.next_question);
       }
@@ -1807,19 +1931,22 @@
   }
   }
 
-  async function forceSkipQuestion() {
+  async function forceSkipQuestion(overrideReason = null) {
     const skipButton = document.getElementById('skip-button');
     if (skipButton) {
       skipButton.disabled = true;
       skipButton.textContent = 'Skipping…';
     }
 
-    let skipReason = 'rapid_fire_timeout';
-    if (!videoStream) {
-      skipReason = 'camera_mic_unavailable';
-    } else {
-      const audioTracks = videoStream.getAudioTracks();
-      if (!audioTracks.length) skipReason = 'microphone_unavailable';
+    let skipReason = overrideReason;
+    if (!skipReason) {
+      skipReason = 'rapid_fire_timeout';
+      if (!videoStream) {
+        skipReason = 'camera_mic_unavailable';
+      } else {
+        const audioTracks = videoStream.getAudioTracks();
+        if (!audioTracks.length) skipReason = 'microphone_unavailable';
+      }
     }
 
     try {
@@ -1844,6 +1971,7 @@
           _assessmentEnded = true;
           if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
           if (attireInterval) clearInterval(attireInterval);
+          stopPeriodicFaceChecks();
           if (videoStream) videoStream.getTracks().forEach(t => t.stop());
 
           const transitionText = document.getElementById('transition-text');
@@ -1859,6 +1987,7 @@
           // Clear background analysis intervals before transitioning
           if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
           if (attireInterval) clearInterval(attireInterval);
+          stopPeriodicFaceChecks();
           updateQuestionUI(result.next_question);
         }
       } else {
