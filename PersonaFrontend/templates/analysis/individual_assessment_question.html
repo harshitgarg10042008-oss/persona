@@ -561,6 +561,18 @@
     }
   }
 
+  // Copy/paste prevention event listeners
+  document.addEventListener('copy', handleCopyPaste);
+  document.addEventListener('paste', handleCopyPaste);
+
+  // Also prevent context menu (right-click) during assessment
+  document.addEventListener('contextmenu', function (e) {
+    if (assessmentActive && !_assessmentEnded) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+
   function startAssessmentFromGate() {
     console.log('[Start Assessment] ========== BUTTON CLICKED ==========');
     console.log('[Start Assessment] Function called, handler firing');
@@ -1052,8 +1064,7 @@
             class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400"
             onerror="this.style.display='none'" />
           <div>
-            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{
-              persona_name|default:'Interviewer' }}</span>
+            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ persona_name|default:'Interviewer' }}</span>
             <p class="text-xs text-gray-500 dark:text-gray-400">Asking the question…</p>
           </div>
         </div>
@@ -1678,8 +1689,7 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory| yesno: "true,false"
-  }};
+    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
 
   let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
   if (isMandatory) {
@@ -2049,26 +2059,6 @@
       String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
   }
 
-  // Get CSRF token
-  function getCookie(name) {
-    if (name === 'csrftoken') {
-      const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-      if (csrfInput) return csrfInput.value;
-    }
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
-
   // Cleanup on page unload — stop camera and abandon the assessment
   window.addEventListener('beforeunload', function () {
     if (videoStream) {
@@ -2083,18 +2073,6 @@
         { type: 'application/json' }
       );
       navigator.sendBeacon(ABANDON_URL + '?_method=POST', blob);
-    }
-  });
-
-  // Copy/paste prevention
-  document.addEventListener('copy', handleCopyPaste);
-  document.addEventListener('paste', handleCopyPaste);
-
-  // Also prevent context menu (right-click) during assessment
-  document.addEventListener('contextmenu', function (e) {
-    if (assessmentActive && !_assessmentEnded) {
-      e.preventDefault();
-      e.stopPropagation();
     }
   });
 
