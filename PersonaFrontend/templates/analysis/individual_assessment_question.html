@@ -462,7 +462,7 @@
   let integrityWarningShown = false;
   let integrityMeterHasWarning = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-  let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
+  let timeLimitSeconds = {{ time_limit_seconds|default:"null" }};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
@@ -1278,8 +1278,7 @@
         </span>
         {% endif %} {% if adaptive_mode %}
         <span id="difficulty-badge" class="ml-2 px-2 py-1 rounded text-xs font-medium"
-          style="background: {% if current_difficulty == 'beginner' %}var(--color-success-bg){% elif current_difficulty == 'advanced' %}var(--color-error-bg){% else %}var(--color-warning-bg, #fef3c7){% endif %};
-                         color: {% if current_difficulty == 'beginner' %}var(--color-success){% elif current_difficulty == 'advanced' %}var(--color-error){% else %}var(--color-warning, #92400e){% endif %};">
+          style="background: {% if current_difficulty == 'beginner' %}var(--color-success-bg){% elif current_difficulty == 'advanced' %}var(--color-error-bg){% else %}var(--color-warning-bg, #fef3c7){% endif %}; color: {% if current_difficulty == 'beginner' %}var(--color-success){% elif current_difficulty == 'advanced' %}var(--color-error){% else %}var(--color-warning, #92400e){% endif %};">
           🎯 {{ current_difficulty|capfirst }}
         </span>
         {% endif %}
@@ -1558,98 +1557,6 @@
     setTimeout(function () {
       window.location.href = DASHBOARD_URL;
     }, 1800);
-  }
-
-  // Show camera error
-  function showCameraError(error) {
-    const loadingElement = document.getElementById('video-loading');
-    if (loadingElement) {
-      let errorMessage = 'Camera access failed';
-      let helpText = 'Make sure to allow camera and microphone access when prompted';
-
-      if (error.name === 'NotAllowedError') {
-        errorMessage = 'Camera access denied';
-        helpText = 'Please click the camera icon in your browser\'s address bar to allow access';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No camera found';
-        helpText = 'Please connect a camera and try again';
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = 'Camera is busy';
-        helpText = 'Please close other applications using the camera and try again';
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-
-      loadingElement.innerHTML = `
-          <div class="text-center p-4">
-              <div class="text-red-600 dark:text-red-400 font-bold mb-2">❌ ${errorMessage}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">${helpText}</div>
-              <button onclick="initializeCamera()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                  Try Again
-              </button>
-          </div>
-      `;
-    }
-  }
-
-  // Background analysis
-  function startBackgroundAnalysis() {
-    console.log('Starting background analysis...');
-
-    // Body language analysis every 5 seconds to avoid 30/m rate limit
-    bodyLanguageInterval = setInterval(() => {
-      captureSnapshot('body_language');
-    }, 5000);
-
-    // Attire analysis every 10 seconds
-    attireInterval = setInterval(() => {
-      captureSnapshot('attire');
-    }, 10000);
-
-    // DevTools detection every 1 second
-    setInterval(detectDevTools, 1000);
-  }
-
-  function captureSnapshot(analysisType) {
-    const video = document.getElementById('video-feed');
-    const canvas = document.getElementById('snapshot-canvas');
-
-    if (!video || video.readyState !== 4) {
-      console.log('Video not ready for snapshot');
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-    // Send to analysis endpoint
-    fetch(`{% url 'analysis:capture_assessment_snapshot' session_id=session_id %}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCookie('csrftoken')
-      },
-      body: JSON.stringify({
-        image_data: imageData,
-        analysis_type: analysisType,
-        question_id: "{{ question.id }}",
-        timestamp: new Date().toISOString()
-      }),
-      credentials: 'same-origin'
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (!data.success) {
-          console.error(`${analysisType} analysis failed:`, data.error);
-        }
-      })
-      .catch(error => {
-        console.error(`${analysisType} analysis failed:`, error);
-      });
   }
 
   // Toggle recording
