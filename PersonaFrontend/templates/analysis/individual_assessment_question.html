@@ -437,7 +437,7 @@
   let integrityStrikeCount = 0;
   let integrityWarningShown = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-  let timeLimitSeconds = {% if time_limit_seconds %}{{time_limit_seconds}}{% else %}null{% endif %};
+  let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
@@ -450,6 +450,13 @@
   const FACE_CHECK_INTERVAL_MS = 50000; // 50 seconds
   const VERIFY_FACE_URL = "{% url 'analysis:verify_face_on_start' session_id=session_id %}";
   const FACE_CHECK_URL = "{% url 'analysis:periodic_face_check' session_id=session_id %}";
+
+  // Typing pattern detection
+  let keystrokeTimestamps = [];
+  let lastTextLength = 0;
+  const SUSPICIOUS_BURST_THRESHOLD = 100; // characters
+  const SUSPICIOUS_BURST_TIME_MS = 500; // milliseconds
+  const LARGE_PASTE_THRESHOLD = 200; // characters
 
   function isFullscreenActive() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
@@ -641,6 +648,9 @@
 
       // Verify face on assessment start
       verifyFaceOnStart();
+
+      // Set up typing pattern detection
+      setupTypingDetection();
     }
 
     function failFullscreen(message) {
@@ -1054,6 +1064,66 @@
       faceCheckInterval = null;
       console.log('Stopped periodic face checks');
     }
+  }
+
+  // Typing pattern detection
+  function detectTypingPattern(textLength) {
+    if (!assessmentActive || _assessmentEnded) return;
+
+    const now = Date.now();
+    const lengthDiff = textLength - lastTextLength;
+
+    // Check for large paste (sudden large increase)
+    if (lengthDiff > LARGE_PASTE_THRESHOLD) {
+      logIntegrityEvent('large_paste_detected', {
+        'length_diff': lengthDiff,
+        'new_length': textLength,
+        'timestamp': now
+      });
+      console.log('Large paste detected:', lengthDiff, 'characters');
+    }
+
+    // Check for suspicious typing burst (many characters in very short time)
+    if (lengthDiff > SUSPICIOUS_BURST_THRESHOLD) {
+      keystrokeTimestamps.push({ timestamp: now, length: textLength });
+
+      // Keep only recent timestamps (last 5 seconds)
+      keystrokeTimestamps = keystrokeTimestamps.filter(ts => now - ts.timestamp < 5000);
+
+      // Check if we have a burst pattern
+      if (keystrokeTimestamps.length >= 2) {
+        const recent = keystrokeTimestamps[keystrokeTimestamps.length - 1];
+        const previous = keystrokeTimestamps[keystrokeTimestamps.length - 2];
+        const timeDiff = recent.timestamp - previous.timestamp;
+        const lengthDiffRecent = recent.length - previous.length;
+
+        if (timeDiff < SUSPICIOUS_BURST_TIME_MS && lengthDiffRecent > SUSPICIOUS_BURST_THRESHOLD) {
+          logIntegrityEvent('suspicious_typing_pattern', {
+            'time_diff_ms': timeDiff,
+            'length_diff': lengthDiffRecent,
+            'timestamp': now
+          });
+          console.log('Suspicious typing pattern detected:', lengthDiffRecent, 'chars in', timeDiff, 'ms');
+        }
+      }
+    }
+
+    lastTextLength = textLength;
+  }
+
+  function resetTypingTracking() {
+    keystrokeTimestamps = [];
+    lastTextLength = 0;
+  }
+
+  // Set up typing detection if text input exists
+  function setupTypingDetection() {
+    const textInputs = document.querySelectorAll('textarea, input[type="text"]');
+    textInputs.forEach(input => {
+      input.addEventListener('input', function () {
+        detectTypingPattern(this.value.length);
+      });
+    });
   }
 
   function getCookie(name) {
@@ -2088,6 +2158,9 @@
     recordingPromise = null;
     submitPromise = null;
     _assessmentEnded = false;
+
+    // Reset typing tracking for new question
+    resetTypingTracking();
 
     document.getElementById('prep-time').textContent = preparationTime;
     document.getElementById('response-time').textContent = responseTime;

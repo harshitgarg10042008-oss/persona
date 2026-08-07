@@ -1392,6 +1392,64 @@ def start_individual_assessment_session(request, session_id):
 
     assessment.status = 'in_progress'
     assessment.started_at = timezone.now()
+    
+    # Capture IP address for session integrity tracking
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
+    client_ip = get_client_ip(request)
+    assessment.ip_address = client_ip
+    
+    # Check for multiple IPs for same user (simultaneous sessions from different IPs)
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    active_assessments = IndividualAssessment.objects.filter(
+        user=request.user,
+        status='in_progress',
+        started_at__gte=timezone.now() - timedelta(hours=2)
+    ).exclude(session_id=session_id)
+    
+    for other_assessment in active_assessments:
+        if other_assessment.ip_address and other_assessment.ip_address != client_ip:
+            # Same user, different IP - log event
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='multiple_ip_same_user',
+                details={
+                    'current_ip': client_ip,
+                    'other_ip': other_assessment.ip_address,
+                    'other_session_id': str(other_assessment.session_id),
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+    
+    # Check for shared IP across multiple users (possible collusion)
+    if client_ip:
+        overlapping_assessments = IndividualAssessment.objects.filter(
+            ip_address=client_ip,
+            status='in_progress',
+            started_at__gte=timezone.now() - timedelta(hours=2)
+        ).exclude(user=request.user)
+        
+        for other_assessment in overlapping_assessments:
+            # Different user, same IP - log event
+            EnvironmentIntegrityEvent.objects.create(
+                assessment=assessment,
+                event_type='shared_ip_multiple_users',
+                details={
+                    'shared_ip': client_ip,
+                    'other_user_id': other_assessment.user.id,
+                    'other_session_id': str(other_assessment.session_id),
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+    
     assessment.save()
 
     return redirect('analysis:individual_assessment_question', session_id=session_id)

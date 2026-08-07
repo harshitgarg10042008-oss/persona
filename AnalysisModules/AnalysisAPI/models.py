@@ -298,6 +298,9 @@ class IndividualAssessment(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     estimated_duration = models.PositiveIntegerField(default=1800, help_text="Estimated duration in seconds")
     
+    # IP address tracking for session integrity
+    ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="IP address of the assessment session")
+    
     # Security and monitoring
     fullscreen_violations = models.PositiveIntegerField(default=0)
     warnings_given = models.PositiveIntegerField(default=0)
@@ -659,6 +662,10 @@ class EnvironmentIntegrityEvent(models.Model):
         ('face_mismatch', 'Face Mismatch'),
         ('no_face_detected', 'No Face Detected'),
         ('multiple_faces_detected', 'Multiple Faces Detected'),
+        ('large_paste_detected', 'Large Paste Detected'),
+        ('suspicious_typing_pattern', 'Suspicious Typing Pattern'),
+        ('multiple_ip_same_user', 'Multiple IP Same User'),
+        ('shared_ip_multiple_users', 'Shared IP Multiple Users'),
     ]
     
     assessment = models.ForeignKey(
