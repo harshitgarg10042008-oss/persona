@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #111827;
+        padding: 32px;
+        background: #f9fafb;
+      }
+      .card {
+        border: 2px solid #10b981;
+        border-radius: 16px;
+        padding: 32px;
+        background: white;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #065f46;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #6b7280;
+        margin-bottom: 20px;
+      }
+      .detail {
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+      .stamp {
+        margin-top: 24px;
+        font-size: 14px;
+        color: #4b5563;
+      }
+      .code {
+        margin-top: 8px;
+        font-weight: bold;
+        font-size: 20px;
+        letter-spacing: 0.08em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">Integrity Certificate</div>
+      <div class="subtitle">Verified clean assessment attempt</div>
+      <div class="detail"><strong>Student:</strong> {{ student_name }}</div>
+      <div class="detail"><strong>Assessment:</strong> {{ assessment.platform_job_title.title }}</div>
+      <div class="detail"><strong>Date:</strong> {{ completed_date|date:"M d, Y" }}</div>
+      <div class="detail"><strong>Status:</strong> No integrity flags were raised for this attempt.</div>
+      <div class="stamp">Verification code</div>
+      <div class="code">{{ verification_code }}</div>
+    </div>
+  </body>
+</html>

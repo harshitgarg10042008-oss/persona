@@ -68,6 +68,12 @@
             <span><strong>Date:</strong> {{ assessment.completed_at|date:"M d, Y" }}</span>
       </div>
       <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+        {% if integrity_certificate_available %}
+        <a href="{% url 'analysis:download_integrity_certificate' assessment.session_id %}"
+          class="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-semibold">
+          🏅 Download Integrity Certificate
+        </a>
+        {% endif %}
         <a href="{% url 'analysis:achievement_badge' assessment.session_id %}"
           class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-semibold">
           🏆 View Achievement Badge
@@ -182,6 +188,12 @@
       <div class="text-4xl font-bold text-orange-600">{{ assessment.voice_confidence_score|floatformat:1 }}/10</div>
       <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Voice tone, pace, and delivery</p>
     </div>
+  </div>
+  {% endif %}
+
+  {% if integrity_certificate_available %}
+  <div class="max-w-2xl mx-auto mb-8 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
+    <strong>Integrity certificate ready.</strong> This clean attempt has been given a downloadable verification certificate with code {{ integrity_certificate_code }}.
   </div>
   {% endif %}
 

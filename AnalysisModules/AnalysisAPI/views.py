@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
@@ -15,11 +15,66 @@ import csv
 import uuid
 import base64
 from datetime import datetime, timedelta
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from xhtml2pdf import pisa
+import io
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_student_display_name(user):
+    """Return a friendly display name for certificate and review UI."""
+    if hasattr(user, 'individual_profile') and getattr(user.individual_profile, 'name', '').strip():
+        return user.individual_profile.name.strip()
+    full_name = getattr(user, 'get_full_name', lambda: '')()
+    if full_name:
+        return full_name
+    return getattr(user, 'username', 'Student') or 'Student'
+
+
+def _build_integrity_reason_summary(assessment):
+    """Create a plain-language summary of integrity flags for admins and certificates."""
+    events = list(assessment.integrity_events.all().order_by('timestamp'))
+    if not events:
+        return 'No integrity flags logged'
+
+    event_type_labels = {
+        'fullscreen_exit': 'fullscreen exit',
+        'tab_switch': 'tab switch',
+        'copy_attempt': 'copy attempt',
+        'paste_attempt': 'paste attempt',
+        'devtools_opened': 'developer tools event',
+        'face_mismatch': 'face mismatch',
+        'no_face_detected': 'no face detected',
+        'multiple_faces_detected': 'multiple faces detected',
+        'large_paste_detected': 'large paste event',
+        'suspicious_typing_pattern': 'suspicious typing pattern',
+        'multiple_ip_same_user': 'multiple IP activity',
+        'shared_ip_multiple_users': 'shared IP activity',
+    }
+
+    event_counts = {}
+    for event in events:
+        label = event_type_labels.get(event.event_type, event.event_type.replace('_', ' '))
+        event_counts[label] = event_counts.get(label, 0) + 1
+
+    summary_parts = []
+    for label, count in sorted(event_counts.items(), key=lambda item: item[1], reverse=True)[:3]:
+        if count == 1:
+            summary_parts.append(f'1 {label}')
+        else:
+            summary_parts.append(f'{count} {label}s')
+
+    if len(summary_parts) > 2:
+        summary_parts = summary_parts[:2] + [f'{len(summary_parts) - 2} more']
+
+    summary = ', '.join(summary_parts)
+    latest_time = events[-1].timestamp
+    if latest_time:
+        summary = f"{summary} at {latest_time.strftime('%H:%M')}"
+    return summary
+
 
 def _calculate_panel_results(assessment):
     """Calculate per-persona scores and aggregated verdict for a panel session"""
@@ -2906,6 +2961,7 @@ def complete_individual_assessment(request, session_id):
         except:
             pass
 
+    integrity_flag_count = assessment.integrity_events.count()
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -2920,8 +2976,54 @@ def complete_individual_assessment(request, session_id):
         'has_chart_data': bool(valid_energy),
         'platform_average': platform_average,
         'communication_analysis': assessment.communication_analysis,
+        'integrity_flag_count': integrity_flag_count,
+        'integrity_certificate_available': assessment.status == 'completed' and integrity_flag_count == 0,
+        'integrity_certificate_code': f"INT-{assessment.session_id.hex[:8].upper()}",
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
+
+
+@login_required
+def download_integrity_certificate(request, session_id):
+    """Generate a downloadable integrity certificate for clean assessments."""
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user
+    )
+
+    if assessment.status != 'completed':
+        raise Http404('Integrity certificate is only available for completed assessments.')
+
+    if assessment.integrity_events.exists():
+        raise Http404('Integrity certificate is not available for flagged assessments.')
+
+    verification_code = f"INT-{assessment.session_id.hex[:8].upper()}"
+    student_name = _get_student_display_name(request.user)
+    completed_date = assessment.completed_at or timezone.now()
+
+    html_string = render_to_string('analysis/integrity_certificate.html', {
+        'assessment': assessment,
+        'student_name': student_name,
+        'verification_code': verification_code,
+        'completed_date': completed_date,
+    })
+
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(
+        io.BytesIO(html_string.encode('utf-8')),
+        result,
+        encoding='utf-8'
+    )
+
+    if pdf.err:
+        logger.error('xhtml2pdf certificate generation error for session %s: %s', session_id, pdf.err)
+        raise Http404('Unable to generate the integrity certificate right now.')
+
+    result.seek(0)
+    response = HttpResponse(result.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="integrity_certificate_{session_id}.pdf"'
+    return response
 
 
 @login_required
@@ -3922,6 +4024,7 @@ def integrity_review_dashboard(request):
     # Calculate integrity scores and add to queryset
     for assessment in flagged_assessments:
         assessment.integrity_score = assessment.calculate_integrity_score()
+        assessment.integrity_reason_summary = _build_integrity_reason_summary(assessment)
     
     context = {
         'flagged_assessments': flagged_assessments,
@@ -3960,11 +4063,13 @@ def integrity_detail_view(request, session_id):
     
     # Calculate integrity score
     integrity_score = assessment.calculate_integrity_score()
+    integrity_reason_summary = _build_integrity_reason_summary(assessment)
     
     context = {
         'assessment': assessment,
         'events': events,
         'integrity_score': integrity_score,
+        'integrity_reason_summary': integrity_reason_summary,
         'business_user': business_user,
     }
     

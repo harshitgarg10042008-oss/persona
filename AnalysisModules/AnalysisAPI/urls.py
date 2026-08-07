@@ -53,6 +53,7 @@ urlpatterns = [
     path('individual/<uuid:session_id>/processing/', views.processing_interstitial, name='processing_interstitial'),
     path('individual/<uuid:session_id>/processing-status/', views.check_processing_status, name='check_processing_status'),
     path('individual/<uuid:session_id>/complete/', views.complete_individual_assessment, name='complete_individual_assessment'),
+    path('individual/<uuid:session_id>/certificate/', views.download_integrity_certificate, name='download_integrity_certificate'),
     path('individual/<uuid:session_id>/pdf/', views.download_assessment_report, name='download_assessment_report'),
     
     # Combined Assessment System (Setup + Questions)

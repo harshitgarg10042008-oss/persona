@@ -314,6 +314,30 @@
     text-align: center;
   }
 
+  .integrity-meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.8);
+    color: #f9fafb;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .integrity-meter .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #10b981;
+  }
+
+  .integrity-meter.warning .dot {
+    background: #f59e0b;
+  }
+
   .assessment-start-gate {
     display: flex;
     position: fixed;
@@ -436,6 +460,7 @@
   // Environment integrity tracking
   let integrityStrikeCount = 0;
   let integrityWarningShown = false;
+  let integrityMeterHasWarning = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
   let timeLimitSeconds = {% if time_limit_seconds %}{{ time_limit_seconds }}{% else %}null{% endif %};
   let timeLeft = 0;
@@ -462,6 +487,15 @@
     return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
   }
 
+  function updateIntegrityMeter(isWarning) {
+    const meterEl = document.getElementById('integrity-meter');
+    const meterTextEl = document.getElementById('integrity-meter-text');
+    if (!meterEl || !meterTextEl) return;
+
+    meterEl.classList.toggle('warning', isWarning);
+    meterTextEl.textContent = isWarning ? 'Warning' : 'All good';
+  }
+
   async function logIntegrityEvent(eventType, details = {}) {
     if (!assessmentActive || _assessmentEnded) return;
 
@@ -481,6 +515,8 @@
       if (response.ok) {
         const data = await response.json();
         integrityStrikeCount = data.strike_count;
+        integrityMeterHasWarning = true;
+        updateIntegrityMeter(true);
 
         // Handle strike system
         if (eventType === 'fullscreen_exit' || eventType === 'tab_switch') {
@@ -495,6 +531,8 @@
   }
 
   function handleStrikeWarning(strikeCount, isHighRisk) {
+    integrityMeterHasWarning = true;
+    updateIntegrityMeter(true);
     if (strikeCount === 1 && !integrityWarningShown) {
       // First strike - show warning
       const warningEl = document.getElementById('integrity-warning');
@@ -586,6 +624,7 @@
   });
 
   function startAssessmentFromGate() {
+    updateIntegrityMeter(false);
     console.log('[Start Assessment] ========== BUTTON CLICKED ==========');
     console.log('[Start Assessment] Function called, handler firing');
     const gateError = document.getElementById('start-gate-error');
@@ -1208,6 +1247,10 @@
     </div>
 
     <div class="flex items-center space-x-4">
+      <div class="integrity-meter" id="integrity-meter" aria-live="polite">
+        <span class="dot"></span>
+        <span id="integrity-meter-text">All good</span>
+      </div>
       <div class="text-sm">
         <span class="text-gray-300 dark:text-gray-400">Analysis:</span>
         <span id="analysis-status" class="text-green-400">Running</span>

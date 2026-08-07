@@ -36,7 +36,14 @@ class FeedbackGeneratorTests(SimpleTestCase):
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from AnalysisAPI.models import PlatformJobTitle, IndividualAssessment, IndividualAssessmentResponse, PlatformQuestion
+from django.utils import timezone
+from AnalysisAPI.models import (
+    EnvironmentIntegrityEvent,
+    PlatformJobTitle,
+    IndividualAssessment,
+    IndividualAssessmentResponse,
+    PlatformQuestion,
+)
 from UserAPI.models import BusinessUser, IndividualUser
 
 User = get_user_model()
@@ -101,6 +108,32 @@ class AssessmentViewTests(TestCase):
         # Assessment should NOT be marked complete
         self.assessment.refresh_from_db()
         self.assertEqual(self.assessment.status, 'in_progress')
+
+    def test_clean_assessment_certificate_download_available(self):
+        self.assessment.status = 'completed'
+        self.assessment.completed_at = timezone.now()
+        self.assessment.save(update_fields=['status', 'completed_at'])
+
+        url = reverse('analysis:download_integrity_certificate', args=[self.assessment.session_id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_flagged_assessment_certificate_download_unavailable(self):
+        self.assessment.status = 'completed'
+        self.assessment.completed_at = timezone.now()
+        self.assessment.save(update_fields=['status', 'completed_at'])
+        EnvironmentIntegrityEvent.objects.create(
+            assessment=self.assessment,
+            event_type='tab_switch',
+            details={'source': 'test'}
+        )
+
+        url = reverse('analysis:download_integrity_certificate', args=[self.assessment.session_id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
 
 
 class CSRFTests(TestCase):
