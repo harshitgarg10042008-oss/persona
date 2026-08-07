@@ -288,6 +288,51 @@ class IndividualAssessment(models.Model):
         avg_score = assessments.aggregate(avg_score=models.Avg('overall_score'))['avg_score']
         return round(avg_score, 1) if avg_score else None
     
+    def calculate_integrity_score(self):
+        """
+        Calculate integrity score based on logged events.
+        Returns a score from 0-100 (higher = better integrity).
+        Uses dynamic event type reading to automatically include new event types.
+        
+        Weighting logic (adjustable):
+        - Minor events (fullscreen_exit, tab_switch, copy_attempt, paste_attempt): 5 points each
+        - Medium events (devtools_opened, large_paste_detected, suspicious_typing_pattern): 10 points each
+        - Major events (face_mismatch, no_face_detected, multiple_faces_detected): 20 points each
+        - Session events (multiple_ip_same_user, shared_ip_multiple_users): 15 points each
+        """
+        from .models import EnvironmentIntegrityEvent
+        
+        # Get all events for this assessment
+        events = self.integrity_events.all()
+        
+        # Define event weights (can be adjusted)
+        EVENT_WEIGHTS = {
+            'fullscreen_exit': 5,
+            'tab_switch': 5,
+            'copy_attempt': 5,
+            'paste_attempt': 5,
+            'devtools_opened': 10,
+            'large_paste_detected': 10,
+            'suspicious_typing_pattern': 10,
+            'multiple_ip_same_user': 15,
+            'shared_ip_multiple_users': 15,
+            'face_mismatch': 20,
+            'no_face_detected': 20,
+            'multiple_faces_detected': 20,
+        }
+        
+        # Calculate total penalty
+        total_penalty = 0
+        for event in events:
+            # Use weight from dict, default to 10 for unknown event types (dynamic inclusion)
+            weight = EVENT_WEIGHTS.get(event.event_type, 10)
+            total_penalty += weight
+        
+        # Calculate score (start at 100, subtract penalties, minimum 0)
+        score = max(0, 100 - total_penalty)
+        
+        return score
+    
     # Assessment configuration
     total_questions = models.PositiveIntegerField(default=0)
     current_question_index = models.PositiveIntegerField(default=0)
@@ -309,6 +354,29 @@ class IndividualAssessment(models.Model):
     # Environment integrity tracking
     integrity_strike_count = models.PositiveIntegerField(default=0, help_text="Count of flagged events (fullscreen exit, tab switch)")
     is_high_risk = models.BooleanField(default=False, help_text="Marked as high-risk due to repeated integrity violations")
+    
+    # Integrity review status (for institution admins)
+    INTEGRITY_REVIEW_STATUS_CHOICES = [
+        ('unreviewed', 'Unreviewed'),
+        ('cleared', 'Cleared'),
+        ('confirmed_cheating', 'Confirmed Cheating'),
+        ('invalidated', 'Invalidated'),
+    ]
+    integrity_review_status = models.CharField(
+        max_length=30,
+        choices=INTEGRITY_REVIEW_STATUS_CHOICES,
+        default='unreviewed',
+        help_text="Review status for flagged integrity events"
+    )
+    integrity_reviewed_at = models.DateTimeField(null=True, blank=True, help_text="When this assessment was reviewed")
+    integrity_reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='integrity_reviews',
+        help_text="Admin who reviewed this assessment"
+    )
     
     # Analysis scores (filled after completion)
     overall_score = models.FloatField(null=True, blank=True)

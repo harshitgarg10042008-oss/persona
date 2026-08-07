@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Integrity Review - {{ assessment.user.individual_profile.name }} - Persona{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'analysis:integrity_review_dashboard' %}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Assessment Header -->
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                    {{ assessment.user.individual_profile.name }}
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mb-1">
+                    {{ assessment.user.email }}
+                </p>
+                <p class="text-gray-600 dark:text-gray-400">
+                    {{ assessment.platform_job_title.title }} Assessment
+                </p>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Session ID</div>
+                <div class="text-sm font-mono text-gray-800 dark:text-gray-100">
+                    {{ assessment.session_id }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Started</div>
+                    <div class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {{ assessment.started_at|date:"M d, Y H:i" }}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Completed</div>
+                    <div class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {% if assessment.completed_at %}
+                            {{ assessment.completed_at|date:"M d, Y H:i" }}
+                        {% else %}
+                            <span class="text-red-600">Not completed</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Status</div>
+                    <div class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {{ assessment.status|title }}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Integrity Score</div>
+                    <div class="text-sm font-bold text-gray-800 dark:text-gray-100">
+                        {{ integrity_score }}/100
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Actions -->
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Review Actions</h2>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="markCleared()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-check mr-2"></i>Mark as Cleared
+            </button>
+            <button onclick="markConfirmed()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Confirm Cheating
+            </button>
+            <button onclick="invalidateAssessment()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm font-medium">
+                <i class="fas fa-ban mr-2"></i>Invalidate Assessment
+            </button>
+        </div>
+        {% if assessment.integrity_reviewed_at %}
+        <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            Last reviewed by {{ assessment.integrity_reviewed_by.email }} on {{ assessment.integrity_reviewed_at|date:"M d, Y H:i" }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Integrity Events -->
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Integrity Events ({{ events|length }})</h2>
+        
+        {% if events %}
+        <div class="space-y-4">
+            {% for event in events %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full 
+                            {% if event.event_type == 'fullscreen_exit' or event.event_type == 'tab_switch' or event.event_type == 'copy_attempt' or event.event_type == 'paste_attempt' %}
+                                bg-yellow-100 text-yellow-800
+                            {% elif event.event_type == 'devtools_opened' or event.event_type == 'large_paste_detected' or event.event_type == 'suspicious_typing_pattern' %}
+                                bg-orange-100 text-orange-800
+                            {% elif event.event_type == 'face_mismatch' or event.event_type == 'no_face_detected' or event.event_type == 'multiple_faces_detected' %}
+                                bg-red-100 text-red-800
+                            {% elif event.event_type == 'multiple_ip_same_user' or event.event_type == 'shared_ip_multiple_users' %}
+                                bg-purple-100 text-purple-800
+                            {% else %}
+                                bg-gray-100 text-gray-800
+                            {% endif %}
+                        ">
+                            {{ event.get_event_type_display }}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ event.timestamp|date:"M d, Y H:i:s" }}
+                    </div>
+                </div>
+                
+                {% if event.details %}
+                <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <details>
+                        <summary class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">View Details</summary>
+                        <div class="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs font-mono">
+                            {{ event.details|pprint }}
+                        </div>
+                    </details>
+                </div>
+                {% endif %}
+                
+                {% if event.details.evidence_image %}
+                <div class="mt-2">
+                    <img src="{{ event.details.evidence_image }}" alt="Evidence" class="max-w-xs rounded border border-gray-200 dark:border-gray-700">
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+            No integrity events logged for this assessment.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function markCleared() {
+    if (!confirm('Are you sure you want to mark this assessment as cleared?')) return;
+    
+    try {
+        const response = await fetch('{% url "analysis:mark_assessment_cleared" session_id=assessment.session_id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Assessment marked as cleared successfully.');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function markConfirmed() {
+    if (!confirm('Are you sure you want to confirm this as cheating?')) return;
+    
+    try {
+        const response = await fetch('{% url "analysis:mark_assessment_confirmed" session_id=assessment.session_id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Assessment confirmed as cheating.');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function invalidateAssessment() {
+    if (!confirm('Are you sure you want to invalidate this assessment? This will mark it as terminated and the student will need to retake it.')) return;
+    
+    try {
+        const response = await fetch('{% url "analysis:invalidate_assessment" session_id=assessment.session_id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Assessment invalidated successfully.');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

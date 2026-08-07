@@ -78,6 +78,14 @@ urlpatterns = [
     # Institution Management
     path('export-institution-members/', views.export_institution_members_csv, name='export_institution_members_csv'),
     
+    # Integrity Review Dashboard (Institution Admin Only)
+    path('integrity-review/', views.integrity_review_dashboard, name='integrity_review_dashboard'),
+    path('integrity-review/<uuid:session_id>/', views.integrity_detail_view, name='integrity_detail'),
+    path('integrity-review/<uuid:session_id>/clear/', views.mark_assessment_cleared, name='mark_assessment_cleared'),
+    path('integrity-review/<uuid:session_id>/confirm/', views.mark_assessment_confirmed, name='mark_assessment_confirmed'),
+    path('integrity-review/<uuid:session_id>/invalidate/', views.invalidate_assessment, name='invalidate_assessment'),
+    path('integrity-review/export-csv/', views.export_integrity_csv, name='export_integrity_csv'),
+    
     # Resume Reviewer
     path('resume-reviewer/upload/', views.resume_reviewer_upload, name='resume_reviewer_upload'),
     path('resume-reviewer/result/<int:review_id>/', views.resume_reviewer_result, name='resume_reviewer_result'),

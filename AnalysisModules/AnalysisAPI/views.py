@@ -3876,6 +3876,268 @@ def resume_reviewer_upload(request):
         resume_file.seek(0)
         file_bytes = resume_file.read()
         file_hash = hashlib.sha256(file_bytes).hexdigest()
+
+
+# ============================================================================
+# INTEGRITY REVIEW DASHBOARD (Institution Admin Only)
+# ============================================================================
+
+@login_required
+def integrity_review_dashboard(request):
+    """
+    Dashboard for institution admins to review flagged integrity events.
+    Shows only assessments from their own institution's members.
+    """
+    # Access control: business users only
+    if not hasattr(request.user, 'business_profile'):
+        messages.error(request, "Access denied. This page is for institution admins only.")
+        return redirect('persona_frontend:home')
+    
+    # Institution-only: check subscription tier
+    from UserAPI.subscription import _is_owner
+    if not _is_owner(request.user):
+        from UserAPI.models import InstitutionMembership
+        if not InstitutionMembership.objects.filter(business=request.user.business_profile, is_active=True).exists():
+            messages.info(request, "Integrity review requires an active Institution subscription.")
+            return redirect('pricing_page')
+    
+    business_user = request.user.business_profile
+    
+    # Get assessments with integrity events for this institution's members
+    from UserAPI.models import InstitutionMembership
+    from django.db.models import Count, Q
+    
+    flagged_assessments = IndividualAssessment.objects.filter(
+        institution_membership__business=business_user,
+        institution_membership__is_active=True,
+        integrity_events__isnull=False
+    ).distinct().select_related(
+        'user__individual_profile',
+        'platform_job_title',
+        'institution_membership'
+    ).annotate(
+        event_count=Count('integrity_events')
+    ).order_by('-started_at')
+    
+    # Calculate integrity scores and add to queryset
+    for assessment in flagged_assessments:
+        assessment.integrity_score = assessment.calculate_integrity_score()
+    
+    context = {
+        'flagged_assessments': flagged_assessments,
+        'business_user': business_user,
+    }
+    
+    return render(request, 'analysis/integrity_review_dashboard.html', context)
+
+
+@login_required
+def integrity_detail_view(request, session_id):
+    """
+    Detailed view of a single assessment's integrity events.
+    Shows all logged events with timestamps and evidence.
+    """
+    # Access control: business users only
+    if not hasattr(request.user, 'business_profile'):
+        messages.error(request, "Access denied. This page is for institution admins only.")
+        return redirect('persona_frontend:home')
+    
+    business_user = request.user.business_profile
+    
+    # Get the assessment
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id
+    )
+    
+    # Verify this assessment belongs to the institution's members
+    if assessment.institution_membership and assessment.institution_membership.business != business_user:
+        messages.error(request, "Access denied. You can only review your own institution's assessments.")
+        return redirect('analysis:integrity_review_dashboard')
+    
+    # Get all integrity events for this assessment
+    events = assessment.integrity_events.all().order_by('timestamp')
+    
+    # Calculate integrity score
+    integrity_score = assessment.calculate_integrity_score()
+    
+    context = {
+        'assessment': assessment,
+        'events': events,
+        'integrity_score': integrity_score,
+        'business_user': business_user,
+    }
+    
+    return render(request, 'analysis/integrity_detail.html', context)
+
+
+@login_required
+def mark_assessment_cleared(request, session_id):
+    """Mark an assessment as cleared (no cheating)."""
+    if not hasattr(request.user, 'business_profile'):
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
+    
+    # Verify institution ownership
+    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    from django.utils import timezone
+    assessment.integrity_review_status = 'cleared'
+    assessment.integrity_reviewed_at = timezone.now()
+    assessment.integrity_reviewed_by = request.user
+    assessment.save()
+    
+    return JsonResponse({'success': True})
+
+
+@login_required
+def mark_assessment_confirmed(request, session_id):
+    """Mark an assessment as confirmed cheating."""
+    if not hasattr(request.user, 'business_profile'):
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
+    
+    # Verify institution ownership
+    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    from django.utils import timezone
+    assessment.integrity_review_status = 'confirmed_cheating'
+    assessment.integrity_reviewed_at = timezone.now()
+    assessment.integrity_reviewed_by = request.user
+    assessment.save()
+    
+    return JsonResponse({'success': True})
+
+
+@login_required
+def invalidate_assessment(request, session_id):
+    """Invalidate an assessment (forces retake)."""
+    if not hasattr(request.user, 'business_profile'):
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
+    
+    # Verify institution ownership
+    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+        return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
+    
+    from django.utils import timezone
+    assessment.integrity_review_status = 'invalidated'
+    assessment.status = 'terminated'
+    assessment.integrity_reviewed_at = timezone.now()
+    assessment.integrity_reviewed_by = request.user
+    assessment.save()
+    
+    return JsonResponse({'success': True})
+
+
+@login_required
+def export_integrity_csv(request):
+    """Export flagged assessments as CSV for the institution."""
+    if not hasattr(request.user, 'business_profile'):
+        messages.error(request, "Access denied. Only business users can access this page.")
+        return redirect('persona_frontend:home')
+    
+    # Institution-only: check subscription tier
+    from UserAPI.subscription import _is_owner
+    if not _is_owner(request.user):
+        from UserAPI.models import InstitutionMembership
+        if not InstitutionMembership.objects.filter(business=request.user.business_profile, is_active=True).exists():
+            messages.info(request, "CSV export requires an active Institution subscription.")
+            return redirect('pricing_page')
+    
+    business_user = request.user.business_profile
+    
+    # Get flagged assessments for this institution
+    from UserAPI.models import InstitutionMembership
+    from django.db.models import Count
+    
+    flagged_assessments = IndividualAssessment.objects.filter(
+        institution_membership__business=business_user,
+        institution_membership__is_active=True,
+        integrity_events__isnull=False
+    ).distinct().select_related(
+        'user__individual_profile',
+        'platform_job_title',
+        'institution_membership'
+    ).annotate(
+        event_count=Count('integrity_events')
+    ).order_by('-started_at')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="integrity_flags_{business_user.company_name or business_user.name}_{timezone.now().date()}.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Write header
+    writer.writerow([
+        'Student Name',
+        'Student Email',
+        'Assessment ID',
+        'Job Title',
+        'Started At',
+        'Completed At',
+        'Status',
+        'Integrity Score',
+        'Event Count',
+        'Review Status',
+        'Reviewed At',
+        'Reviewed By'
+    ])
+    
+    # Write data
+    for assessment in flagged_assessments:
+        writer.writerow([
+            assessment.user.individual_profile.name,
+            assessment.user.email,
+            str(assessment.session_id),
+            assessment.platform_job_title.title,
+            assessment.started_at.isoformat() if assessment.started_at else '',
+            assessment.completed_at.isoformat() if assessment.completed_at else '',
+            assessment.status,
+            assessment.calculate_integrity_score(),
+            assessment.event_count,
+            assessment.get_integrity_review_status_display(),
+            assessment.integrity_reviewed_at.isoformat() if assessment.integrity_reviewed_at else '',
+            assessment.integrity_reviewed_by.email if assessment.integrity_reviewed_by else ''
+        ])
+    
+    return response
+
+
+@login_required
+def resume_reviewer_upload(request):
+    if request.method == 'POST':
+        resume_file = request.FILES.get('resume_file')
+        if not resume_file:
+            messages.error(request, 'Please upload a resume file.')
+            return redirect('analysis:resume_reviewer_upload')
+
+        # Free-tier limit: max 3 resume reviews
+        if not user_has_premium(request.user):
+            from AnalysisAPI.models import ResumeReview as _RR
+            existing_count = _RR.objects.filter(user=request.user).count()
+            if existing_count >= 3:
+                messages.info(
+                    request,
+                    'Free plan allows 3 resume reviews. Upgrade to Premium for unlimited reviews.'
+                )
+                return redirect('pricing_page')
+            
+        is_valid, error_msg = _validate_resume_upload(resume_file)
+        if not is_valid:
+            messages.error(request, error_msg)
+            return redirect('analysis:resume_reviewer_upload')
+            
+        # --- Compute SHA-256 hash of file bytes for deduplication ---
+        resume_file.seek(0)
+        file_bytes = resume_file.read()
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
         
         # --- Check for duplicate upload by same user ---
         existing_review = ResumeReview.objects.filter(
