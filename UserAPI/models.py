@@ -80,12 +80,16 @@ class BusinessUser(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='business_profile')
     name = models.CharField(max_length=100)
     company_name = models.CharField(max_length=200, blank=True, null=True)
+    seat_cap = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Maximum number of active student memberships. NULL = unlimited."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return f"{self.name} - Business"
-    
+
     @property
     def institution_code(self):
         """Generate a unique institution code for sharing"""
@@ -155,6 +159,38 @@ class Institution(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class InstitutionDomain(models.Model):
+    """
+    One row per allowed email domain for an Institution.
+    An institution with zero rows has no domain restriction (code-only mode).
+    This design supports:
+      - Multiple domains per institution (e.g. @xyz.edu.in + @students.xyz.edu.in)
+      - Phase-2 single-use codes without any schema change (just leave domains empty)
+    """
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE, related_name='allowed_domains'
+    )
+    domain = models.CharField(
+        max_length=255,
+        help_text="Lowercase email domain without the leading @, e.g. xyzuniversity.edu.in"
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['institution', 'domain']
+        ordering = ['domain']
+        verbose_name = 'Institution Domain'
+        verbose_name_plural = 'Institution Domains'
+
+    def save(self, *args, **kwargs):
+        """Normalise domain to lowercase before saving."""
+        self.domain = self.domain.lower().strip().lstrip('@')
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"@{self.domain} → {self.institution.name}"
 
 
 class SubscriptionTier(models.Model):

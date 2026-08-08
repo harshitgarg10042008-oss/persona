@@ -31,17 +31,46 @@ class IndividualSignUpForm(UserCreationForm):
 
     def clean_institution_code(self):
         code = self.cleaned_data.get('institution_code')
-        if code:
-            from .models import Institution
-            try:
-                inst = Institution.objects.get(code=code, is_active=True)
-                if inst.max_seats is not None:
-                    if inst.students.count() >= inst.max_seats:
-                        raise forms.ValidationError("This institution has reached its maximum seat limit.")
-                return inst
-            except Institution.DoesNotExist:
-                raise forms.ValidationError("Invalid or inactive institution code.")
-        return None
+        if not code:
+            return None
+
+        from .models import Institution
+        try:
+            inst = Institution.objects.get(code=code, is_active=True)
+        except Institution.DoesNotExist:
+            raise forms.ValidationError("Invalid or inactive institution code.")
+
+        # ── Seat cap (backstop) ────────────────────────────────────────────────
+        # Count active CustomUsers linked to this institution via the FK.
+        if inst.max_seats is not None:
+            active_count = inst.students.filter(is_active=True).count()
+            if active_count >= inst.max_seats:
+                raise forms.ValidationError(
+                    "This institution has reached its student seat limit. "
+                    "Please contact your institution administrator to request a seat."
+                )
+
+        # ── Domain validation ──────────────────────────────────────────────────
+        # Only enforced when the institution has registered at least one domain.
+        # If zero domains are registered the institution operates in code-only mode
+        # (backward compatible and phase-2 single-use-code friendly).
+        registered_domains = list(
+            inst.allowed_domains.values_list('domain', flat=True)
+        )
+        if registered_domains:
+            email = self.cleaned_data.get('email', '')
+            email_domain = email.split('@')[-1].lower() if '@' in email else ''
+            normalised = [d.lower() for d in registered_domains]
+            if email_domain not in normalised:
+                domain_list = ', '.join(f'@{d}' for d in registered_domains)
+                raise forms.ValidationError(
+                    f"This code belongs to {inst.name}, which only accepts "
+                    f"institutional email addresses ({domain_list}). "
+                    f"Your email address doesn't match — please sign up with your "
+                    f"institution-issued email account."
+                )
+
+        return inst
 
     def save(self, commit=True):
         user = super().save(commit=False)

@@ -10,7 +10,7 @@ from django.conf import settings
 from django_ratelimit.decorators import ratelimit
 from django.core.mail import send_mail
 from .forms import IndividualSignUpForm, BusinessSignUpForm, CustomLoginForm
-from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership, SalesInquiry
+from .models import CustomUser, IndividualUser, BusinessUser, InstitutionMembership, SalesInquiry, Institution
 from .subscription import requires_premium
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ def individual_dashboard_view(request):
 
 @login_required
 def join_institution(request):
-    """Join an institution using an institution code"""
+    """Join an institution using an institution code (INST-XXXXXX format)."""
     if request.method == 'POST':
         institution_code = request.POST.get('institution_code', '').strip()
 
@@ -195,6 +195,99 @@ def join_institution(request):
             messages.error(request, 'Invalid institution code.')
             return redirect('individual_dashboard')
 
+        # ── Domain validation ──────────────────────────────────────────────────
+        # The BusinessUser (recruiter/institution admin) may be linked to an
+        # Institution object that has registered email domains.  If domains are
+        # present, the joining student's email must match one of them.
+        # If the business has no linked Institution, or the Institution has no
+        # registered domains, the check is skipped (code-only mode).
+        institution_obj = None
+        try:
+            institution_obj = Institution.objects.get(
+                contact_email=business.user.email, is_active=True
+            )
+        except Institution.DoesNotExist:
+            pass
+        except Institution.MultipleObjectsReturned:
+            # Edge case: fall back to the first active institution for this admin
+            institution_obj = Institution.objects.filter(
+                contact_email=business.user.email, is_active=True
+            ).first()
+
+        if institution_obj is not None:
+            registered_domains = list(
+                institution_obj.allowed_domains.values_list('domain', flat=True)
+            )
+            if registered_domains:
+                user_email = request.user.email
+                email_domain = user_email.split('@')[-1].lower() if '@' in user_email else ''
+                normalised = [d.lower() for d in registered_domains]
+                if email_domain not in normalised:
+                    domain_list = ', '.join(f'@{d}' for d in registered_domains)
+                    messages.error(
+                        request,
+                        f"This code belongs to {institution_obj.name}, which only accepts "
+                        f"institutional email addresses ({domain_list}). "
+                        f"Your email ({user_email}) doesn't match — "
+                        f"please use your institution-issued email account to join."
+                    )
+                    return redirect('individual_dashboard')
+
+        # ── Seat cap (backstop, race-safe) ─────────────────────────────────────
+        # Uses select_for_update() + atomic() so two simultaneous joins cannot
+        # both read "cap not hit" and both proceed.  In PostgreSQL/MySQL this is
+        # a row-level lock; in SQLite (dev) it is table-level but still safe.
+        from django.db import transaction
+
+        if business.seat_cap is not None:
+            with transaction.atomic():
+                # Lock the business row so concurrent requests queue here.
+                locked_business = BusinessUser.objects.select_for_update().get(
+                    pk=business.pk
+                )
+                active_member_count = InstitutionMembership.objects.filter(
+                    business=locked_business, is_active=True
+                ).count()
+                if active_member_count >= locked_business.seat_cap:
+                    messages.error(
+                        request,
+                        "This institution has reached its student capacity. "
+                        "Please contact your institution administrator to request a seat."
+                    )
+                    return redirect('individual_dashboard')
+
+                # Re-check existing membership inside the lock to avoid duplicates
+                existing_membership = InstitutionMembership.objects.filter(
+                    individual=request.user.individual_profile,
+                    business=business
+                ).first()
+
+                if existing_membership:
+                    if existing_membership.is_active:
+                        messages.info(request, f'You are already a member of {business.company_name or business.name}.')
+                    else:
+                        existing_membership.is_active = True
+                        existing_membership.save()
+                        messages.success(request, f'Your membership to {business.company_name or business.name} has been reactivated.')
+                    return redirect('individual_dashboard')
+
+                consent_granted = request.POST.get('consent_granted') == 'on'
+                if not consent_granted:
+                    messages.error(request, 'You must consent to share your assessment results with the institution.')
+                    return redirect('individual_dashboard')
+
+                from django.utils import timezone as tz
+                InstitutionMembership.objects.create(
+                    individual=request.user.individual_profile,
+                    business=business,
+                    consent_granted=True,
+                    consent_granted_at=tz.now()
+                )
+
+            messages.success(request, f'Successfully joined {business.company_name or business.name}!')
+            return redirect('individual_dashboard')
+
+        # No seat cap — standard path (no lock needed)
         existing_membership = InstitutionMembership.objects.filter(
             individual=request.user.individual_profile,
             business=business
@@ -214,12 +307,12 @@ def join_institution(request):
             messages.error(request, 'You must consent to share your assessment results with the institution.')
             return redirect('individual_dashboard')
 
-        from django.utils import timezone
+        from django.utils import timezone as tz
         InstitutionMembership.objects.create(
             individual=request.user.individual_profile,
             business=business,
             consent_granted=True,
-            consent_granted_at=timezone.now()
+            consent_granted_at=tz.now()
         )
 
         messages.success(request, f'Successfully joined {business.company_name or business.name}!')

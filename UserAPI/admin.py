@@ -5,6 +5,7 @@ from .models import (
     IndividualUser,
     BusinessUser,
     Institution,
+    InstitutionDomain,
     SubscriptionTier,
     PaymentTransaction,
     InstitutionMembership,
@@ -85,6 +86,7 @@ class BusinessUserAdmin(admin.ModelAdmin):
         'company_name',
         'user_email',
         'institution_code',
+        'seat_cap_display',
         'member_count',
         'created_at',
     )
@@ -101,8 +103,22 @@ class BusinessUserAdmin(admin.ModelAdmin):
         return obj.member_individuals.count()
     member_count.short_description = 'Members'
 
+    def seat_cap_display(self, obj):
+        return obj.seat_cap if obj.seat_cap is not None else '∞ Unlimited'
+    seat_cap_display.short_description = 'Seat Cap'
+
 
 # ─── Institution ──────────────────────────────────────────────────────────────
+
+
+class InstitutionDomainInline(admin.TabularInline):
+    """Manage allowed email domains directly from the Institution edit page."""
+    model = InstitutionDomain
+    extra = 1
+    fields = ('domain', 'added_at')
+    readonly_fields = ('added_at',)
+    verbose_name = 'Allowed Email Domain'
+    verbose_name_plural = 'Allowed Email Domains'
 
 @admin.register(Institution)
 class InstitutionAdmin(admin.ModelAdmin):
@@ -114,16 +130,22 @@ class InstitutionAdmin(admin.ModelAdmin):
         'is_active',
         'created_at',
         'student_count',
+        'domain_count',
     )
     list_filter = ('plan', 'is_active', 'created_at')
     search_fields = ('name', 'code', 'contact_email')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)
     actions = ['generate_new_code']
+    inlines = [InstitutionDomainInline]
 
     def student_count(self, obj):
         return obj.students.count()
     student_count.short_description = 'Students'
+
+    def domain_count(self, obj):
+        return obj.allowed_domains.count()
+    domain_count.short_description = 'Domains'
 
     @admin.action(description='Generate new code for selected institutions')
     def generate_new_code(self, request, queryset):
@@ -132,6 +154,16 @@ class InstitutionAdmin(admin.ModelAdmin):
             inst.save()
         self.message_user(request, f"New codes generated for {queryset.count()} institutions.")
 
+
+# ─── InstitutionDomain (also registered standalone for direct access) ─────────
+
+@admin.register(InstitutionDomain)
+class InstitutionDomainAdmin(admin.ModelAdmin):
+    list_display = ('domain', 'institution', 'added_at')
+    list_filter = ('institution',)
+    search_fields = ('domain', 'institution__name')
+    readonly_fields = ('added_at',)
+    ordering = ('institution', 'domain')
 
 # ─── SubscriptionTier ─────────────────────────────────────────────────────────
 
