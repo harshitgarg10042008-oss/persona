@@ -462,7 +462,7 @@
   let integrityWarningShown = false;
   let integrityMeterHasWarning = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-  let timeLimitSeconds = {{ time_limit_seconds|default: "null" }};
+  let timeLimitSeconds = {{ time_limit_seconds| default: "null"}};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
@@ -685,9 +685,6 @@
       startPreparationTimer();
       startBackgroundAnalysis();
 
-      // Verify face on assessment start
-      verifyFaceOnStart();
-
       // Set up typing pattern detection
       setupTypingDetection();
     }
@@ -758,6 +755,16 @@
           audio: true
         });
         console.log('[Camera] Permissions granted, got media stream');
+
+        // Verify audio track is present
+        const audioTracks = videoStream.getAudioTracks();
+        console.log('[Camera] Audio tracks in stream:', audioTracks.length);
+        if (audioTracks.length === 0) {
+          console.warn('[Camera] WARNING: No audio tracks in stream - transcription will fail!');
+        } else {
+          console.log('[Camera] Audio track enabled:', audioTracks[0].enabled);
+        }
+
       } catch (mediaError) {
         console.error('[Camera] getUserMedia failed:', mediaError);
         throw mediaError;
@@ -805,6 +812,9 @@
       videoFeed.onloadedmetadata = function () {
         console.log('[Camera] Video metadata loaded - camera ready!');
         markCameraReady();
+
+        // Verify face AFTER camera is fully ready
+        verifyFaceOnStart();
       };
 
       setTimeout(() => {
@@ -895,6 +905,13 @@
   function startResponseTimer() {
     if (responseInterval) clearInterval(responseInterval);
 
+    // Start response time counter regardless of time limit
+    responseInterval = setInterval(() => {
+      responseTime++;
+      const responseTimeEl = document.getElementById('response-time');
+      if (responseTimeEl) responseTimeEl.textContent = responseTime;
+    }, 1000);
+
     if (timeLimitSeconds) {
       timeLeft = timeLimitSeconds;
       const timeLeftSpan = document.getElementById('time-left');
@@ -909,12 +926,6 @@
       } else {
         startRapidFireCountdown();
       }
-    } else {
-      responseInterval = setInterval(() => {
-        responseTime++;
-        const responseTimeEl = document.getElementById('response-time');
-        if (responseTimeEl) responseTimeEl.textContent = responseTime;
-      }, 1000);
     }
   }
 
@@ -957,6 +968,9 @@
 
     // Start periodic face checks
     startPeriodicFaceChecks();
+
+    // Start DevTools detection
+    setInterval(detectDevTools, 1000);
   }
 
   function captureSnapshot(analysisType) {
@@ -1293,8 +1307,8 @@
             class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400"
             onerror="this.style.display='none'" />
           <div>
-            <span id="interviewer-name" class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{
-              persona_name|default:'Interviewer' }}</span>
+            <span id="interviewer-name"
+              class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{persona_name|default:'Interviewer'}}</span>
             <p class="text-xs text-gray-500 dark:text-gray-400">Asking the question…</p>
           </div>
         </div>
@@ -1595,9 +1609,19 @@
         return;
       }
 
+      // Verify audio tracks before recording
+      const audioTracks = videoStream.getAudioTracks();
+      console.log('[Recording] Audio tracks before recording:', audioTracks.length);
+      if (audioTracks.length === 0) {
+        console.error('[Recording] ERROR: No audio tracks - transcription will fail!');
+        showWarning('No audio detected. Please check your microphone.');
+        return;
+      }
+
       // Record the full videoStream instead of audio-only
       const mimeType = getSupportedVideoMimeType();
       const recorderOptions = mimeType ? { mimeType } : {};
+      console.log('[Recording] Using MIME type:', mimeType || 'default');
       mediaRecorder = new MediaRecorder(videoStream, recorderOptions);
 
       mediaRecorder.ondataavailable = function (event) {
@@ -1830,124 +1854,124 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory|yesno:"true,false" }};
+    const isMandatory = {{ question.is_mandatory| yesno: "true,false"}};
 
-    let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
-    if (isMandatory) {
-      confirmMsg = '⚠️ This is a mandatory question. Skipping it will be recorded and may affect your score. Are you sure?';
-    }
+  let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
+  if (isMandatory) {
+    confirmMsg = '⚠️ This is a mandatory question. Skipping it will be recorded and may affect your score. Are you sure?';
+  }
 
-    // Suppress proctor BEFORE the confirm dialog opens.
-    // Native browser dialogs exit fullscreen, which would otherwise trigger the
-    // proctor abandon logic. We restore the proctor (and re-enter fullscreen)
-    // after the user dismisses the dialog.
-    _proctorSuppressed = true;
-    if (_proctorDebounceTimer) { clearTimeout(_proctorDebounceTimer); _proctorDebounceTimer = null; }
+  // Suppress proctor BEFORE the confirm dialog opens.
+  // Native browser dialogs exit fullscreen, which would otherwise trigger the
+  // proctor abandon logic. We restore the proctor (and re-enter fullscreen)
+  // after the user dismisses the dialog.
+  _proctorSuppressed = true;
+  if (_proctorDebounceTimer) { clearTimeout(_proctorDebounceTimer); _proctorDebounceTimer = null; }
 
-    const confirmed = confirm(confirmMsg);
+  const confirmed = confirm(confirmMsg);
 
-    // Re-enter fullscreen (the dialog exits it on most browsers) then re-enable proctor
-    async function restoreFullscreenAndProctor() {
-      if (!isFullscreenActive()) {
-        try {
-          if (document.documentElement.requestFullscreen) {
-            await document.documentElement.requestFullscreen();
-          } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-          }
-        } catch (e) {
-          console.warn('Could not re-enter fullscreen after skip dialog:', e);
+  // Re-enter fullscreen (the dialog exits it on most browsers) then re-enable proctor
+  async function restoreFullscreenAndProctor() {
+    if (!isFullscreenActive()) {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
         }
+      } catch (e) {
+        console.warn('Could not re-enter fullscreen after skip dialog:', e);
       }
-      // Small buffer so any residual fullscreenchange events fire and are swallowed
-      // before we re-enable the proctor listener.
-      setTimeout(function () { _proctorSuppressed = false; }, 400);
     }
+    // Small buffer so any residual fullscreenchange events fire and are swallowed
+    // before we re-enable the proctor listener.
+    setTimeout(function () { _proctorSuppressed = false; }, 400);
+  }
 
-    if (!confirmed) {
-      await restoreFullscreenAndProctor();
-      return;
-    }
+  if (!confirmed) {
+    await restoreFullscreenAndProctor();
+    return;
+  }
 
-    const skipButton = document.getElementById('skip-button');
-    if (!skipButton) {
-      console.warn('[Skip] Skip button not found');
-      return;
-    }
-    skipButton.disabled = true;
-    skipButton.textContent = 'Skipping…';
+  const skipButton = document.getElementById('skip-button');
+  if (!skipButton) {
+    console.warn('[Skip] Skip button not found');
+    return;
+  }
+  skipButton.disabled = true;
+  skipButton.textContent = 'Skipping…';
 
-    let skipReason = 'user_skipped';
-    if (!videoStream) {
-      skipReason = 'camera_mic_unavailable';
-    } else {
-      const audioTracks = videoStream.getAudioTracks();
-      if (!audioTracks.length) skipReason = 'microphone_unavailable';
-    }
+  let skipReason = 'user_skipped';
+  if (!videoStream) {
+    skipReason = 'camera_mic_unavailable';
+  } else {
+    const audioTracks = videoStream.getAudioTracks();
+    if (!audioTracks.length) skipReason = 'microphone_unavailable';
+  }
 
-    try {
-      const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-          skipped: true,
-          skip_reason: skipReason,
-          response_duration: 0,
-          time_to_start: 0,
-          fullscreen_violations: fullscreenViolations
-        }),
-        credentials: 'same-origin'
-      });
+  try {
+    const response = await fetch(`{% url 'analysis:submit_assessment_response' session_id=session_id %}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        skipped: true,
+        skip_reason: skipReason,
+        response_duration: 0,
+        time_to_start: 0,
+        fullscreen_violations: fullscreenViolations
+      }),
+      credentials: 'same-origin'
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (result.success) {
-        if (result.is_complete) {
-          _assessmentEnded = true;
+    if (result.success) {
+      if (result.is_complete) {
+        _assessmentEnded = true;
 
-          // Clear background analysis intervals
-          if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
-          if (attireInterval) clearInterval(attireInterval);
-          stopPeriodicFaceChecks();
+        // Clear background analysis intervals
+        if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+        if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
 
-          if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-          const transitionText = document.getElementById('transition-text');
-          if (transitionText) transitionText.textContent = 'Completing assessment...';
-          const videoTransition = document.getElementById('video-transition');
-          if (videoTransition) videoTransition.style.display = 'flex';
-          const videoFeed = document.getElementById('video-feed');
-          if (videoFeed) videoFeed.style.opacity = '0';
-          window.location.href = result.complete_url;
-          return;
-        }
-        if (result.next_question) {
-          skipButton.disabled = false;
-          skipButton.textContent = 'Skip this question';
-          await restoreFullscreenAndProctor();
-
-          // Clear background analysis intervals before transitioning
-          if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
-          if (attireInterval) clearInterval(attireInterval);
-          stopPeriodicFaceChecks();
-
-          updateQuestionUI(result.next_question);
-        }
-      } else {
-        showWarning('Could not skip: ' + (result.error || 'Unknown error'));
+        if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+        const transitionText = document.getElementById('transition-text');
+        if (transitionText) transitionText.textContent = 'Completing assessment...';
+        const videoTransition = document.getElementById('video-transition');
+        if (videoTransition) videoTransition.style.display = 'flex';
+        const videoFeed = document.getElementById('video-feed');
+        if (videoFeed) videoFeed.style.opacity = '0';
+        window.location.href = result.complete_url;
+        return;
+      }
+      if (result.next_question) {
         skipButton.disabled = false;
         skipButton.textContent = 'Skip this question';
         await restoreFullscreenAndProctor();
+
+        // Clear background analysis intervals before transitioning
+        if (bodyLanguageInterval) clearInterval(bodyLanguageInterval);
+        if (attireInterval) clearInterval(attireInterval);
+        stopPeriodicFaceChecks();
+
+        updateQuestionUI(result.next_question);
       }
-    } catch (err) {
-      console.error('Skip failed:', err);
-      showWarning('Failed to skip question. Please check your connection.');
+    } else {
+      showWarning('Could not skip: ' + (result.error || 'Unknown error'));
       skipButton.disabled = false;
       skipButton.textContent = 'Skip this question';
       await restoreFullscreenAndProctor();
     }
+  } catch (err) {
+    console.error('Skip failed:', err);
+    showWarning('Failed to skip question. Please check your connection.');
+    skipButton.disabled = false;
+    skipButton.textContent = 'Skip this question';
+    await restoreFullscreenAndProctor();
+  }
   }
 
   async function forceSkipQuestion(overrideReason = null) {

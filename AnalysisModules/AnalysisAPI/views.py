@@ -1459,10 +1459,8 @@ def start_individual_assessment_session(request, session_id):
     
     client_ip = get_client_ip(request)
     assessment.ip_address = client_ip
-    
+
     # Check for multiple IPs for same user (simultaneous sessions from different IPs)
-    from django.utils import timezone
-    from datetime import timedelta
     
     active_assessments = IndividualAssessment.objects.filter(
         user=request.user,
