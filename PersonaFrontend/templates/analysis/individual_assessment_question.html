@@ -310,32 +310,39 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
-  .integrity-warning .warning-message {
-    text-align: center;
-  }
 
   .integrity-meter {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
+    padding: 8px 14px;
     border-radius: 999px;
-    background: rgba(17, 24, 39, 0.8);
-    color: #f9fafb;
-    font-size: 12px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.02em;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    z-index: 10;
   }
 
   .integrity-meter .dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 999px;
     background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  }
+
+  .integrity-meter.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
   }
 
   .integrity-meter.warning .dot {
     background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
   }
 
   .assessment-start-gate {
@@ -459,10 +466,11 @@
 
   // Environment integrity tracking
   let integrityStrikeCount = 0;
-  let integrityWarningShown = false;
+  let strike1Shown = false;
+  let strike2Shown = false;
   let integrityMeterHasWarning = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-  let timeLimitSeconds = {{ time_limit_seconds| default: "null"}};
+  let timeLimitSeconds = {{ time_limit_seconds|default: "null"}};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
@@ -490,10 +498,15 @@
   function updateIntegrityMeter(isWarning) {
     const meterEl = document.getElementById('integrity-meter');
     const meterTextEl = document.getElementById('integrity-meter-text');
-    if (!meterEl || !meterTextEl) return;
+    console.log('[Integrity Meter] updateIntegrityMeter called, isWarning:', isWarning, 'meterEl:', !!meterEl, 'meterTextEl:', !!meterTextEl);
+    if (!meterEl || !meterTextEl) {
+      console.warn('[Integrity Meter] Element not found in DOM');
+      return;
+    }
 
     meterEl.classList.toggle('warning', isWarning);
     meterTextEl.textContent = isWarning ? 'Warning' : 'All good';
+    console.log('[Integrity Meter] Updated to:', meterTextEl.textContent);
   }
 
   async function logIntegrityEvent(eventType, details = {}) {
@@ -533,34 +546,65 @@
   function handleStrikeWarning(strikeCount, isHighRisk) {
     integrityMeterHasWarning = true;
     updateIntegrityMeter(true);
-    if (strikeCount === 1 && !integrityWarningShown) {
+    
+    if (isHighRisk) {
+      // Third+ strike - marked as high-risk, auto-submit and lock
+      const endOverlay = document.getElementById('fullscreen-warning');
+      const msgEl = document.getElementById('proctor-end-message');
+      const btnEl = document.getElementById('return-fullscreen-btn');
+      
+      if (endOverlay && msgEl) {
+        endOverlay.querySelector('h2').textContent = 'Assessment Ended';
+        msgEl.textContent = 'Your assessment has been automatically submitted due to repeated integrity violations. This session will be flagged for review.';
+        if (btnEl) btnEl.style.display = 'none';
+        endOverlay.style.display = 'flex';
+      }
+      
+      // Disable inputs
+      const recordBtn = document.getElementById('record-button');
+      if (recordBtn) recordBtn.disabled = true;
+      const skipBtn = document.getElementById('skip-button');
+      if (skipBtn) skipBtn.disabled = true;
+      const textInputs = document.querySelectorAll('textarea, input[type="text"]');
+      textInputs.forEach(input => input.disabled = true);
+      
+      // Trigger submission flow
+      if (isRecording) {
+        processAudioRecording();
+      } else {
+        skipQuestion();
+      }
+      return;
+    }
+
+    if (strikeCount === 1 && !strike1Shown) {
       // First strike - show warning
       const warningEl = document.getElementById('integrity-warning');
       if (warningEl) {
         warningEl.style.display = 'flex';
         warningEl.querySelector('.warning-message').textContent =
           'Warning: You exited fullscreen or switched tabs. Please stay in fullscreen and keep this tab active.';
-        integrityWarningShown = true;
+        strike1Shown = true;
 
         // Auto-hide after 5 seconds
         setTimeout(() => {
           warningEl.style.display = 'none';
         }, 5000);
       }
-    } else if (strikeCount === 2 && !isHighRisk) {
+    } else if (strikeCount === 2 && !strike2Shown) {
       // Second strike - lighter reminder
       const warningEl = document.getElementById('integrity-warning');
       if (warningEl) {
         warningEl.style.display = 'flex';
         warningEl.querySelector('.warning-message').textContent =
           'Reminder: This is your second violation. Continued violations may flag your assessment for review.';
+        strike2Shown = true;
 
         setTimeout(() => {
           warningEl.style.display = 'none';
         }, 5000);
       }
     }
-    // Third+ strike - marked as high-risk in backend, no visible warning needed
   }
 
   // DevTools detection
@@ -571,8 +615,12 @@
     const threshold = 160;
     const widthDiff = window.outerWidth - window.innerWidth > threshold;
     const heightDiff = window.outerHeight - window.innerHeight > threshold;
+    
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    const fullscreenHeightDiff = isFullscreen && (window.screen.height - window.innerHeight > threshold);
+    const fullscreenWidthDiff = isFullscreen && (window.screen.width - window.innerWidth > threshold);
 
-    if (widthDiff || heightDiff) {
+    if (widthDiff || heightDiff || fullscreenHeightDiff || fullscreenWidthDiff) {
       devtoolsDetected = true;
       logIntegrityEvent('devtools_opened', {
         timestamp: Date.now(),
@@ -945,6 +993,7 @@
   }
 
   async function handleTimeOut() {
+    window._isTimeoutStop = true;
     if (isRecording) {
       await stopRecording();
       await nextQuestion();
@@ -953,6 +1002,7 @@
     } else {
       await nextQuestion();
     }
+    window._isTimeoutStop = false;
   }
 
   function startBackgroundAnalysis() {
@@ -1696,6 +1746,12 @@
         await recordingPromise;
       }
 
+      // If submission failed (e.g. recording too short) and it wasn't a timeout auto-skip,
+      // processAudioRecording restored the UI to let them retry. Do not proceed with the "success" UI updates.
+      if (!submitPromise) {
+        return;
+      }
+
       // Update UI
       const recordButton = document.getElementById('record-button');
       if (recordButton) recordButton.style.display = 'none';
@@ -1738,6 +1794,13 @@
     console.log('Recorded video blob size:', videoBlob.size, 'bytes');
 
     if (videoBlob.size < 1024) {
+      if (window._isTimeoutStop) {
+        console.log('[submit] Timeout reached on a very short recording. Auto-skipping instead of stranding user.');
+        submissionInFlight = false;
+        submitPromise = forceSkipQuestion('timeout');
+        return;
+      }
+
       showWarning('Recording too short or empty. Please speak for at least 2 seconds.');
       const recordButton = document.getElementById('record-button');
       if (recordButton) {
@@ -1854,7 +1917,7 @@
 
   // Skip question
   async function skipQuestion() {
-    const isMandatory = {{ question.is_mandatory| yesno: "true,false"}};
+    const isMandatory = {{ question.is_mandatory| yesno:"true,false"}};
 
   let confirmMsg = 'Skip this question? It will be marked as skipped in your assessment.';
   if (isMandatory) {

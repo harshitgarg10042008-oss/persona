@@ -1666,6 +1666,10 @@ def individual_assessment_question(request, session_id):
     # Use question's expected_duration as hard time limit (default 120s if not set)
     time_limit_seconds = current_question.expected_duration if current_question.expected_duration else 120
     
+    # Store server-side timestamp when question is served to prevent client-side timer tampering
+    session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
+    request.session[session_key] = timezone.now().isoformat()
+    
     context = {
         'audio_url': audio_url,
         'assessment': assessment,
@@ -1688,6 +1692,87 @@ def individual_assessment_question(request, session_id):
         }
     }
     return render(request, 'analysis/individual_assessment_question.html', context)
+
+
+@require_http_methods(["POST"])
+@login_required
+def log_integrity_event(request, session_id):
+    """
+    Log an environment integrity event for a proctored assessment session.
+
+    Accepts any event type listed in EnvironmentIntegrityEvent.EVENT_TYPE_CHOICES.
+    For every event type:
+      - Writes an EnvironmentIntegrityEvent DB row.
+      - Increments assessment.integrity_strike_count.
+      - Recalculates the severity-weighted integrity score via
+        calculate_integrity_score(). If score < 70 the session is marked
+        high-risk and auto-locked (current_question_index forced to end).
+
+    CSRF: standard Django CSRF via X-CSRFToken header (no @csrf_exempt).
+    Session guard: assessment must have status='in_progress'.
+    """
+    assessment = get_object_or_404(
+        IndividualAssessment,
+        session_id=session_id,
+        user=request.user,
+        status='in_progress'
+    )
+
+    try:
+        data = json.loads(request.body)
+        event_type = data.get('event_type')
+        details = data.get('details', {})
+
+        if not event_type:
+            return JsonResponse({'success': False, 'error': 'event_type is required'}, status=400)
+
+        # Validate against the model's allowed choices
+        from .models import EnvironmentIntegrityEvent
+        valid_event_types = [choice[0] for choice in EnvironmentIntegrityEvent.EVENT_TYPE_CHOICES]
+        if event_type not in valid_event_types:
+            return JsonResponse({'success': False, 'error': 'invalid_event_type'}, status=400)
+
+        # Write the DB row
+        event = EnvironmentIntegrityEvent.objects.create(
+            assessment=assessment,
+            event_type=event_type,
+            details=details
+        )
+
+        # Increment strike count for ALL event types (not just fullscreen/tab_switch).
+        # This ensures paste/typing/face/IP events all affect the counter and
+        # feed the severity-weighted high-risk calculation below.
+        assessment.integrity_strike_count += 1
+
+        # Severity-weighted risk: calculate_integrity_score() returns 0-100
+        # (higher = better). Score < 70 means cumulative penalty > 30 points.
+        HIGH_RISK_THRESHOLD = 70
+        score = assessment.calculate_integrity_score()
+        is_high_risk = score < HIGH_RISK_THRESHOLD
+
+        if is_high_risk:
+            assessment.is_high_risk = True
+            # Force the question index to end so the frontend redirects to complete
+            assessment.current_question_index = assessment.total_questions
+
+        assessment.save(update_fields=['integrity_strike_count', 'is_high_risk', 'current_question_index'])
+
+        # strike_count in the response is the total number of logged events
+        # (used by the frontend banner — not limited to fullscreen/tab events).
+        strike_count = assessment.integrity_events.count()
+
+        return JsonResponse({
+            'success': True,
+            'event_id': event.id,
+            'strike_count': strike_count,
+            'is_high_risk': is_high_risk
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"[Integrity] Failed to log event for session {session_id}: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_http_methods(["POST"])
@@ -1901,6 +1986,10 @@ def submit_assessment_response(request, session_id):
                     'persona_id': next_persona_id,
                     'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
                 }
+            # Record server-side start time for the next question
+            next_session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
+            request.session[next_session_key] = timezone.now().isoformat()
+            
             return JsonResponse(response_data)
 
         # Create response record
@@ -1919,17 +2008,32 @@ def submit_assessment_response(request, session_id):
             persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
             
             # Server-side time limit validation
-            response_duration = int(float(data.get('response_duration', 0) or 0))
+            client_response_duration = int(float(data.get('response_duration', 0) or 0))
+            session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
+            served_at_str = request.session.get(session_key)
+            served_at = None
+            
+            # For the timeout decision, compute actual elapsed time server-side from when the question was served
+            actual_elapsed = client_response_duration  # Fallback
+            if served_at_str:
+                try:
+                    from dateutil.parser import parse as parse_date
+                    served_at = parse_date(served_at_str)
+                    actual_elapsed = (timezone.now() - served_at).total_seconds()
+                except Exception as e:
+                    logger.warning(f"Failed to parse question start time {served_at_str}: {e}")
+
             if current_question and current_question.expected_duration:
-                max_duration = current_question.expected_duration
-                if response_duration > max_duration:
+                # Add buffer for prep timer (10s) + network latency (e.g. 5-10s)
+                max_duration = current_question.expected_duration + 20
+                if actual_elapsed > max_duration:
                     # Reject late submissions - mark as timeout skip
                     skip_reason = 'timeout'
                     IndividualAssessmentResponse.objects.create(
                         assessment=assessment,
                         question=current_question,
                         question_order=assessment.current_question_index + 1,
-                        question_started_at=timezone.now(),
+                        question_started_at=served_at if served_at else timezone.now(),
                         response_started_at=timezone.now(),
                         response_ended_at=timezone.now(),
                         response_duration=0,
@@ -1940,30 +2044,60 @@ def submit_assessment_response(request, session_id):
                             'skipped': True,
                             'skip_reason': skip_reason,
                             'fullscreen_violations': data.get('fullscreen_violations', 0),
-                            'late_submission_duration': response_duration,
+                            'late_submission_duration': actual_elapsed,
+                            'client_reported_duration': client_response_duration,
                         }
                     )
                     assessment.current_question_index += 1
                     assessment.save()
                     is_complete = assessment.current_question_index >= assessment.total_questions
-                    return JsonResponse({
+                    
+                    response_data = {
                         'success': True,
                         'is_complete': is_complete,
-                        'next_question_url': f'/analysis/individual/{session_id}/question/' if not is_complete else None,
-                        'complete_url': f'/analysis/individual/{session_id}/processing/' if is_complete else None,
                         'timeout_rejected': True,
-                    })
+                    }
+                    if not is_complete:
+                        next_q = assessment.get_next_question()
+                        next_q_text = next_q.question_text if next_q else ""
+                        next_q_type_display = next_q.get_question_type_display() if next_q else ""
+                        next_q_is_mandatory = next_q.is_mandatory if next_q else False
+                        
+                        from .voice_interviewer import generate_question_audio, get_persona_avatar, PERSONAS
+                        next_persona_id = _get_interviewer_persona(assessment, assessment.current_question_index, False, request.user)
+                        audio_url = generate_question_audio(next_q_text, next_persona_id, session_id) if next_q_text else None
+                        
+                        response_data['next_question'] = {
+                            'is_follow_up': False,
+                            'question_text': next_q_text,
+                            'question_type_display': next_q_type_display,
+                            'is_mandatory': next_q_is_mandatory,
+                            'difficulty_level': assessment.current_difficulty,
+                            'question_number': assessment.current_question_index + 1,
+                            'progress_percentage': ((assessment.current_question_index + 1) / assessment.total_questions) * 100,
+                            'audio_url': audio_url,
+                            'persona_avatar': get_persona_avatar(next_persona_id),
+                            'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
+                            'persona_id': next_persona_id,
+                            'time_limit_seconds': next_q.expected_duration if next_q.expected_duration else 120,
+                        }
+                        next_session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
+                        request.session[next_session_key] = timezone.now().isoformat()
+                    else:
+                        response_data['complete_url'] = f'/analysis/individual/{session_id}/processing/'
+                        
+                    return JsonResponse(response_data)
             
             response = IndividualAssessmentResponse.objects.create(
                 assessment=assessment,
                 question=current_question,
                 question_order=assessment.current_question_index + 1,
-                question_started_at=timezone.now(),
+                question_started_at=served_at if served_at else timezone.now(),
                 response_started_at=timezone.now(),
                 response_ended_at=timezone.now(),
                 # FormData sends all values as strings (e.g. "10.482"); parse through
                 # float() first so fractional-second values don't crash the PositiveIntegerField.
-                response_duration=response_duration,
+                response_duration=client_response_duration,
                 time_to_start=int(float(data.get('time_to_start', 0) or 0)),
                 interviewer_persona_id=persona_id
             )
@@ -2315,6 +2449,11 @@ def submit_assessment_response(request, session_id):
                 'persona_name': PERSONAS.get(persona_id, {}).get('name', 'Interviewer'),
                 'persona_id': persona_id,
             }
+            
+        if not is_complete:
+            next_session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
+            request.session[next_session_key] = timezone.now().isoformat()
+            
         return JsonResponse(response_data)
         
     except Exception as e:
@@ -2960,6 +3099,8 @@ def complete_individual_assessment(request, session_id):
             pass
 
     integrity_flag_count = assessment.integrity_events.count()
+    integrity_cert_available = assessment.status == 'completed' and integrity_flag_count == 0
+    print(f"[Certificate Debug] Assessment status: {assessment.status}, Flag count: {integrity_flag_count}, Certificate available: {integrity_cert_available}")
     context = {
         'assessment': assessment,
         'job_title': assessment.platform_job_title,
@@ -2975,7 +3116,7 @@ def complete_individual_assessment(request, session_id):
         'platform_average': platform_average,
         'communication_analysis': assessment.communication_analysis,
         'integrity_flag_count': integrity_flag_count,
-        'integrity_certificate_available': assessment.status == 'completed' and integrity_flag_count == 0,
+        'integrity_certificate_available': integrity_cert_available,
         'integrity_certificate_code': f"INT-{assessment.session_id.hex[:8].upper()}",
     }
     return render(request, 'analysis/individual_assessment_complete.html', context)
@@ -4017,15 +4158,19 @@ def integrity_review_dashboard(request):
         'institution_membership'
     ).annotate(
         event_count=Count('integrity_events')
-    ).order_by('-started_at')
+    )
     
-    # Calculate integrity scores and add to queryset
-    for assessment in flagged_assessments:
+    # Calculate integrity scores and prepare list for sorting
+    assessments_list = list(flagged_assessments)
+    for assessment in assessments_list:
         assessment.integrity_score = assessment.calculate_integrity_score()
         assessment.integrity_reason_summary = _build_integrity_reason_summary(assessment)
+        
+    # Sort by score ascending (lower score = higher risk), then by started_at descending
+    assessments_list.sort(key=lambda a: (a.integrity_score, -(a.started_at.timestamp() if a.started_at else 0)))
     
     context = {
-        'flagged_assessments': flagged_assessments,
+        'flagged_assessments': assessments_list,
         'business_user': business_user,
     }
     
@@ -4052,7 +4197,7 @@ def integrity_detail_view(request, session_id):
     )
     
     # Verify this assessment belongs to the institution's members
-    if assessment.institution_membership and assessment.institution_membership.business != business_user:
+    if not assessment.institution_membership or assessment.institution_membership.business != business_user:
         messages.error(request, "Access denied. You can only review your own institution's assessments.")
         return redirect('analysis:integrity_review_dashboard')
     
@@ -4083,7 +4228,7 @@ def mark_assessment_cleared(request, session_id):
     assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
     
     # Verify institution ownership
-    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+    if not assessment.institution_membership or assessment.institution_membership.business != request.user.business_profile:
         return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
     
     from django.utils import timezone
@@ -4104,7 +4249,7 @@ def mark_assessment_confirmed(request, session_id):
     assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
     
     # Verify institution ownership
-    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+    if not assessment.institution_membership or assessment.institution_membership.business != request.user.business_profile:
         return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
     
     from django.utils import timezone
@@ -4125,7 +4270,7 @@ def invalidate_assessment(request, session_id):
     assessment = get_object_or_404(IndividualAssessment, session_id=session_id)
     
     # Verify institution ownership
-    if assessment.institution_membership and assessment.institution_membership.business != request.user.business_profile:
+    if not assessment.institution_membership or assessment.institution_membership.business != request.user.business_profile:
         return JsonResponse({'success': False, 'error': 'access_denied'}, status=403)
     
     from django.utils import timezone
@@ -4167,6 +4312,8 @@ def export_integrity_csv(request):
         'user__individual_profile',
         'platform_job_title',
         'institution_membership'
+    ).prefetch_related(
+        'integrity_events'
     ).annotate(
         event_count=Count('integrity_events')
     ).order_by('-started_at')
@@ -4188,6 +4335,7 @@ def export_integrity_csv(request):
         'Status',
         'Integrity Score',
         'Event Count',
+        'Event Details',
         'Review Status',
         'Reviewed At',
         'Reviewed By'
@@ -4195,6 +4343,15 @@ def export_integrity_csv(request):
     
     # Write data
     for assessment in flagged_assessments:
+        # Build granular event list
+        events = assessment.integrity_events.all()
+        event_counts = {}
+        for event in events:
+            event_type_display = event.get_event_type_display()
+            event_counts[event_type_display] = event_counts.get(event_type_display, 0) + 1
+            
+        event_details_str = ", ".join([f"{name} ({count})" for name, count in event_counts.items()])
+        
         writer.writerow([
             assessment.user.individual_profile.name,
             assessment.user.email,
@@ -4205,6 +4362,7 @@ def export_integrity_csv(request):
             assessment.status,
             assessment.calculate_integrity_score(),
             assessment.event_count,
+            event_details_str,
             assessment.get_integrity_review_status_display(),
             assessment.integrity_reviewed_at.isoformat() if assessment.integrity_reviewed_at else '',
             assessment.integrity_reviewed_by.email if assessment.integrity_reviewed_by else ''
@@ -5798,52 +5956,3 @@ def periodic_face_check(request, session_id):
             'error': str(e)
         }, status=500)
 
-
-@login_required
-@require_http_methods(["POST"])
-@csrf_exempt
-def log_integrity_event(request, session_id):
-    """Log environment integrity events (fullscreen exit, tab switch, copy/paste, devtools)"""
-    from .models import IndividualAssessment, EnvironmentIntegrityEvent
-    
-    try:
-        assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
-        
-        data = json.loads(request.body)
-        event_type = data.get('event_type')
-        details = data.get('details', {})
-        
-        # Validate event type
-        valid_event_types = [choice[0] for choice in EnvironmentIntegrityEvent.EVENT_TYPE_CHOICES]
-        if event_type not in valid_event_types:
-            return JsonResponse({'success': False, 'error': 'invalid_event_type'}, status=400)
-        
-        # Create the integrity event
-        event = EnvironmentIntegrityEvent.objects.create(
-            assessment=assessment,
-            event_type=event_type,
-            details=details
-        )
-        
-        # Update strike count for fullscreen exit and tab switch events
-        if event_type in ['fullscreen_exit', 'tab_switch']:
-            assessment.integrity_strike_count += 1
-            
-            # Mark as high-risk if 3+ strikes
-            if assessment.integrity_strike_count >= 3:
-                assessment.is_high_risk = True
-            
-            assessment.save()
-        
-        return JsonResponse({
-            'success': True,
-            'event_id': event.id,
-            'strike_count': assessment.integrity_strike_count,
-            'is_high_risk': assessment.is_high_risk
-        })
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'invalid_json'}, status=400)
-    except Exception as e:
-        logger.error(f"Error logging integrity event: {e}")
-        return JsonResponse({'success': False, 'error': 'server_error'}, status=500)
