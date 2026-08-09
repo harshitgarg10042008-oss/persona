@@ -12,9 +12,11 @@ limits). All model work now runs either **in the browser** (proctoring) or on
 |---|---|---|
 | Face / phone proctoring | Server decoded base64 frames and ran MediaPipe on every snapshot | Browser runs face detection (native FaceDetector API) + a lightweight MobileNet classifier (`@mediapipe/tasks-vision` WASM from CDN); the backend only persists small JSON events |
 | Speech analysis | Local Whisper `base` + librosa features | Groq hosted `whisper-large-v3` for transcription; one structured LLM prompt scores fluency, pronunciation, content, formality, and confidence (deterministic proxy fallbacks if Groq is down) |
-| Attire analysis | CLIP + BLIP + ViT (torch/transformers) | Groq vision model (`llama-3.2-90b-vision-preview`) |
+| Attire analysis | CLIP + BLIP + ViT (torch/transformers) | Groq vision model (`qwen/qwen3.6-27b`) |
 | Body language analysis | MediaPipe pose / face mesh / hands | Same Groq vision model |
 | Audio extraction | Local ffmpeg via imageio_ffmpeg | None — Groq whisper accepts the recorded `.webm` directly |
+| Background tasks | django-q2 queue (needs a worker process) | Daemon threads in the web dyno — Render's single web dyno has no worker, so queued tasks were never executed |
+| Summary video | moviepy removed (feature broken) | `moviepy==2.2.1` + `imageio-ffmpeg` restored — imageio-ffmpeg bundles a static ffmpeg binary, no system install needed |
 
 All public function signatures (`analyze_speech`, `quick_transcribe`,
 `analyze_voice_confidence`, `analyze_attire`, `analyze_attire_base64`,
@@ -47,8 +49,8 @@ further edits.
 | Variable | Value |
 |---|---|
 | `GROQ_API_KEY` | Your Groq API key (required — all transcription and AI analysis depends on it) |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` (optional, already the default) |
-| `GROQ_VISION_MODEL` | `llama-3.2-90b-vision-preview` (optional, already the default) |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` recommended (`llama-3.3-70b-versatile` is on Groq's deprecation list, shutdown 08/16/26) |
+| `GROQ_VISION_MODEL` | `qwen/qwen3.6-27b` (optional, already the default — supports Vision + JSON mode) |
 | `SECRET_KEY` | A random string (keeps sessions stable across restarts) |
 | `DEBUG` | `False` |
 | `ALLOWED_HOSTS` | `<your-service>.onrender.com` |
@@ -56,12 +58,14 @@ further edits.
 | Razorpay / email vars | Same values as your current environment |
 
 4. **Build command** (set explicitly if not auto-detected): `pip install -r requirements.txt`
-5. After the first deploy, run once in the Render shell:
+5. A `Procfile` is included: the web dyno runs gunicorn, and a **release-phase** command runs `collectstatic` + `migrate` automatically on every deploy, so no manual shell steps are required after the first deploy.
+6. A `runtime.txt` pins the buildpack to Python 3.11.15.
 
-```
-python manage.py migrate
-python manage.py collectstatic --noinput
-```
+## Troubleshooting
+
+- **"Attire analysis unavailable / No snapshot data recorded"**: caused by Groq vision analysis returning zero scores (missing/invalid `GROQ_API_KEY` or a failing vision call) — snapshots with a score of 0 were silently filtered out. The analyzer now returns neutral 0.5 scores with a clear "Attire analysis unavailable this session" feedback line and a `vision_available` flag when the vision API is unreachable, so the flow never drops snapshots silently. With a valid `GROQ_API_KEY` on Render, real vision scores will appear.
+- **Speech analysis missing from results**: previously the submit endpoint extracted audio with local ffmpeg, which is unavailable on Render — the webm is now passed directly to Groq whisper.
+- **Coaching / roadmap / CV analysis never finishing**: django-q2 tasks queued to the ORM were never consumed (no worker dyno). All background analysis now runs in daemon threads within the web dyno.
 
 ## Cost & capability notes
 
