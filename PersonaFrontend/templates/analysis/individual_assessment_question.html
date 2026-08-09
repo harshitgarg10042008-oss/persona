@@ -509,7 +509,7 @@
   let strike2Shown = false;
   let integrityMeterHasWarning = false;
   const INTEGRITY_LOG_URL = "{% url 'analysis:log_integrity_event' session_id=session_id %}";
-  let timeLimitSeconds = {{ time_limit_seconds|default: "null"}};
+  let timeLimitSeconds = {{time_limit_seconds|default:"null"}};
   let timeLeft = 0;
   let timeLimitInterval = null;
   const PROCTOR_DEBOUNCE_MS = 300;
