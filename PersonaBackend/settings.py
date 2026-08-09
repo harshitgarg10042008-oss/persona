@@ -56,7 +56,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
-REPLIT_DEV_DOMAIN = os.environ.get('REPLIT_DEV_DOMAIN', '')
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5000',
     'http://127.0.0.1:5000',
@@ -73,10 +73,10 @@ if REPLIT_DEV_DOMAIN:
 # Render sets RENDER_HOSTNAME (or set it manually to your service's
 # onrender.com / custom domain) so CSRF cookies work on the deployed site.
 RENDER_HOSTNAME = os.environ.get('RENDER_HOSTNAME', '')
-if RENDER_HOSTNAME:
+if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS += [
-        f'https://{RENDER_HOSTNAME}',
-        f'http://{RENDER_HOSTNAME}',
+        f'https://{RENDER_EXTERNAL_HOSTNAME}',
+        f'http://{RENDER_EXTERNAL_HOSTNAME}',
     ]
 
 
