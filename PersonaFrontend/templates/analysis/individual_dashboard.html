@@ -1271,8 +1271,33 @@
 
 <script>
   /* ── Utilities & Personas ────────────────────────────────── */
+
+  // Read the CSRF token from the csrftoken cookie that Django always sets.
+  // This is more reliable than querySelector('[name=csrfmiddlewaretoken]')
+  // which only exists inside actual <form> elements — the persona section
+  // has no surrounding form so the hidden input would not be present.
   function getCsrfToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+      const trimmed = c.trim();
+      if (trimmed.startsWith(name + '=')) {
+        return decodeURIComponent(trimmed.slice(name.length + 1));
+      }
+    }
+    // Hard fallback: read from a hidden input if Django rendered one nearby
     return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  }
+
+  // Parse response as JSON, but handle the case where Django returned an HTML
+  // error page (e.g. CSRF 403) so we get a meaningful error instead of a
+  // confusing "Unexpected token '<'" SyntaxError.
+  function safeJson(response) {
+    const ct = response.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return response.json();
+    return response.text().then(text => {
+      throw new Error(`Expected JSON but got ${response.status}: ${text.slice(0, 120)}`);
+    });
   }
 
   function loadPersonas() {
@@ -1280,7 +1305,7 @@
       .then(r => {
         if (!r.ok) {
           if (r.status === 403) {
-            return r.json().then(data => {
+            return safeJson(r).then(data => {
               if (data.error === 'premium_required') {
                 showPersonaPremiumLock();
                 return null;
@@ -1320,21 +1345,25 @@
   function savePersona(id) {
     fetch('/auth/voice-interviewer/preference/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), 'Accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ persona_id: id })
     })
       .then(r => {
         if (!r.ok) {
           if (r.status === 403) {
-            return r.json().then(data => {
-              if (data.error === 'premium_required') {
+            return safeJson(r).then(data => {
+              if (data && data.error === 'premium_required') {
                 showPersonaPremiumLock();
                 return null;
               }
-              throw new Error(data.message || 'Server error');
+              throw new Error((data && data.message) || 'Access denied (403)');
             });
           }
-          throw new Error('Server error');
+          throw new Error(`Save failed: HTTP ${r.status}`);
         }
         return r.json();
       })

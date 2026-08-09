@@ -75,6 +75,14 @@ if RENDER_EXTERNAL_HOSTNAME:
         f'http://{RENDER_EXTERNAL_HOSTNAME}',
     ]
 
+# Use a custom CSRF failure handler that returns JSON for API callers
+# (fetch/XHR with Accept: application/json) instead of Django's default
+# HTML 403 page, which caused "Unexpected token '<'" parse errors in JS.
+CSRF_FAILURE_VIEW = 'PersonaBackend.middleware.csrf_failure'
+
+# Secure cookies in production (Render runs HTTPS; dev uses HTTP).
+CSRF_COOKIE_SECURE = not DEBUG
+
 
 # Application definition
 
@@ -128,12 +136,25 @@ WSGI_APPLICATION = 'PersonaBackend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-# Render sets DATABASE_URL automatically for Postgres; decouple it here so a
-# single env var works out of the box while DB_NAME/DB_USER/... keep working.
+# Priority order:
+#   1. DATABASE_URL (Render production, or local Neon override) — read via
+#      python-decouple so that a value in .env is picked up locally too.
+#   2. Individual DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT vars (pure local dev).
+#   3. SQLite fallback when nothing is configured.
 import dj_database_url  # noqa: E402
-DATABASE_URL = os.environ.get('DATABASE_URL', '')
+# IMPORTANT: use config() not os.environ.get() so python-decouple reads .env
+DATABASE_URL = config('DATABASE_URL', default='')
 DB_NAME = config('DB_NAME', default='')
-if DATABASE_URL or DB_NAME:
+if DATABASE_URL:
+    # Covers both Render (env var injected by platform) and local Neon testing
+    # (DATABASE_URL set in .env).  ssl_require=True is needed for Neon/Render.
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=True
+        )
+    }
+elif DB_NAME:
+    # Pure local Postgres dev using individual DB_* variables.
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -144,10 +165,6 @@ if DATABASE_URL or DB_NAME:
             'PORT': config('DB_PORT', default='5432'),
         }
     }
-    if DATABASE_URL:
-        DATABASES['default'] = dj_database_url.parse(
-            DATABASE_URL, conn_max_age=600, ssl_require=True
-        )
 else:
     DATABASES = {
         'default': {

@@ -1,0 +1,194 @@
+[
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 1,
+  "fields": {
+    "title": "Software Engineer",
+    "description": "Design, develop, and maintain software applications and systems.",
+    "category": "technology",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.435Z",
+    "updated_at": "2026-07-07T05:49:55.435Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 2,
+  "fields": {
+    "title": "Marketing Manager",
+    "description": "Develop and execute marketing strategies to promote products and services.",
+    "category": "marketing",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.435Z",
+    "updated_at": "2026-07-07T05:49:55.435Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 3,
+  "fields": {
+    "title": "Sales Representative",
+    "description": "Build relationships with clients and drive sales growth.",
+    "category": "sales",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.435Z",
+    "updated_at": "2026-07-07T05:49:55.435Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 4,
+  "fields": {
+    "title": "Data Analyst",
+    "description": "Analytical role focusing on data insights and business intelligence",
+    "category": "analytics",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.423Z",
+    "updated_at": "2026-07-07T05:49:55.423Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 5,
+  "fields": {
+    "title": "Project Manager",
+    "description": "Leadership role coordinating teams and delivering projects on time",
+    "category": "management",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.435Z",
+    "updated_at": "2026-07-07T05:49:55.435Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 6,
+  "fields": {
+    "title": "Software Tester",
+    "description": "Design and execute test plans to ensure software quality, identify bugs, and verify functionality across different platforms and scenarios.",
+    "category": "technology",
+    "is_active": true,
+    "created_at": "2026-07-07T05:49:55.435Z",
+    "updated_at": "2026-07-07T08:33:42.375Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 8,
+  "fields": {
+    "title": "Product Manager",
+    "description": "Lead product strategy, development, and lifecycle management.",
+    "category": "management",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:25.912Z",
+    "updated_at": "2026-07-07T06:15:25.912Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 9,
+  "fields": {
+    "title": "HR Recruiter",
+    "description": "Manage talent acquisition and recruitment processes.",
+    "category": "hr",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:26.026Z",
+    "updated_at": "2026-07-07T06:15:26.026Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 10,
+  "fields": {
+    "title": "Business Analyst",
+    "description": "Analyze business processes and requirements to drive improvements.",
+    "category": "analytics",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:26.132Z",
+    "updated_at": "2026-07-07T06:15:26.132Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 11,
+  "fields": {
+    "title": "Customer Support Specialist",
+    "description": "Provide exceptional customer service and resolve issues.",
+    "category": "operations",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:26.232Z",
+    "updated_at": "2026-07-07T06:15:26.232Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 12,
+  "fields": {
+    "title": "UI/UX Designer",
+    "description": "Design intuitive and visually appealing user interfaces and experiences.",
+    "category": "technology",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:26.332Z",
+    "updated_at": "2026-07-07T06:15:26.332Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 13,
+  "fields": {
+    "title": "DevOps Engineer",
+    "description": "Bridge development and operations to improve deployment and reliability.",
+    "category": "technology",
+    "is_active": true,
+    "created_at": "2026-07-07T06:15:26.430Z",
+    "updated_at": "2026-07-07T06:15:26.430Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 15,
+  "fields": {
+    "title": "Cert Job",
+    "description": "",
+    "category": "technology",
+    "is_active": false,
+    "created_at": "2026-08-07T05:32:10.073Z",
+    "updated_at": "2026-08-07T06:32:41.451Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 16,
+  "fields": {
+    "title": "Cert Job 3",
+    "description": "",
+    "category": "technology",
+    "is_active": false,
+    "created_at": "2026-08-07T05:32:38.669Z",
+    "updated_at": "2026-08-07T06:32:41.454Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 17,
+  "fields": {
+    "title": "Cert Job 4",
+    "description": "",
+    "category": "technology",
+    "is_active": false,
+    "created_at": "2026-08-07T05:32:46.174Z",
+    "updated_at": "2026-08-07T06:32:41.455Z"
+  }
+},
+{
+  "model": "AnalysisAPI.platformjobtitle",
+  "pk": 18,
+  "fields": {
+    "title": "Cert Job 5",
+    "description": "",
+    "category": "technology",
+    "is_active": false,
+    "created_at": "2026-08-07T05:33:03.658Z",
+    "updated_at": "2026-08-07T06:32:41.457Z"
+  }
+}
+]
