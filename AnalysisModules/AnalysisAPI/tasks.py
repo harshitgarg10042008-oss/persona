@@ -39,67 +39,16 @@ def run_speech_analysis_task(response_id, question_text):
             return
 
         import os
-        import subprocess
-        import tempfile
 
         video_path = response.video_file.path
         if not os.path.exists(video_path):
             print(f"Speech analysis skipped for response {response_id}: video file not found at {video_path}")
             return
 
-        # Use imageio_ffmpeg (a moviepy dependency) to locate the bundled ffmpeg binary.
-        # This avoids depending on ffmpeg being on PATH and, crucially, bypasses
-        # moviepy's VideoFileClip which requires duration metadata in the webm header.
-        # Chrome's MediaRecorder writes .webm without that header metadata, causing
-        #   OSError: MoviePy error: failed to read the duration of ...
-        # Raw ffmpeg handles headerless-duration webm files without complaint.
-        try:
-            from imageio_ffmpeg import get_ffmpeg_exe
-            ffmpeg_bin = get_ffmpeg_exe()
-        except Exception:
-            ffmpeg_bin = "ffmpeg"  # fall back to PATH if imageio_ffmpeg unavailable
-
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-            temp_audio_path = temp_audio.name
-
-        try:
-            result = subprocess.run(
-                [
-                    ffmpeg_bin,
-                    "-y",               # overwrite output without prompting
-                    "-i", video_path,
-                    "-vn",              # no video
-                    "-acodec", "pcm_s16le",
-                    "-ar", "16000",     # Whisper expects 16kHz
-                    "-ac", "1",         # Whisper expects mono
-                    temp_audio_path,
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-        except FileNotFoundError:
-            print(f"Speech analysis skipped for response {response_id}: ffmpeg binary not found")
-            if os.path.exists(temp_audio_path):
-                os.remove(temp_audio_path)
-            return
-
-        if result.returncode != 0:
-            stderr_text = result.stderr.decode(errors="replace")
-            print(f"Speech analysis skipped for response {response_id}: ffmpeg exited {result.returncode}\n{stderr_text}")
-            if os.path.exists(temp_audio_path):
-                os.remove(temp_audio_path)
-            return
-
-        if not os.path.exists(temp_audio_path) or os.path.getsize(temp_audio_path) == 0:
-            print(f"Speech analysis skipped for response {response_id}: ffmpeg produced no audio output (video may have no audio track)")
-            if os.path.exists(temp_audio_path):
-                os.remove(temp_audio_path)
-            return
-
-        with open(temp_audio_path, 'rb') as f:
+        # Groq's hosted whisper-large-v3 accepts the recorded .webm container
+        # directly, so no local ffmpeg audio extraction is needed.
+        with open(video_path, 'rb') as f:
             audio_bytes = f.read()
-
-        os.remove(temp_audio_path)
 
         audio_hash = hashlib.md5(audio_bytes).hexdigest()
 
@@ -229,33 +178,33 @@ def generate_summary_video_task(video_id):
 # Maximum angle (degrees) between gaze direction and the camera-forward vector
 # to count a frame as "making eye contact".
 # Smaller = stricter (candidate must look more directly at camera).
-GAZE_ANGLE_THRESHOLD_DEG = 20
+GAZE_ANGLE_THRESHOLD_DEG = 20  # Legacy threshold — CV now runs client-side (informational only)
 
 # Maximum angle (degrees) between the shoulder-to-hip spine vector and world-up
 # to count a frame as "good posture" (upright, not slouched).
-POSTURE_ANGLE_THRESHOLD_DEG = 35
+POSTURE_ANGLE_THRESHOLD_DEG = 35  # Legacy threshold — CV now runs client-side (informational only)
 
 # Normalised distance (MediaPipe [0,1] coords) between hand wrist and face centre
 # below which we flag a "distraction" event (e.g. phone held close to face).
-HAND_FACE_PROXIMITY_THRESHOLD = 0.08
+HAND_FACE_PROXIMITY_THRESHOLD = 0.08  # Legacy threshold — CV now runs client-side (informational only)
 
 # How many video frames to advance before sampling the next frame.
 # At CV_SAMPLE_EVERY=1 we sample every second (1 fps sample rate).
 # Increase this value (e.g. 2 = every 2 s) to trade accuracy for speed.
-CV_SAMPLE_EVERY_N_SECONDS = 1
+CV_SAMPLE_EVERY_N_SECONDS = 1  # Legacy — video frames are no longer sampled server-side
 
 
 # ------------------------------------------------------------------------------
 # Geometry helpers
 # ------------------------------------------------------------------------------
 
-def _landmark_to_np(landmark):
+def _landmark_to_np(landmark):  # noqa: kept for backwards compatibility with legacy imports
     """Convert a MediaPipe NormalizedLandmark to a NumPy (x, y, z) array."""
     import numpy as np
     return np.array([landmark.x, landmark.y, landmark.z], dtype=np.float32)
 
 
-def _vector_angle_deg(v1, v2):
+def _vector_angle_deg(v1, v2):  # noqa: kept for backwards compatibility with legacy imports
     """Return the angle in degrees between two 3-D vectors."""
     import numpy as np
     v1_u = v1 / (np.linalg.norm(v1) + 1e-8)
@@ -267,105 +216,14 @@ def _vector_angle_deg(v1, v2):
 # Per-frame scorer
 # ------------------------------------------------------------------------------
 
-def _score_frame(results, frame_num=0):
+def _score_frame(results, frame_num=0):  # noqa: legacy helper — CV now runs client-side
+    """Evaluate a single MediaPipe-Holistic result and return boolean flags.
+
+    REMOVED: proctoring now runs in-browser (MediaPipe Tasks Vision / WASM), so
+    the server no longer samples video frames. This stub exists only so that
+    any stale import keeps working; the caller should never reach it.
     """
-    Evaluate a single MediaPipe-Holistic result and return boolean flags.
-
-    Returns:
-        dict with keys:
-            eye_contact  (bool) – True when gaze angle ≤ GAZE_ANGLE_THRESHOLD_DEG
-            good_posture (bool) – True when spine-vertical angle ≤ POSTURE_ANGLE_THRESHOLD_DEG
-            distraction  (bool) – True when right-hand wrist is very close to face centre
-        and:
-            eye_center   (np.ndarray | None) – reused for distraction check
-    """
-    import numpy as np
-    import mediapipe as mp
-
-    face_mesh = mp.solutions.face_mesh
-    pose_sol = mp.solutions.pose
-
-    # ── 1. Eye contact ────────────────────────────────────────────────────────
-    eye_contact = False
-    eye_center = None
-    gaze_angle_debug = None
-
-    if results.face_landmarks:
-        lm = results.face_landmarks.landmark
-        # Use iris landmarks for more accurate gaze direction
-        # Left iris center: landmark 468, Right iris center: landmark 473
-        # These are available when refine_face_landmarks=True (default in Holistic)
-        try:
-            left_iris = _landmark_to_np(lm[468])
-            right_iris = _landmark_to_np(lm[473])
-            eye_center = (left_iris + right_iris) / 2.0
-
-            # Use face center (between eyes) as reference for head orientation
-            # Left eye corner: 33, Right eye corner: 263
-            left_eye_corner = _landmark_to_np(lm[33])
-            right_eye_corner = _landmark_to_np(lm[263])
-            face_center = (left_eye_corner + right_eye_corner) / 2.0
-
-            # Gaze vector: from face center through iris center
-            # This approximates the direction the person is looking
-            gaze_vec = eye_center - face_center
-
-            # Camera-forward in MediaPipe's coordinate system points in the -Z direction.
-            cam_fwd = np.array([0.0, 0.0, -1.0], dtype=np.float32)
-            angle = _vector_angle_deg(gaze_vec, cam_fwd)
-            gaze_angle_debug = angle
-
-            eye_contact = angle <= GAZE_ANGLE_THRESHOLD_DEG
-        except (IndexError, KeyError) as e:
-            # Fallback to simpler method if iris landmarks unavailable
-            left_eye = _landmark_to_np(lm[159])
-            right_eye = _landmark_to_np(lm[386])
-            eye_center = (left_eye + right_eye) / 2.0
-            nose_tip = _landmark_to_np(lm[4])
-            gaze_vec = nose_tip - eye_center
-            cam_fwd = np.array([0.0, 0.0, -1.0], dtype=np.float32)
-            angle = _vector_angle_deg(gaze_vec, cam_fwd)
-            gaze_angle_debug = angle
-            eye_contact = angle <= GAZE_ANGLE_THRESHOLD_DEG
-
-    # ── 2. Posture ────────────────────────────────────────────────────────────
-    good_posture = False
-    posture_angle_debug = None
-
-    if results.pose_landmarks:
-        plm = results.pose_landmarks.landmark
-        left_shoulder = _landmark_to_np(plm[pose_sol.PoseLandmark.LEFT_SHOULDER])
-        right_shoulder = _landmark_to_np(plm[pose_sol.PoseLandmark.RIGHT_SHOULDER])
-        left_hip = _landmark_to_np(plm[pose_sol.PoseLandmark.LEFT_HIP])
-        right_hip = _landmark_to_np(plm[pose_sol.PoseLandmark.RIGHT_HIP])
-
-        shoulder_mid = (left_shoulder + right_shoulder) / 2.0
-        hip_mid = (left_hip + right_hip) / 2.0
-        spine_vec = shoulder_mid - hip_mid   # points upward when upright
-
-        # MediaPipe's coordinate system has Y increasing downward (screen coordinates).
-        # Real-world "up" corresponds to negative Y, not positive Y.
-        up = np.array([0.0, -1.0, 0.0], dtype=np.float32)
-        angle = _vector_angle_deg(spine_vec, up)
-        posture_angle_debug = angle
-
-        good_posture = angle <= POSTURE_ANGLE_THRESHOLD_DEG
-
-    # ── 3. Distraction (hand near face) ──────────────────────────────────────
-    distraction = False
-
-    if results.right_hand_landmarks and eye_center is not None:
-        hlm = results.right_hand_landmarks.landmark
-        import mediapipe.python.solutions.hands as hands_sol
-        wrist = _landmark_to_np(hlm[hands_sol.HandLandmark.WRIST])
-        dist = float(np.linalg.norm(wrist - eye_center))
-        distraction = dist <= HAND_FACE_PROXIMITY_THRESHOLD
-
-    return {
-        "eye_contact": eye_contact,
-        "good_posture": good_posture,
-        "distraction": distraction,
-    }
+    raise NotImplementedError('Server-side frame scoring removed; proctoring runs in-browser')
 
 
 # ------------------------------------------------------------------------------
@@ -374,46 +232,33 @@ def _score_frame(results, frame_num=0):
 
 def process_cv_analysis_task(assessment_id):
     """
-    Django-Q background task — Feature #17 + #18.
+    Django-Q background task — Feature #17 + #18 (client-side proctoring era).
 
-    Reads the interview video file belonging to Assessment <assessment_id>,
-    samples it at CV_SAMPLE_EVERY_N_SECONDS fps using OpenCV, runs
-    MediaPipe-Holistic on each sampled frame, and:
+    Proctoring detection (face presence, multiple faces, phone/object) now runs
+    in-browser via MediaPipe Tasks Vision (WASM) and is reported to the server
+    as small JSON events saved into EnvironmentIntegrityEvent. There is no more
+    server-side OpenCV/MediaPipe frame processing, so cv2/mediapipe are no
+    longer required dependencies.
 
-      * accumulates per-frame boolean hits to compute aggregate % scores
-        (eye_contact_score, posture_score, gesture_score as distraction proxy)
-
-      * records a timestamped event only on good→bad state transitions
-        (avoids flooding; stored in AssessmentResult.cv_analysis_events)
-
+    This task therefore derives the same aggregate CV metrics that the old
+    frame-processing loop produced, but from the client-reported integrity
+    events:
+      * eye_contact_score  = % of presence checks that reported a face
+                             (no_face_detected rate inverted)
+      * posture_score      = inverse-weighted score based on violation events
+                             (multiple faces / phone / device switches)
+      * gesture_score      = % of logged events that were object/phone
+                             detections (distraction proxy)
+      * cv_analysis_events = compact timeline of all environment integrity
+                             events, mirroring the old state-transition events
     Collision safety: checks cv_analysis_status before starting and sets it to
     'processing' atomically — mirrors the generate_summary_video_task pattern.
-
-    Does NOT auto-trigger itself; must be queued manually or via a view
-    (wiring to the automatic flow is deferred until manual testing is confirmed).
     """
     import logging
-    import os
-    import uuid as _uuid
-
     logger = logging.getLogger(__name__)
     logger.info(f"[CV ANALYSIS TASK] Starting for Assessment {assessment_id}")
-
-    # ── Import heavy dependencies here (lazy) ─────────────────────────────────
-    try:
-        import cv2
-        import numpy as np
-        import mediapipe as mp
-    except ImportError as exc:
-        logger.error(
-            f"[CV ANALYSIS TASK] Missing dependency: {exc}. "
-            "Install mediapipe and opencv-python."
-        )
-        return
-
     from django.db import transaction
-    from .models import IndividualAssessment
-
+    from .models import IndividualAssessment, EnvironmentIntegrityEvent
     # ── 1. Fetch + status guard ───────────────────────────────────────────────
     try:
         assessment = IndividualAssessment.objects.get(id=assessment_id)
@@ -432,136 +277,75 @@ def process_cv_analysis_task(assessment_id):
     assessment.save(update_fields=['cv_analysis_status'])
 
     try:
-        # ── 2. Validate responses with video files ────────────────────────────────
-        responses_with_video = [
-            r for r in assessment.responses.all().order_by('question_order') 
-            if r.video_file and r.video_file.name
-        ]
+        # ── 2. Gather client-reported events ──────────────────────────────────────
+        # presence checks = face-check events (presence reports) for this session.
+        # Face-check pings that reported a healthy face produce no event row,
+        # so presence quality is measured by the absence of no_face_detected
+        # events: with a check every ~50s, an event ratio relative to a
+        # normalized check count approximates the old frame-hit rate.
+        events_qs = EnvironmentIntegrityEvent.objects.filter(assessment=assessment)
+        total_events = events_qs.count()
+        face_events = events_qs.filter(event_type__in=(
+            'no_face_detected', 'multiple_faces_detected',
+        ))
+        no_face_events = events_qs.filter(event_type='no_face_detected')
+        object_events = events_qs.filter(event_type__in=(
+            'phone_detected', 'multiple_faces_detected',
+        ))
 
-        if not responses_with_video:
-            logger.error(f"[CV ANALYSIS TASK] IndividualAssessment {assessment_id} has no valid video responses.")
-            assessment.cv_analysis_status = 'failed'
-            assessment.save(update_fields=['cv_analysis_status'])
-            return
-
-        # Unique temp folder in case any intermediate files are needed.
-        # Currently unused (we stream frames in-memory), but reserved for safety.
-        first_video_path = responses_with_video[0].video_file.path
-        temp_dir = os.path.join(
-            os.path.dirname(first_video_path),
-            f"cv_tmp_{_uuid.uuid4().hex}"
-        )
-        os.makedirs(temp_dir, exist_ok=True)
-
-        # ── 4. Frame loop ─────────────────────────────────────────────────────────
-        global_eye_contact_hits = 0
-        global_posture_hits = 0
-        global_distraction_hits = 0
-        global_processed_frames = 0
-        events = []  # Feature #18: timestamped state-transition events
-
-        logger.info(
-            f"[CV ANALYSIS TASK] Video: processing {len(responses_with_video)} responses."
-        )
-
-        with mp.solutions.holistic.Holistic(
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5,
-                refine_face_landmarks=True  # Required for iris landmarks (468-477)
-            ) as holistic:
-
-                for response in responses_with_video:
-                    try:
-                        video_path = response.video_file.path
-                        if not os.path.exists(video_path):
-                            logger.warning(f"[CV ANALYSIS TASK] Video missing for response {response.id}, skipping.")
-                            continue
-                    except (ValueError, NotImplementedError):
-                        continue
-
-                    cap = cv2.VideoCapture(video_path)
-                    if not cap.isOpened():
-                        logger.warning(f"[CV ANALYSIS TASK] OpenCV could not open: {video_path}")
-                        continue
-
-                    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-                    frame_interval = max(1, int(round(fps * CV_SAMPLE_EVERY_N_SECONDS)))
-
-                    frame_idx = 0
-                    prev_eye = True
-                    prev_posture = True
-                    prev_distraction = False
-
-                    try:
-                        while True:
-                            ret, frame = cap.read()
-                            if not ret:
-                                break
-
-                            if frame_idx % frame_interval == 0:
-                                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                                scores = _score_frame(holistic.process(rgb), global_processed_frames)
-
-                                global_processed_frames += 1
-                                if scores['eye_contact']: global_eye_contact_hits += 1
-                                if scores['good_posture']: global_posture_hits += 1
-                                if scores['distraction']: global_distraction_hits += 1
-
-                                timestamp_sec = int(frame_idx / fps)
-
-                                # Event logging: log on good -> bad transitions
-                                if prev_eye and not scores['eye_contact']:
-                                    events.append({
-                                        "response_id": response.id,
-                                        "question_order": response.question_order,
-                                        "timestamp_sec": timestamp_sec,
-                                        "type": "eye_contact_drop"
-                                    })
-                                if prev_posture and not scores['good_posture']:
-                                    events.append({
-                                        "response_id": response.id,
-                                        "question_order": response.question_order,
-                                        "timestamp_sec": timestamp_sec,
-                                        "type": "posture_drop"
-                                    })
-                                if not prev_distraction and scores['distraction']:
-                                    events.append({
-                                        "response_id": response.id,
-                                        "question_order": response.question_order,
-                                        "timestamp_sec": timestamp_sec,
-                                        "type": "distraction"
-                                    })
-
-                                prev_eye = scores['eye_contact']
-                                prev_posture = scores['good_posture']
-                                prev_distraction = scores['distraction']
-
-                            frame_idx += 1
-                    finally:
-                        cap.release()
-
-        # Cleanup temp folder (nothing was written, but tidy up)
+        # Normalize: assume one presence check per 50 seconds of active
+        # assessment time. If duration is unavailable fall back to 24 checks
+        # (a 20-minute interview at the default 50s interval).
+        started_at = getattr(assessment, 'started_at', None) or getattr(assessment, 'created_at', None)
+        finished_at = getattr(assessment, 'completed_at', None) or None
         try:
-            os.rmdir(temp_dir)
-        except OSError:
-            pass
+            if started_at and finished_at:
+                duration_sec = max((finished_at - started_at).total_seconds(), 60)
+            else:
+                duration_sec = 20 * 60
+        except Exception:
+            duration_sec = 20 * 60
+        normalized_checks = max(round(duration_sec / 50), 1)
 
-        if global_processed_frames == 0:
-            logger.error("[CV ANALYSIS TASK] Zero frames were processed — aborting.")
-            assessment.cv_analysis_status = 'failed'
-            assessment.save(update_fields=['cv_analysis_status'])
-            return
-
-        # ── 5. Compute aggregate scores ───────────────────────────────────────────
-        eye_contact_score = round((global_eye_contact_hits / global_processed_frames) * 100, 2)
-        posture_score = round((global_posture_hits / global_processed_frames) * 100, 2)
-        # gesture_score repurposed as distraction proxy: % of frames with distraction
-        gesture_score = round((global_distraction_hits / global_processed_frames) * 100, 2)
+        if total_events == 0:
+            # No proctoring events at all → a clean session
+            eye_contact_score = 100.0
+            posture_score = 100.0
+            gesture_score = 0.0
+            events = []
+        else:
+            # Eye contact: % of normalized checks that kept a face visible
+            eye_contact_score = round(
+                max(0.0, (1 - no_face_events.count() / normalized_checks)) * 100, 2
+            )
+            # Posture / environment: penalize per violation event (heavier
+            # penalty for multiple-face events than for a single no-face blip)
+            posture_penalty = min(
+                100.0,
+                (no_face_events.count() * 2 + face_events.exclude(event_type='no_face_detected').count() * 8) /
+                normalized_checks * 25
+            )
+            posture_score = round(max(0.0, 100.0 - posture_penalty), 2)
+            # Distraction proxy: share of violation events that were objects
+            gesture_score = round(
+                object_events.count() / total_events * 100 if total_events else 0.0, 2
+            )
+            # Timeline mirroring the old good→bad transition events
+            events = [
+                {
+                    'question_order': None,
+                    'response_id': None,
+                    'timestamp_sec': int((e.timestamp - started_at).total_seconds()) if started_at else None,
+                    'type': e.event_type,
+                    'details': e.details,
+                }
+                for e in events_qs.order_by('timestamp')
+            ]
 
         logger.info(
-            f"[CV ANALYSIS TASK] Results — {global_processed_frames} frames sampled. "
-            f"eye_contact={eye_contact_score}%, posture={posture_score}%, "
-            f"distraction(gesture)={gesture_score}%, events={len(events)}"
+            f"[CV ANALYSIS TASK] Derived from {total_events} client-reported events "
+            f"({normalized_checks} normalized checks): eye_contact={eye_contact_score}%, "
+            f"posture={posture_score}%, distraction(gesture)={gesture_score}%"
         )
 
         # ── 6. Persist results atomically ─────────────────────────────────────────
@@ -569,7 +353,7 @@ def process_cv_analysis_task(assessment_id):
             assessment.eye_contact_score = eye_contact_score
             assessment.posture_score = posture_score
             assessment.gesture_score = gesture_score          # distraction proxy
-            assessment.cv_analysis_events = events            # Feature #18 timeline
+            assessment.cv_analysis_events = events            # timeline
             assessment.cv_analysis_status = 'completed'
             assessment.save(update_fields=[
                 'eye_contact_score',

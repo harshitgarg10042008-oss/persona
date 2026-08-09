@@ -730,6 +730,8 @@ class EnvironmentIntegrityEvent(models.Model):
         ('face_mismatch', 'Face Mismatch'),
         ('no_face_detected', 'No Face Detected'),
         ('multiple_faces_detected', 'Multiple Faces Detected'),
+        ('phone_detected', 'Phone Detected'),
+        ('face_detection_error', 'Client Face Detection Error'),
         ('large_paste_detected', 'Large Paste Detected'),
         ('suspicious_typing_pattern', 'Suspicious Typing Pattern'),
         ('multiple_ip_same_user', 'Multiple IP Same User'),

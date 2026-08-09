@@ -262,21 +262,21 @@ def _snapshot_score_from_data(snapshot):
 
 
 def _enqueue_speech_analysis(response_id, question_text):
-    """Run speech analysis via django-q, falling back to a daemon thread."""
-    from .tasks import run_speech_analysis_task
+    """Run speech analysis in a daemon thread.
 
-    try:
-        from django_q.tasks import async_task
-        async_task(run_speech_analysis_task, response_id, question_text)
-    except Exception as e:
-        print(f"django-q enqueue failed ({e}), using thread fallback")
-        import threading
-        thread = threading.Thread(
-            target=run_speech_analysis_task,
-            args=(response_id, question_text),
-            daemon=True,
-        )
-        thread.start()
+    NOTE: django-q2 is installed but no qcluster worker runs in the Procfile —
+    on Render (single web dyno) queued ORM tasks are never consumed, so async
+    analysis must run in-process instead.
+    """
+    from .tasks import run_speech_analysis_task
+    import threading
+
+    thread = threading.Thread(
+        target=run_speech_analysis_task,
+        args=(response_id, question_text),
+        daemon=True,
+    )
+    thread.start()
 
 
 @login_required
@@ -1904,7 +1904,8 @@ def submit_assessment_response(request, session_id):
                         'persona_avatar': get_persona_avatar(next_persona_id),
                         'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                         'persona_id': next_persona_id,
-                        'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
+                        'time_limit_seconds': (next_q.expected_duration if next_q.expected_duration else 120)
+                        if not is_follow_up and next_q else 120,
                     }
                 return JsonResponse(response_data)
         
@@ -1984,7 +1985,8 @@ def submit_assessment_response(request, session_id):
                     'persona_avatar': get_persona_avatar(next_persona_id),
                     'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                     'persona_id': next_persona_id,
-                    'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
+                    'time_limit_seconds': (next_q.expected_duration if next_q.expected_duration else 120)
+                    if not is_follow_up and next_q else 120,
                 }
             # Record server-side start time for the next question
             next_session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
@@ -2118,114 +2120,24 @@ def submit_assessment_response(request, session_id):
                     else:
                         response.video_file.save(filename, video_file)
 
-                    # ----------------------------------------------------------------
-                    # Audio extraction from the saved video.
-                    #
                     # IMPORTANT: FieldFile.save() above fully reads the upload stream,
-                    # leaving the file pointer at EOF.  We must seek(0) before calling
-                    # video_file.chunks() so the temp file receives the actual content
-                    # instead of 0 bytes — which was the root cause of empty audio_bytes
-                    # and silent speech-analysis failures.
-                    # ----------------------------------------------------------------
-                    import tempfile
-                    import os
-                    import subprocess
-                    from django.core.files.base import ContentFile
-
+                    # leaving the file pointer at EOF.  We must seek(0) before reading
+                    # the bytes, otherwise audio_bytes would be empty and speech
+                    # analysis would be silently skipped.
                     video_file.seek(0)  # reset stream after FieldFile.save() consumed it
-                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_video:
-                        for chunk in video_file.chunks():
-                            temp_video.write(chunk)
-                        temp_video_path = temp_video.name
-
-                    # ----------------------------------------------------------------
-                    # Extract audio via raw ffmpeg instead of moviepy's VideoFileClip.
-                    #
-                    # Chrome's MediaRecorder writes .webm files as a live stream —
-                    # the header has no duration/seek metadata.  MoviePy's VideoFileClip
-                    # asks ffmpeg for that duration upfront and raises:
-                    #   OSError: MoviePy error: failed to read the duration of …
-                    # Raw ffmpeg (invoked directly) handles this fine because it just
-                    # reads packets without needing the header duration field.
-                    #
-                    # imageio_ffmpeg is a moviepy dependency that ships a bundled ffmpeg
-                    # binary, so we use it to locate the binary reliably instead of
-                    # relying on ffmpeg being on PATH.
-                    # ----------------------------------------------------------------
-                    try:
-                        from imageio_ffmpeg import get_ffmpeg_exe
-                        ffmpeg_bin = get_ffmpeg_exe()
-                    except Exception:
-                        ffmpeg_bin = "ffmpeg"  # fall back to PATH
-
-                    temp_audio_path = None
-                    audio_bytes = b''
-
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                        temp_audio_path = temp_audio.name
-
-                    try:
-                        ffmpeg_result = subprocess.run(
-                            [
-                                ffmpeg_bin,
-                                "-y",               # overwrite output without prompting
-                                "-i", temp_video_path,
-                                "-vn",              # strip video stream
-                                "-acodec", "pcm_s16le",
-                                "-ar", "16000",     # Whisper expects 16kHz
-                                "-ac", "1",         # Whisper expects mono
-                                temp_audio_path,
-                            ],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        )
-                    except FileNotFoundError:
-                        ffmpeg_result = None
+                    audio_bytes = video_file.read()
+                    if not audio_bytes:
                         logger.warning(
-                            "[DIAG] submit_assessment_response: ffmpeg binary not found — "
-                            "audio extraction skipped for session %s",
+                            "[DIAG] submit_assessment_response: video upload was empty "
+                            "for session %s — speech analysis skipped",
                             session_id,
                         )
 
-                    if ffmpeg_result is not None and ffmpeg_result.returncode == 0 \
-                            and os.path.exists(temp_audio_path) \
-                            and os.path.getsize(temp_audio_path) > 0:
-                        with open(temp_audio_path, 'rb') as f:
-                            audio_bytes = f.read()
-
-                        # Persist extracted audio to audio_file so it is stored
-                        # independently of the video (enables offline re-analysis).
-                        audio_filename = (
-                            f"response_{assessment.id}_"
-                            f"{assessment.current_question_index + 1}_"
-                            f"{uuid.uuid4().hex[:8]}.wav"
-                        )
-                        if is_answering_follow_up:
-                            follow_up_response.audio_file.save(
-                                audio_filename, ContentFile(audio_bytes), save=False
-                            )
-                        else:
-                            response.audio_file.save(
-                                audio_filename, ContentFile(audio_bytes), save=False
-                            )
-                    else:
-                        if ffmpeg_result is not None and ffmpeg_result.returncode != 0:
-                            stderr_text = ffmpeg_result.stderr.decode(errors="replace")
-                            logger.warning(
-                                "[DIAG] submit_assessment_response: ffmpeg exited %d for session %s — "
-                                "video may have no audio track.\n%s",
-                                ffmpeg_result.returncode, session_id, stderr_text,
-                            )
-                        else:
-                            logger.warning(
-                                "[DIAG] submit_assessment_response: ffmpeg produced no audio output "
-                                "for session %s — video may have no audio track.",
-                                session_id,
-                            )
-
-                    os.remove(temp_video_path)
-                    if temp_audio_path and os.path.exists(temp_audio_path):
-                        os.remove(temp_audio_path)
+                    # NOTE: no ffmpeg extraction is performed here. Chrome's
+                    # MediaRecorder .webm uploads are passed directly to Groq's
+                    # hosted whisper-large-v3, which accepts webm containers —
+                    # keeping the pipeline free of local binaries for Render.
+                    # The full video is already persisted above (video_file.save).
 
                 else:
                     audio_bytes = base64.b64decode(data['audio_data'].split(',')[1])
@@ -2999,15 +2911,12 @@ def complete_individual_assessment(request, session_id):
         assessment.cv_analysis_status = 'pending'
         assessment.save(update_fields=['cv_analysis_status'])
         from .tasks import process_cv_analysis_task
-        try:
-            from django_q.tasks import async_task
-            async_task(process_cv_analysis_task, assessment.id, timeout=600)
-            logger.info(f"[CV Analysis] Queued task via django-q for assessment {assessment.session_id}")
-        except Exception as e:
-            logger.error(f"[CV Analysis] django-q enqueue failed ({e}), using thread fallback")
-            import threading
-            thread = threading.Thread(target=process_cv_analysis_task, args=(assessment.id,), daemon=True)
-            thread.start()
+        import threading
+        # django-q has no worker on Render (single web dyno), so run in a
+        # daemon thread to avoid the task sitting in the queue forever.
+        thread = threading.Thread(target=process_cv_analysis_task, args=(assessment.id,), daemon=True)
+        thread.start()
+        logger.info(f"[CV Analysis] Started thread-based task for assessment {assessment.session_id}")
 
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py
@@ -4817,28 +4726,18 @@ def interview_summary_video_generate(request):
         status='pending'
     )
 
-    # Enqueue background task using django-q pattern
+    # Enqueue background task. django-q has no worker on Render (single web
+    # dyno), so the task is run in a daemon thread instead of queuing it.
     from .tasks import generate_summary_video_task
-    try:
-        from django_q.tasks import async_task
-        logger.info(f"[SUMMARY VIDEO] Attempting to enqueue task for video_record {video_record.id}")
-        task_id = async_task(
-            generate_summary_video_task,
-            video_record.id,
-            timeout=300,  # per-task timeout: 5 min, overrides Q_CLUSTER global of 60 s
-        )
-        logger.info(f"[SUMMARY VIDEO] Task enqueued successfully with task_id: {task_id}")
-    except Exception as e:
-        logger.error(f"[SUMMARY VIDEO] django-q enqueue failed ({e}), using thread fallback")
-        print(f"django-q enqueue failed ({e}), using thread fallback")
-        import threading
-        thread = threading.Thread(
-            target=generate_summary_video_task,
-            args=(video_record.id,),
-            daemon=True,
-        )
-        thread.start()
-        logger.info(f"[SUMMARY VIDEO] Thread fallback started for video_record {video_record.id}")
+    import threading
+    logger.info(f"[SUMMARY VIDEO] Starting summary-video task for video_record {video_record.id}")
+    thread = threading.Thread(
+        target=generate_summary_video_task,
+        args=(video_record.id,),
+        daemon=True,
+    )
+    thread.start()
+    logger.info(f"[SUMMARY VIDEO] Thread started for video_record {video_record.id}")
 
     return redirect('analysis:interview_summary_video_result', video_id=video_record.id)
 
@@ -5707,7 +5606,7 @@ def recruiter_dashboard_generate_verdict(request):
 @csrf_exempt
 def capture_face_reference(request):
     """Capture and store reference photo for face verification"""
-    from .models import IndividualUser
+    from UserAPI.models import IndividualUser
     from django.core.files.base import ContentFile
     import base64
     from django.utils import timezone
@@ -5751,78 +5650,63 @@ def capture_face_reference(request):
 @require_http_methods(["POST"])
 @csrf_exempt
 def verify_face_on_start(request, session_id):
-    """Verify face on assessment start against reference photo"""
-    from .models import IndividualAssessment, IndividualUser, EnvironmentIntegrityEvent
+    """Verify face on assessment start using the client-reported detection result.
+
+    Face detection now runs in-browser via MediaPipe Tasks Vision (WASM) on the
+    webcam <video> element; the frontend posts a small JSON payload describing
+    the result instead of the raw video frame. This keeps the endpoint free of
+    cv2/mediapipe so the backend can run on free-tier hosts (Render).
+
+    Accepted payload (any of):
+      {"face_count": N, "face_reference_captured": true}           -> normal pass
+      {"event_type": "no_face_detected", ...}                      -> logged
+      {"event_type": "multiple_faces" | "phone_detected", ...}     -> logged
+      {"image_data": <base64 jpeg>}                                -> first-time reference capture (legacy)
+    """
+    from .models import IndividualAssessment, EnvironmentIntegrityEvent
+    from UserAPI.models import IndividualUser
     import base64
-    import cv2
-    import mediapipe as mp
     from django.utils import timezone
     from django.core.files.base import ContentFile
-    import numpy as np
-    
+
     try:
         assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
-        data = json.loads(request.body)
+        data = json.loads(request.body) if request.body else {}
+
+        # ── Legacy path: frontend still sends a first-time reference photo ────
         image_data = data.get('image_data')
-        
-        if not image_data:
-            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
-        
-        # Validate base64 image
-        is_valid, error_msg = validate_image_b64(image_data)
-        if not is_valid:
-            return JsonResponse({'success': False, 'error': error_msg}, status=400)
-        
-        # Get individual profile
-        individual_profile = getattr(request.user, 'individual_profile', None)
-        
-        # If no reference photo exists, use current as reference (first-time capture)
-        if not individual_profile or not individual_profile.face_reference_photo:
+        if image_data:
+            is_valid, error_msg = validate_image_b64(image_data)
+            if not is_valid:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+
+            individual_profile = getattr(request.user, 'individual_profile', None)
             if not individual_profile:
                 individual_profile = IndividualUser.objects.create(user=request.user, name=request.user.username)
-            
-            image_bytes = base64.b64decode(image_data.split(',')[1])
-            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
-            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
-            individual_profile.face_reference_captured_at = timezone.now()
-            individual_profile.save()
-            
-            return JsonResponse({
-                'success': True,
-                'match': True,
-                'message': 'First-time reference photo captured'
-            })
-        
-        # Perform face detection and comparison using MediaPipe
-        mp_face_detection = mp.solutions.face_detection
-        mp_drawing = mp.solutions.drawing_utils
-        
-        # Decode current image
-        current_image_bytes = base64.b64decode(image_data.split(',')[1])
-        current_image_array = np.frombuffer(current_image_bytes, dtype=np.uint8)
-        current_image = cv2.imdecode(current_image_array, cv2.IMREAD_COLOR)
-        
-        # Load reference image
-        with open(individual_profile.face_reference_photo.path, 'rb') as f:
-            reference_image_bytes = f.read()
-        reference_image_array = np.frombuffer(reference_image_bytes, dtype=np.uint8)
-        reference_image = cv2.imdecode(reference_image_array, cv2.IMREAD_COLOR)
-        
-        # Detect faces in both images
-        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
-            current_results = face_detection.process(cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))
-            reference_results = face_detection.process(cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB))
-        
-        # Check if faces detected
-        current_faces = current_results.detections if current_results.detections else []
-        reference_faces = reference_results.detections if reference_results.detections else []
-        
-        if len(current_faces) == 0:
-            # No face in current image - log event but don't block
+
+            if data.get('face_reference_captured') or not individual_profile.face_reference_photo:
+                image_bytes = base64.b64decode(image_data.split(',')[1])
+                filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
+                individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
+                individual_profile.face_reference_captured_at = timezone.now()
+                individual_profile.save()
+                return JsonResponse({
+                    'success': True,
+                    'match': True,
+                    'event_logged': None,
+                    'message': 'Reference photo captured (client-side detection in use)'
+                })
+
+        # ── Client-side detection event path ───────────────────────────────────
+        event_type = data.get('event_type')
+        details = data.get('details', {})
+        details['timestamp'] = timezone.now().isoformat()
+
+        if event_type == 'no_face_detected':
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
                 event_type='no_face_detected',
-                details={'timestamp': timezone.now().isoformat()}
+                details=details
             )
             return JsonResponse({
                 'success': True,
@@ -5830,50 +5714,45 @@ def verify_face_on_start(request, session_id):
                 'event_logged': 'no_face_detected',
                 'message': 'No face detected - event logged'
             })
-        
-        if len(reference_faces) == 0:
-            # No reference face - use current as new reference
-            image_bytes = base64.b64decode(image_data.split(',')[1])
-            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
-            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
-            individual_profile.face_reference_captured_at = timezone.now()
-            individual_profile.save()
-            
-            return JsonResponse({
-                'success': True,
-                'match': True,
-                'message': 'Reference photo updated (no face in old reference)'
-            })
-        
-        # Simple face matching based on face count and approximate location
-        # For production, consider using face_recognition library for actual face embeddings
-        face_count_match = len(current_faces) == len(reference_faces)
-        
-        if not face_count_match:
-            # Face count mismatch - log event but don't block
+
+        if event_type in ('multiple_faces', 'phone_detected'):
+            if event_type == 'multiple_faces':
+                event_type = 'multiple_faces_detected'
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
-                event_type='face_mismatch',
-                details={
-                    'current_face_count': len(current_faces),
-                    'reference_face_count': len(reference_faces),
-                    'timestamp': timezone.now().isoformat()
-                }
+                event_type=event_type,
+                details=details
             )
             return JsonResponse({
                 'success': True,
                 'match': False,
-                'event_logged': 'face_mismatch',
-                'message': 'Face count mismatch - event logged'
+                'event_logged': event_type,
+                'message': f'{event_type} - event logged'
             })
-        
-        # If we get here, basic checks passed
+
+        # face_count >= 1 and no adverse event -> verification passed
+        face_count = data.get('face_count', 1)
+        if isinstance(face_count, (int, float)) and face_count >= 1:
+            return JsonResponse({
+                'success': True,
+                'match': True,
+                'event_logged': None,
+                'message': 'Face verification passed (client-side detection)'
+            })
+
+        # No face reported and no explicit event -> log as no_face_detected for safety
+        EnvironmentIntegrityEvent.objects.create(
+            assessment=assessment,
+            event_type='no_face_detected',
+            details={**details, 'reason': 'face_count reported 0 or missing'}
+        )
         return JsonResponse({
             'success': True,
-            'match': True,
-            'message': 'Face verification passed'
+            'match': False,
+            'event_logged': 'no_face_detected',
+            'message': 'No face reported - event logged'
         })
-        
+
     except Exception as e:
         logger.exception("Error in face verification")
         # Don't block assessment on verification errors
@@ -5889,66 +5768,58 @@ def verify_face_on_start(request, session_id):
 @require_http_methods(["POST"])
 @csrf_exempt
 def periodic_face_check(request, session_id):
-    """Periodic face presence check during assessment"""
+    """Periodic face presence check during assessment.
+
+    Face detection now runs in-browser (MediaPipe Tasks Vision / WASM on the
+    webcam <video> element). The frontend posts a small JSON payload such as:
+
+        {"face_count": 1, "session_id": "...", "timestamp": "..."}
+        {"event_type": "no_face_detected", "details": {...}, "session_id": "..."}
+        {"event_type": "multiple_faces", "details": {"face_count": 3}, "session_id": "..."}
+        {"event_type": "phone_detected", "details": {...}, "session_id": "..."}
+
+    The endpoint only persists the reported event to the
+    EnvironmentIntegrityEvent table (same model used by all other integrity
+    checks). The heavy cv2/mediapipe dependencies are no longer required.
+    """
     from .models import IndividualAssessment, EnvironmentIntegrityEvent
-    import base64
-    import cv2
-    import mediapipe as mp
     from django.utils import timezone
-    import numpy as np
-    
+
     try:
         assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
-        data = json.loads(request.body)
-        image_data = data.get('image_data')
-        
-        if not image_data:
-            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
-        
-        # Validate base64 image
-        is_valid, error_msg = validate_image_b64(image_data)
-        if not is_valid:
-            return JsonResponse({'success': False, 'error': error_msg}, status=400)
-        
-        # Decode image
-        image_bytes = base64.b64decode(image_data.split(',')[1])
-        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
-        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-        
-        # Detect faces using MediaPipe
-        mp_face_detection = mp.solutions.face_detection
-        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
-            results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        
-        faces = results.detections if results.detections else []
-        face_count = len(faces)
-        
-        # Log events based on face count
+        data = json.loads(request.body) if request.body else {}
+
+        event_type = data.get('event_type')
+        details = data.get('details', {}) or {}
+        details['timestamp'] = timezone.now().isoformat()
+        # Keep the client-provided session_id visible in the payload for audits
+        client_session_id = data.get('session_id')
+        if client_session_id:
+            details['client_session_id'] = client_session_id
+
+        mapped_type = {
+            'no_face_detected': 'no_face_detected',
+            'multiple_faces': 'multiple_faces_detected',
+            'multiple_faces_detected': 'multiple_faces_detected',
+            'phone_detected': 'phone_detected',
+        }.get(event_type)
+
         event_logged = None
-        if face_count == 0:
+        if mapped_type:
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
-                event_type='no_face_detected',
-                details={'timestamp': timezone.now().isoformat()}
+                event_type=mapped_type,
+                details=details
             )
-            event_logged = 'no_face_detected'
-        elif face_count > 1:
-            EnvironmentIntegrityEvent.objects.create(
-                assessment=assessment,
-                event_type='multiple_faces_detected',
-                details={
-                    'face_count': face_count,
-                    'timestamp': timezone.now().isoformat()
-                }
-            )
-            event_logged = 'multiple_faces_detected'
-        
+            event_logged = mapped_type
+        # face_count present without an adverse event -> presence OK, nothing to log
+
         return JsonResponse({
             'success': True,
-            'face_count': face_count,
+            'face_count': data.get('face_count'),
             'event_logged': event_logged
         })
-        
+
     except Exception as e:
         logger.exception("Error in periodic face check")
         return JsonResponse({
