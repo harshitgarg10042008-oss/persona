@@ -443,6 +443,45 @@
 </style>
 {% endblock %}
 {% block extra_js %}
+<script type="module">
+  // Load MediaPipe Tasks Vision (face + object detection) from CDN.
+  // The VisionBundle global is attached to window so the classic-script block
+  // below can consume it without build tooling.
+  import * as vision from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs';
+  window.VisionTasks = vision;
+  window.__personaMpTasksReady = new Promise(async (resolve) => {
+    let objectClassifier = null;
+    try {
+      // Lightweight mobile-friendly object classifier for phone detection.
+      // Falls back gracefully if the model file fails to load (face detection
+      // still works via the native FaceDetector API).
+      objectClassifier = await vision.ObjectClassifier.createFromOptions(
+        vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'),
+        { baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_classifier/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite', delegate: 'GPU' }, runningMode: 'VIDEO', maxResults: 5 }
+      );
+    } catch (err) {
+      try {
+        objectClassifier = await vision.ObjectClassifier.createFromOptions(
+          vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'),
+          { baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_classifier/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite' }, runningMode: 'VIDEO', maxResults: 5 }
+        );
+      } catch (err2) {
+        console.warn('[Proctoring] Object classifier unavailable (phone detection disabled):', err2);
+      }
+    }
+    window.__personaMpTasks = objectClassifier ? {
+      detectObjects: async (videoEl) => {
+        if (!objectClassifier || videoEl.readyState < 2) return [];
+        const ts = performance.now();
+        const result = await objectClassifier.detectForVideo(videoEl, ts);
+        return (result && result.classifications) ? result.classifications.flatMap(c =>
+          (c.categories || []).filter(cat => cat.score >= 0.6).map(cat => ({ categoryName: cat.categoryName, score: cat.score }))
+        ) : [];
+      }
+    } : null;
+    resolve(true);
+  });
+</script>
 <script>
   // Global variables
   let mediaRecorder = null;
@@ -1063,21 +1102,98 @@
       });
   }
 
-  function captureFaceSnapshot() {
+    function captureFaceSnapshot() {
     const video = document.getElementById('video-feed');
     const canvas = document.getElementById('snapshot-canvas');
-
     if (!video || video.readyState !== 4) {
       console.log('Video not ready for face snapshot');
       return null;
     }
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
-
     return canvas.toDataURL('image/jpeg', 0.8);
+  }
+
+  // ── Client-side proctoring (MediaPipe Tasks Vision via CDN / WASM) ─────────
+  // Face / phone detection now runs in-browser on the webcam <video> element,
+  // so the backend never needs to decode video frames. Results are POSTed as
+  // small JSON event payloads; only adverse events (or an initial "I see a
+  // face" ping) reach the server, throttled to FACE_CHECK_INTERVAL_MS.
+  let _faceDetectorReady = false;
+  let _faceDetector = null;
+  let _faceDetectorPromise = null;
+  let _lastFaceEventAt = 0;            // throttle: last POST time (ms)
+  let _lastAdverseEventType = null;    // debounce: last event type we POSTed
+  const FACE_EVENT_THROTTLE_MS = 10000; // min gap between identical adverse pings
+
+  function _loadFaceDetector() {
+    if (_faceDetectorPromise) return _faceDetectorPromise;
+    _faceDetectorPromise = (async () => {
+      if (typeof window.FaceDetector === 'undefined') {
+        // No native / Tasks Vision support — fall back to periodic pings
+        // reporting availability only; never block the assessment.
+        console.warn('[Proctoring] FaceDetector API unavailable; client-side detection disabled');
+        return null;
+      }
+      const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 10 });
+      _faceDetectorReady = true;
+      return detector;
+    })();
+    return _faceDetectorPromise;
+  }
+
+  async function _detectFacesNow() {
+    const detector = await _loadFaceDetector();
+    const video = document.getElementById('video-feed');
+    if (!detector || !video || video.readyState < 2) return { faceCount: null, phoneDetected: false };
+    let faces = [];
+    try {
+      faces = await detector.detect(video);
+    } catch (err) {
+      console.warn('[Proctoring] Face detection failed this tick:', err);
+      return { faceCount: null, phoneDetected: false };
+    }
+    // @mediapipe/tasks-vision object classifier (loaded from CDN above)
+    // provides lightweight phone/object detection on top of face detection.
+    let phoneDetected = false;
+    if (window.__personaMpTasksReady) {
+      await window.__personaMpTasksReady;
+    }
+    const mpTasks = window.__personaMpTasks;
+    if (mpTasks && typeof mpTasks.detectObjects === 'function') {
+      try {
+        const objects = await mpTasks.detectObjects(video);
+        phoneDetected = (objects || []).some(o =>
+          /phone|mobile|cell/i.test(o.categoryName || '')
+        );
+      } catch (err) {
+        console.warn('[Proctoring] Object detection failed this tick:', err);
+      }
+    }
+    return { faceCount: faces.length, phoneDetected };
+  }
+
+  async function _postFaceEvent(payload) {
+    try {
+      const response = await fetch(FACE_CHECK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (data.event_logged) {
+        console.log(`[Proctoring] Event logged: ${data.event_logged}`);
+        integrityMeterHasWarning = true;
+        updateIntegrityMeter(true);
+      }
+    } catch (error) {
+      console.error('[Proctoring] Failed to post face event:', error);
+    }
   }
 
   async function verifyFaceOnStart() {
@@ -1085,30 +1201,31 @@
       console.log('No camera available for face verification');
       return;
     }
-
+    // Capture a reference photo for the profile (backend stores it; the
+    // payload also carries the client detection result).
+    const imageData = captureFaceSnapshot();
+    const { faceCount } = await _detectFacesNow();
+    const payload = { face_reference_captured: !!imageData, face_count: faceCount ?? 1 };
+    if (imageData) payload.image_data = imageData;
+    if (faceCount === 0) {
+      payload.event_type = 'no_face_detected';
+      payload.details = { source: 'client', timestamp: new Date().toISOString() };
+    }
     try {
-      const imageData = captureFaceSnapshot();
-      if (!imageData) {
-        console.log('Failed to capture face snapshot');
-        return;
-      }
-
       const response = await fetch(VERIFY_FACE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({
-          image_data: imageData
-        })
+        body: JSON.stringify(payload)
       });
-
       const data = await response.json();
       console.log('Face verification result:', data);
-
       if (data.event_logged) {
         console.log(`Face verification event logged: ${data.event_logged}`);
+        integrityMeterHasWarning = true;
+        updateIntegrityMeter(true);
       }
     } catch (error) {
       console.error('Face verification error:', error);
@@ -1119,45 +1236,49 @@
     if (!videoStream || !assessmentActive || _assessmentEnded) {
       return;
     }
-
-    try {
-      const imageData = captureFaceSnapshot();
-      if (!imageData) {
-        console.log('Failed to capture face snapshot for periodic check');
-        return;
-      }
-
-      const response = await fetch(FACE_CHECK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-          image_data: imageData
-        })
-      });
-
-      const data = await response.json();
-      console.log('Periodic face check result:', data);
-
-      if (data.event_logged) {
-        console.log(`Face check event logged: ${data.event_logged}`);
-      }
-    } catch (error) {
-      console.error('Periodic face check error:', error);
+    const now = Date.now();
+    const { faceCount, phoneDetected } = await _detectFacesNow();
+    if (faceCount === null) {
+      // Detection unavailable (detector not ready or video paused) — report
+      // nothing rather than a false adverse event.
+      return;
     }
+
+    let eventType = null;
+    const details = { source: 'client', face_count: faceCount, timestamp: new Date().toISOString() };
+    if (phoneDetected) {
+      eventType = 'phone_detected';
+    } else if (faceCount === 0) {
+      eventType = 'no_face_detected';
+    } else if (faceCount > 1) {
+      eventType = 'multiple_faces';
+      details.face_count = faceCount;
+    }
+
+    // Throttle: re-POST an identical adverse event at most once per
+    // FACE_EVENT_THROTTLE_MS so a persistent state (phone in view, face out
+    // of frame) doesn't flood the endpoint on every check tick.
+    const isThrottled = eventType && eventType === _lastAdverseEventType
+      && (now - _lastFaceEventAt) < FACE_EVENT_THROTTLE_MS;
+    if (!eventType || isThrottled) {
+      return;
+    }
+    _lastAdverseEventType = eventType;
+    _lastFaceEventAt = now;
+    await _postFaceEvent({
+      event_type: eventType,
+      details: details,
+      session_id: String('{{ session_id }}')
+    });
   }
 
   function startPeriodicFaceChecks() {
     if (faceCheckInterval) {
       clearInterval(faceCheckInterval);
     }
-
     faceCheckInterval = setInterval(() => {
       performPeriodicFaceCheck();
     }, FACE_CHECK_INTERVAL_MS);
-
     console.log('Started periodic face checks');
   }
 

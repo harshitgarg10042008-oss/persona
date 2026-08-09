@@ -39,6 +39,7 @@ else:
     SECRET_KEY_FILE.write_text(SECRET_KEY, encoding='utf-8')
 GROQ_API_KEY = config('GROQ_API_KEY', default=None)
 GROQ_MODEL = config('GROQ_MODEL', default='llama-3.3-70b-versatile')
+GROQ_VISION_MODEL = config('GROQ_VISION_MODEL', default='llama-3.2-90b-vision-preview')
 
 # Rate limiting and upload sizes
 RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default='5/m')
@@ -67,6 +68,15 @@ if REPLIT_DEV_DOMAIN:
         f'http://{REPLIT_DEV_DOMAIN}',
     ]
 
+# Render sets RENDER_HOSTNAME (or set it manually to your service's
+# onrender.com / custom domain) so CSRF cookies work on the deployed site.
+RENDER_HOSTNAME = os.environ.get('RENDER_HOSTNAME', '')
+if RENDER_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS += [
+        f'https://{RENDER_HOSTNAME}',
+        f'http://{RENDER_HOSTNAME}',
+    ]
+
 
 # Application definition
 
@@ -85,6 +95,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -119,10 +130,12 @@ WSGI_APPLICATION = 'PersonaBackend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# Render sets DATABASE_URL automatically for Postgres; decouple it here so a
+# single env var works out of the box while DB_NAME/DB_USER/... keep working.
+import dj_database_url  # noqa: E402
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 DB_NAME = config('DB_NAME', default='')
-
-if DB_NAME:
+if DATABASE_URL or DB_NAME:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -133,6 +146,10 @@ if DB_NAME:
             'PORT': config('DB_PORT', default='5432'),
         }
     }
+    if DATABASE_URL:
+        DATABASES['default'] = dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=True
+        )
 else:
     DATABASES = {
         'default': {
@@ -181,6 +198,13 @@ STATICFILES_DIRS = [
     BASE_DIR / 'PersonaFrontend' / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Render serves static files straight from the container's dyno; WhiteNoise
+# compresses/hashes them so collectstatic output is small and cacheable.
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Media files
 MEDIA_URL = 'media/'
@@ -238,11 +262,11 @@ X_FRAME_OPTIONS = 'DENY'
 
 # CSP (django-csp)
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://checkout.razorpay.com")
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net")
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
 CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "data:")
 CSP_IMG_SRC = ("'self'", "data:", "blob:")
-CSP_CONNECT_SRC = ("'self'", "api.groq.com", "https://api.razorpay.com")
+CSP_CONNECT_SRC = ("'self'", "api.groq.com", "https://api.razorpay.com", "https://cdn.jsdelivr.net", "https://storage.googleapis.com")
 CSP_MEDIA_SRC = ("'self'", "blob:", "data:")
 CSP_FRAME_SRC = ("'self'", "https://razorpay.com", "https://checkout.razorpay.com")
 

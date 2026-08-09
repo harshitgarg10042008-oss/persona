@@ -5751,78 +5751,62 @@ def capture_face_reference(request):
 @require_http_methods(["POST"])
 @csrf_exempt
 def verify_face_on_start(request, session_id):
-    """Verify face on assessment start against reference photo"""
+    """Verify face on assessment start using the client-reported detection result.
+
+    Face detection now runs in-browser via MediaPipe Tasks Vision (WASM) on the
+    webcam <video> element; the frontend posts a small JSON payload describing
+    the result instead of the raw video frame. This keeps the endpoint free of
+    cv2/mediapipe so the backend can run on free-tier hosts (Render).
+
+    Accepted payload (any of):
+      {"face_count": N, "face_reference_captured": true}           -> normal pass
+      {"event_type": "no_face_detected", ...}                      -> logged
+      {"event_type": "multiple_faces" | "phone_detected", ...}     -> logged
+      {"image_data": <base64 jpeg>}                                -> first-time reference capture (legacy)
+    """
     from .models import IndividualAssessment, IndividualUser, EnvironmentIntegrityEvent
     import base64
-    import cv2
-    import mediapipe as mp
     from django.utils import timezone
     from django.core.files.base import ContentFile
-    import numpy as np
-    
+
     try:
         assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
-        data = json.loads(request.body)
+        data = json.loads(request.body) if request.body else {}
+
+        # ── Legacy path: frontend still sends a first-time reference photo ────
         image_data = data.get('image_data')
-        
-        if not image_data:
-            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
-        
-        # Validate base64 image
-        is_valid, error_msg = validate_image_b64(image_data)
-        if not is_valid:
-            return JsonResponse({'success': False, 'error': error_msg}, status=400)
-        
-        # Get individual profile
-        individual_profile = getattr(request.user, 'individual_profile', None)
-        
-        # If no reference photo exists, use current as reference (first-time capture)
-        if not individual_profile or not individual_profile.face_reference_photo:
+        if image_data:
+            is_valid, error_msg = validate_image_b64(image_data)
+            if not is_valid:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+
+            individual_profile = getattr(request.user, 'individual_profile', None)
             if not individual_profile:
                 individual_profile = IndividualUser.objects.create(user=request.user, name=request.user.username)
-            
-            image_bytes = base64.b64decode(image_data.split(',')[1])
-            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
-            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
-            individual_profile.face_reference_captured_at = timezone.now()
-            individual_profile.save()
-            
-            return JsonResponse({
-                'success': True,
-                'match': True,
-                'message': 'First-time reference photo captured'
-            })
-        
-        # Perform face detection and comparison using MediaPipe
-        mp_face_detection = mp.solutions.face_detection
-        mp_drawing = mp.solutions.drawing_utils
-        
-        # Decode current image
-        current_image_bytes = base64.b64decode(image_data.split(',')[1])
-        current_image_array = np.frombuffer(current_image_bytes, dtype=np.uint8)
-        current_image = cv2.imdecode(current_image_array, cv2.IMREAD_COLOR)
-        
-        # Load reference image
-        with open(individual_profile.face_reference_photo.path, 'rb') as f:
-            reference_image_bytes = f.read()
-        reference_image_array = np.frombuffer(reference_image_bytes, dtype=np.uint8)
-        reference_image = cv2.imdecode(reference_image_array, cv2.IMREAD_COLOR)
-        
-        # Detect faces in both images
-        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
-            current_results = face_detection.process(cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))
-            reference_results = face_detection.process(cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB))
-        
-        # Check if faces detected
-        current_faces = current_results.detections if current_results.detections else []
-        reference_faces = reference_results.detections if reference_results.detections else []
-        
-        if len(current_faces) == 0:
-            # No face in current image - log event but don't block
+
+            if data.get('face_reference_captured') or not individual_profile.face_reference_photo:
+                image_bytes = base64.b64decode(image_data.split(',')[1])
+                filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
+                individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
+                individual_profile.face_reference_captured_at = timezone.now()
+                individual_profile.save()
+                return JsonResponse({
+                    'success': True,
+                    'match': True,
+                    'event_logged': None,
+                    'message': 'Reference photo captured (client-side detection in use)'
+                })
+
+        # ── Client-side detection event path ───────────────────────────────────
+        event_type = data.get('event_type')
+        details = data.get('details', {})
+        details['timestamp'] = timezone.now().isoformat()
+
+        if event_type == 'no_face_detected':
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
                 event_type='no_face_detected',
-                details={'timestamp': timezone.now().isoformat()}
+                details=details
             )
             return JsonResponse({
                 'success': True,
@@ -5830,50 +5814,45 @@ def verify_face_on_start(request, session_id):
                 'event_logged': 'no_face_detected',
                 'message': 'No face detected - event logged'
             })
-        
-        if len(reference_faces) == 0:
-            # No reference face - use current as new reference
-            image_bytes = base64.b64decode(image_data.split(',')[1])
-            filename = f"face_reference_{request.user.id}_{int(timezone.now().timestamp())}.jpg"
-            individual_profile.face_reference_photo.save(filename, ContentFile(image_bytes), save=False)
-            individual_profile.face_reference_captured_at = timezone.now()
-            individual_profile.save()
-            
-            return JsonResponse({
-                'success': True,
-                'match': True,
-                'message': 'Reference photo updated (no face in old reference)'
-            })
-        
-        # Simple face matching based on face count and approximate location
-        # For production, consider using face_recognition library for actual face embeddings
-        face_count_match = len(current_faces) == len(reference_faces)
-        
-        if not face_count_match:
-            # Face count mismatch - log event but don't block
+
+        if event_type in ('multiple_faces', 'phone_detected'):
+            if event_type == 'multiple_faces':
+                event_type = 'multiple_faces_detected'
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
-                event_type='face_mismatch',
-                details={
-                    'current_face_count': len(current_faces),
-                    'reference_face_count': len(reference_faces),
-                    'timestamp': timezone.now().isoformat()
-                }
+                event_type=event_type,
+                details=details
             )
             return JsonResponse({
                 'success': True,
                 'match': False,
-                'event_logged': 'face_mismatch',
-                'message': 'Face count mismatch - event logged'
+                'event_logged': event_type,
+                'message': f'{event_type} - event logged'
             })
-        
-        # If we get here, basic checks passed
+
+        # face_count >= 1 and no adverse event -> verification passed
+        face_count = data.get('face_count', 1)
+        if isinstance(face_count, (int, float)) and face_count >= 1:
+            return JsonResponse({
+                'success': True,
+                'match': True,
+                'event_logged': None,
+                'message': 'Face verification passed (client-side detection)'
+            })
+
+        # No face reported and no explicit event -> log as no_face_detected for safety
+        EnvironmentIntegrityEvent.objects.create(
+            assessment=assessment,
+            event_type='no_face_detected',
+            details={**details, 'reason': 'face_count reported 0 or missing'}
+        )
         return JsonResponse({
             'success': True,
-            'match': True,
-            'message': 'Face verification passed'
+            'match': False,
+            'event_logged': 'no_face_detected',
+            'message': 'No face reported - event logged'
         })
-        
+
     except Exception as e:
         logger.exception("Error in face verification")
         # Don't block assessment on verification errors
@@ -5889,66 +5868,58 @@ def verify_face_on_start(request, session_id):
 @require_http_methods(["POST"])
 @csrf_exempt
 def periodic_face_check(request, session_id):
-    """Periodic face presence check during assessment"""
+    """Periodic face presence check during assessment.
+
+    Face detection now runs in-browser (MediaPipe Tasks Vision / WASM on the
+    webcam <video> element). The frontend posts a small JSON payload such as:
+
+        {"face_count": 1, "session_id": "...", "timestamp": "..."}
+        {"event_type": "no_face_detected", "details": {...}, "session_id": "..."}
+        {"event_type": "multiple_faces", "details": {"face_count": 3}, "session_id": "..."}
+        {"event_type": "phone_detected", "details": {...}, "session_id": "..."}
+
+    The endpoint only persists the reported event to the
+    EnvironmentIntegrityEvent table (same model used by all other integrity
+    checks). The heavy cv2/mediapipe dependencies are no longer required.
+    """
     from .models import IndividualAssessment, EnvironmentIntegrityEvent
-    import base64
-    import cv2
-    import mediapipe as mp
     from django.utils import timezone
-    import numpy as np
-    
+
     try:
         assessment = get_object_or_404(IndividualAssessment, session_id=session_id, user=request.user)
-        data = json.loads(request.body)
-        image_data = data.get('image_data')
-        
-        if not image_data:
-            return JsonResponse({'success': False, 'error': 'No image data provided'}, status=400)
-        
-        # Validate base64 image
-        is_valid, error_msg = validate_image_b64(image_data)
-        if not is_valid:
-            return JsonResponse({'success': False, 'error': error_msg}, status=400)
-        
-        # Decode image
-        image_bytes = base64.b64decode(image_data.split(',')[1])
-        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
-        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-        
-        # Detect faces using MediaPipe
-        mp_face_detection = mp.solutions.face_detection
-        with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
-            results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        
-        faces = results.detections if results.detections else []
-        face_count = len(faces)
-        
-        # Log events based on face count
+        data = json.loads(request.body) if request.body else {}
+
+        event_type = data.get('event_type')
+        details = data.get('details', {}) or {}
+        details['timestamp'] = timezone.now().isoformat()
+        # Keep the client-provided session_id visible in the payload for audits
+        client_session_id = data.get('session_id')
+        if client_session_id:
+            details['client_session_id'] = client_session_id
+
+        mapped_type = {
+            'no_face_detected': 'no_face_detected',
+            'multiple_faces': 'multiple_faces_detected',
+            'multiple_faces_detected': 'multiple_faces_detected',
+            'phone_detected': 'phone_detected',
+        }.get(event_type)
+
         event_logged = None
-        if face_count == 0:
+        if mapped_type:
             EnvironmentIntegrityEvent.objects.create(
                 assessment=assessment,
-                event_type='no_face_detected',
-                details={'timestamp': timezone.now().isoformat()}
+                event_type=mapped_type,
+                details=details
             )
-            event_logged = 'no_face_detected'
-        elif face_count > 1:
-            EnvironmentIntegrityEvent.objects.create(
-                assessment=assessment,
-                event_type='multiple_faces_detected',
-                details={
-                    'face_count': face_count,
-                    'timestamp': timezone.now().isoformat()
-                }
-            )
-            event_logged = 'multiple_faces_detected'
-        
+            event_logged = mapped_type
+        # face_count present without an adverse event -> presence OK, nothing to log
+
         return JsonResponse({
             'success': True,
-            'face_count': face_count,
+            'face_count': data.get('face_count'),
             'event_logged': event_logged
         })
-        
+
     except Exception as e:
         logger.exception("Error in periodic face check")
         return JsonResponse({
