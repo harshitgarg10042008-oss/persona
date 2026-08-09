@@ -36,16 +36,38 @@ class Command(BaseCommand):
         email = owner_emails[0]
         self.stdout.write(f"Configured owner email: {email}")
 
-        # Find or create the user
-        try:
-            user = User.objects.get(email=email)
-            self.stdout.write(f"Found existing user: {user.email}")
-        except User.DoesNotExist:
-            self.stdout.write(self.style.WARNING(
-                f"No account found for {email}. You need to sign up first, "
-                f"then run this command again."
+            # Find existing user or create the owner account
+    try:
+        user = User.objects.get(email=email)
+        self.stdout.write(f"Found existing user: {user.email}")
+
+    except User.DoesNotExist:
+        username = getattr(
+            settings,
+            'SUBSCRIPTION_OWNER_USERNAME',
+            email.split('@')[0]
+        )
+        password = getattr(
+            settings,
+            'SUBSCRIPTION_OWNER_PASSWORD',
+            None
+        )
+
+        if not password:
+            self.stderr.write(self.style.ERROR(
+                "SUBSCRIPTION_OWNER_PASSWORD is not configured."
             ))
             return
+
+        user = User.objects.create_superuser(
+            email=email,
+            username=username,
+            password=password,
+        )
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Created owner account: {email}"
+        ))
 
         # Make superuser (admin panel access)
         changed = False
