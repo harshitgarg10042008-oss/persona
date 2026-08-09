@@ -165,9 +165,11 @@ Return ONLY valid JSON with these keys:
                 'recommendations': [],
                 'assessment_type': assessment_type,
                 'timestamp': None,
+                'vision_available': False,
             }
 
             if payload:
+                results['vision_available'] = True
                 for key in ('professionalism_score', 'appropriateness_score',
                             'grooming_score', 'color_coordination_score', 'fit_score'):
                     try:
@@ -179,7 +181,15 @@ Return ONLY valid JSON with these keys:
                 results['feedback'] = list(payload.get('feedback', [])) or []
                 results['recommendations'] = list(payload.get('recommendations', [])) or []
             else:
-                # Vision API unavailable: neutral fallback that does not block the flow
+                # Vision API unavailable: a real neutral score (0.5) is stored so
+                # the snapshot is not silently dropped, with a clear flag and
+                # feedback line explaining why no real analysis is available.
+                results['overall_score'] = 0.5
+                results['professionalism_score'] = 0.5
+                results['appropriateness_score'] = 0.5
+                results['grooming_score'] = 0.5
+                results['color_coordination_score'] = 0.5
+                results['fit_score'] = 0.5
                 results['details']['error'] = 'Groq vision analysis unavailable; neutral scores returned'
                 results['details']['description'] = ''
                 results['feedback'] = ['Attire analysis unavailable this session.']

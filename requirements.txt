@@ -1,8 +1,9 @@
 # Persona — Web-optimized dependency list (Render-ready)
 # Heavy local ML/CV libraries (torch, torchvision, transformers, mediapipe,
-# opencv-python, openai-whisper, librosa, SpeechRecognition, moviepy,
-# scikit-learn) have been removed. Audio transcription and AI analysis now
-# run on Groq's hosted APIs; proctoring runs in the browser.
+# opencv-python, openai-whisper, librosa, SpeechRecognition, scikit-learn)
+# have been removed. Audio transcription and AI analysis now run on Groq's
+# hosted APIs; proctoring runs in the browser. The summary-video generator
+# still uses moviepy (see note below) with a bundled ffmpeg binary.
 #
 # Deployment requirements:
 #   1. Set GROQ_API_KEY in Render env vars (whisper transcription + LLM scoring)
@@ -43,6 +44,12 @@ seaborn==0.13.2
 tqdm==4.68.3
 xhtml2pdf==0.2.17
 reportlab==4.4.3
+
+# Summary video generation (video_generator.py builds MP4s from slides + gTTS audio).
+# moviepy 2.x relies on imageio-ffmpeg, which bundles a static ffmpeg binary —
+# no system ffmpeg installation is required on Render.
+moviepy==2.2.1
+imageio-ffmpeg==0.6.0
 
 # Text-to-speech for generated audio assets
 gTTS==2.5.4

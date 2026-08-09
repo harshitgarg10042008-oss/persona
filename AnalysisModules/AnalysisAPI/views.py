@@ -262,21 +262,21 @@ def _snapshot_score_from_data(snapshot):
 
 
 def _enqueue_speech_analysis(response_id, question_text):
-    """Run speech analysis via django-q, falling back to a daemon thread."""
-    from .tasks import run_speech_analysis_task
+    """Run speech analysis in a daemon thread.
 
-    try:
-        from django_q.tasks import async_task
-        async_task(run_speech_analysis_task, response_id, question_text)
-    except Exception as e:
-        print(f"django-q enqueue failed ({e}), using thread fallback")
-        import threading
-        thread = threading.Thread(
-            target=run_speech_analysis_task,
-            args=(response_id, question_text),
-            daemon=True,
-        )
-        thread.start()
+    NOTE: django-q2 is installed but no qcluster worker runs in the Procfile —
+    on Render (single web dyno) queued ORM tasks are never consumed, so async
+    analysis must run in-process instead.
+    """
+    from .tasks import run_speech_analysis_task
+    import threading
+
+    thread = threading.Thread(
+        target=run_speech_analysis_task,
+        args=(response_id, question_text),
+        daemon=True,
+    )
+    thread.start()
 
 
 @login_required
@@ -2120,114 +2120,24 @@ def submit_assessment_response(request, session_id):
                     else:
                         response.video_file.save(filename, video_file)
 
-                    # ----------------------------------------------------------------
-                    # Audio extraction from the saved video.
-                    #
                     # IMPORTANT: FieldFile.save() above fully reads the upload stream,
-                    # leaving the file pointer at EOF.  We must seek(0) before calling
-                    # video_file.chunks() so the temp file receives the actual content
-                    # instead of 0 bytes — which was the root cause of empty audio_bytes
-                    # and silent speech-analysis failures.
-                    # ----------------------------------------------------------------
-                    import tempfile
-                    import os
-                    import subprocess
-                    from django.core.files.base import ContentFile
-
+                    # leaving the file pointer at EOF.  We must seek(0) before reading
+                    # the bytes, otherwise audio_bytes would be empty and speech
+                    # analysis would be silently skipped.
                     video_file.seek(0)  # reset stream after FieldFile.save() consumed it
-                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_video:
-                        for chunk in video_file.chunks():
-                            temp_video.write(chunk)
-                        temp_video_path = temp_video.name
-
-                    # ----------------------------------------------------------------
-                    # Extract audio via raw ffmpeg instead of moviepy's VideoFileClip.
-                    #
-                    # Chrome's MediaRecorder writes .webm files as a live stream —
-                    # the header has no duration/seek metadata.  MoviePy's VideoFileClip
-                    # asks ffmpeg for that duration upfront and raises:
-                    #   OSError: MoviePy error: failed to read the duration of …
-                    # Raw ffmpeg (invoked directly) handles this fine because it just
-                    # reads packets without needing the header duration field.
-                    #
-                    # imageio_ffmpeg is a moviepy dependency that ships a bundled ffmpeg
-                    # binary, so we use it to locate the binary reliably instead of
-                    # relying on ffmpeg being on PATH.
-                    # ----------------------------------------------------------------
-                    try:
-                        from imageio_ffmpeg import get_ffmpeg_exe
-                        ffmpeg_bin = get_ffmpeg_exe()
-                    except Exception:
-                        ffmpeg_bin = "ffmpeg"  # fall back to PATH
-
-                    temp_audio_path = None
-                    audio_bytes = b''
-
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                        temp_audio_path = temp_audio.name
-
-                    try:
-                        ffmpeg_result = subprocess.run(
-                            [
-                                ffmpeg_bin,
-                                "-y",               # overwrite output without prompting
-                                "-i", temp_video_path,
-                                "-vn",              # strip video stream
-                                "-acodec", "pcm_s16le",
-                                "-ar", "16000",     # Whisper expects 16kHz
-                                "-ac", "1",         # Whisper expects mono
-                                temp_audio_path,
-                            ],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        )
-                    except FileNotFoundError:
-                        ffmpeg_result = None
+                    audio_bytes = video_file.read()
+                    if not audio_bytes:
                         logger.warning(
-                            "[DIAG] submit_assessment_response: ffmpeg binary not found — "
-                            "audio extraction skipped for session %s",
+                            "[DIAG] submit_assessment_response: video upload was empty "
+                            "for session %s — speech analysis skipped",
                             session_id,
                         )
 
-                    if ffmpeg_result is not None and ffmpeg_result.returncode == 0 \
-                            and os.path.exists(temp_audio_path) \
-                            and os.path.getsize(temp_audio_path) > 0:
-                        with open(temp_audio_path, 'rb') as f:
-                            audio_bytes = f.read()
-
-                        # Persist extracted audio to audio_file so it is stored
-                        # independently of the video (enables offline re-analysis).
-                        audio_filename = (
-                            f"response_{assessment.id}_"
-                            f"{assessment.current_question_index + 1}_"
-                            f"{uuid.uuid4().hex[:8]}.wav"
-                        )
-                        if is_answering_follow_up:
-                            follow_up_response.audio_file.save(
-                                audio_filename, ContentFile(audio_bytes), save=False
-                            )
-                        else:
-                            response.audio_file.save(
-                                audio_filename, ContentFile(audio_bytes), save=False
-                            )
-                    else:
-                        if ffmpeg_result is not None and ffmpeg_result.returncode != 0:
-                            stderr_text = ffmpeg_result.stderr.decode(errors="replace")
-                            logger.warning(
-                                "[DIAG] submit_assessment_response: ffmpeg exited %d for session %s — "
-                                "video may have no audio track.\n%s",
-                                ffmpeg_result.returncode, session_id, stderr_text,
-                            )
-                        else:
-                            logger.warning(
-                                "[DIAG] submit_assessment_response: ffmpeg produced no audio output "
-                                "for session %s — video may have no audio track.",
-                                session_id,
-                            )
-
-                    os.remove(temp_video_path)
-                    if temp_audio_path and os.path.exists(temp_audio_path):
-                        os.remove(temp_audio_path)
+                    # NOTE: no ffmpeg extraction is performed here. Chrome's
+                    # MediaRecorder .webm uploads are passed directly to Groq's
+                    # hosted whisper-large-v3, which accepts webm containers —
+                    # keeping the pipeline free of local binaries for Render.
+                    # The full video is already persisted above (video_file.save).
 
                 else:
                     audio_bytes = base64.b64decode(data['audio_data'].split(',')[1])
@@ -3001,15 +2911,12 @@ def complete_individual_assessment(request, session_id):
         assessment.cv_analysis_status = 'pending'
         assessment.save(update_fields=['cv_analysis_status'])
         from .tasks import process_cv_analysis_task
-        try:
-            from django_q.tasks import async_task
-            async_task(process_cv_analysis_task, assessment.id, timeout=600)
-            logger.info(f"[CV Analysis] Queued task via django-q for assessment {assessment.session_id}")
-        except Exception as e:
-            logger.error(f"[CV Analysis] django-q enqueue failed ({e}), using thread fallback")
-            import threading
-            thread = threading.Thread(target=process_cv_analysis_task, args=(assessment.id,), daemon=True)
-            thread.start()
+        import threading
+        # django-q has no worker on Render (single web dyno), so run in a
+        # daemon thread to avoid the task sitting in the queue forever.
+        thread = threading.Thread(target=process_cv_analysis_task, args=(assessment.id,), daemon=True)
+        thread.start()
+        logger.info(f"[CV Analysis] Started thread-based task for assessment {assessment.session_id}")
 
     # ── Per-question confidence / energy chart data ─────────────────────
     # Extract the audio features already calculated by speech_analyzer.py
@@ -4819,28 +4726,18 @@ def interview_summary_video_generate(request):
         status='pending'
     )
 
-    # Enqueue background task using django-q pattern
+    # Enqueue background task. django-q has no worker on Render (single web
+    # dyno), so the task is run in a daemon thread instead of queuing it.
     from .tasks import generate_summary_video_task
-    try:
-        from django_q.tasks import async_task
-        logger.info(f"[SUMMARY VIDEO] Attempting to enqueue task for video_record {video_record.id}")
-        task_id = async_task(
-            generate_summary_video_task,
-            video_record.id,
-            timeout=300,  # per-task timeout: 5 min, overrides Q_CLUSTER global of 60 s
-        )
-        logger.info(f"[SUMMARY VIDEO] Task enqueued successfully with task_id: {task_id}")
-    except Exception as e:
-        logger.error(f"[SUMMARY VIDEO] django-q enqueue failed ({e}), using thread fallback")
-        print(f"django-q enqueue failed ({e}), using thread fallback")
-        import threading
-        thread = threading.Thread(
-            target=generate_summary_video_task,
-            args=(video_record.id,),
-            daemon=True,
-        )
-        thread.start()
-        logger.info(f"[SUMMARY VIDEO] Thread fallback started for video_record {video_record.id}")
+    import threading
+    logger.info(f"[SUMMARY VIDEO] Starting summary-video task for video_record {video_record.id}")
+    thread = threading.Thread(
+        target=generate_summary_video_task,
+        args=(video_record.id,),
+        daemon=True,
+    )
+    thread.start()
+    logger.info(f"[SUMMARY VIDEO] Thread started for video_record {video_record.id}")
 
     return redirect('analysis:interview_summary_video_result', video_id=video_record.id)
 
