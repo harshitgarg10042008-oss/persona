@@ -61,6 +61,76 @@ def _call_groq(prompt: str, timeout: int = 30, max_tokens: int = None) -> Option
         return None
 
 
+def _extract_json(text: str) -> Optional[dict]:
+    """Robustly extract the first JSON object from model output.
+
+    Model output frequently arrives wrapped in markdown fences and/or preceded
+    by reasoning/thinking prose (common with thinking-mode models on Groq),
+    which is why a naive ``json.loads(cleaned)`` failed in production even
+    when the model's JSON payload itself was well-formed.
+
+    Strategy:
+    1. Strip a leading markdown JSON fence if present.
+    2. Locate the first ``{`` and last ``}`` and try ``json.loads`` on that span.
+    3. If that fails, fall back to progressively trimming the trailing edge
+       (handles models that append prose after the closing brace).
+    Returns the parsed dict or None.
+    """
+    if not text:
+        return None
+    payload = text.strip()
+    # 1. strip markdown fences
+    payload = re.sub(r'^```(?:json)?\s*', '', payload, flags=re.IGNORECASE)
+    payload = re.sub(r'\s*```$', '', payload)
+    open_idx = payload.find('{')
+    close_idx = payload.rfind('}')
+    if open_idx == -1 or close_idx == -1 or close_idx <= open_idx:
+        return None
+    span = payload[open_idx:close_idx + 1]
+    try:
+        return json.loads(span)
+    except json.JSONDecodeError:
+        pass
+    # 3. trailing-prose tolerance: trim the tail progressively
+    for trim in range(50, min(300, len(span) - 2), 50):
+        try:
+            return json.loads(span[:-trim])
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _extract_any_json(text: str):
+    """Same as ``_extract_json`` but also accepts JSON arrays and primitives."""
+    if not text:
+        return None
+    payload = text.strip()
+    payload = re.sub(r'^```(?:json)?\s*', '', payload, flags=re.IGNORECASE)
+    payload = re.sub(r'\s*```$', '', payload)
+    open_idx = payload.find('{')
+    open_bracket = payload.find('[')
+    # pick whichever bracket opens first
+    first = min(i for i in (open_idx, open_bracket) if i != -1) if min((open_idx, open_bracket)) != -1 else -1
+    if first == -1:
+        return None
+    close_idx = payload.rfind('}')
+    close_bracket = payload.rfind(']')
+    last = max(i for i in (close_idx, close_bracket) if i != -1) if max((close_idx, close_bracket)) != -1 else -1
+    if last == -1 or last <= first:
+        return None
+    span = payload[first:last + 1]
+    try:
+        return json.loads(span)
+    except json.JSONDecodeError:
+        pass
+    for trim in range(50, min(300, len(span) - 2), 50):
+        try:
+            return json.loads(span[:-trim])
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Public functions — identical signatures and return shapes as before
 # ---------------------------------------------------------------------------
@@ -90,18 +160,19 @@ Return ONLY valid JSON with two keys:
         if not text:
             raise ValueError('No Groq response text')
 
-        # Strip markdown fences if the model added them
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        try:
-            payload = json.loads(cleaned)
+        payload = _extract_json(text)
+        if payload is None:
+            # robust extractor failed (very unusual); fall back to regex heuristics
+            score_match = re.search(
+                r'content_correctness_score[^0-9]*(\d+(?:\.\d+)?)',
+                text.strip(),
+                flags=re.IGNORECASE,
+            )
+            score = float(score_match.group(1)) if score_match else None
+            explanation = text.strip() or 'Content evaluation unavailable'
+        else:
             score = payload.get('content_correctness_score')
             explanation = payload.get('explanation') or 'Content evaluation unavailable'
-        except json.JSONDecodeError:
-            score_match = re.search(r'content_correctness_score[^0-9]*(\d+(?:\.\d+)?)', cleaned, flags=re.IGNORECASE)
-            score = float(score_match.group(1)) if score_match else None
-            explanation = cleaned.strip() or 'Content evaluation unavailable'
 
         if score is None:
             return {
@@ -312,14 +383,17 @@ Return ONLY a JSON array of strings, with no additional explanation.
 
         cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
         cleaned = re.sub(r'\s*```$', '', cleaned)
-
+        # Try the robust extractor first (handles reasoning prose around the
+        # JSON), then fall back to a raw parse and finally line heuristics.
+        questions = _extract_any_json(text)
+        if isinstance(questions, list):
+            return [html.unescape(str(q).strip()) for q in questions if str(q).strip()][:num_questions]
         try:
             questions = json.loads(cleaned)
             if isinstance(questions, list):
                 return [html.unescape(str(q).strip()) for q in questions if str(q).strip()][:num_questions]
         except json.JSONDecodeError:
             pass
-
         lines = [line.strip('-* \t\n') for line in cleaned.splitlines() if line.strip()]
         questions = [html.unescape(line) for line in lines if len(line) > 10]
         return questions[:num_questions]
@@ -609,6 +683,7 @@ Return ONLY valid JSON (no markdown fences, no prose outside the JSON) matching 
             messages=[{'role': 'user', 'content': prompt}],
             model=model_name,
             timeout=30,
+            max_tokens=2048,
         )
 
         # ── DEBUG: show the full raw response before any parsing ──────────────
@@ -616,16 +691,13 @@ Return ONLY valid JSON (no markdown fences, no prose outside the JSON) matching 
 
         text = chat_completion.choices[0].message.content or ''
         print(f'[DEBUG] Extracted content (first 300 chars): {repr(text[:300])}')
-
         if not text:
             print('[WARN] generate_improvement_roadmap: Groq returned empty content')
             return None
-
-        # Strip markdown fences if present
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        roadmap = json.loads(cleaned)
+        # Robust extraction: reasoning/thinking prose and/or markdown fences may
+        # surround otherwise well-formed JSON, which is why plain json.loads on
+        # the cleaned text fails in production (see _extract_json).
+        roadmap = _extract_json(text)
 
         # Validate required keys
         required = {'level', 'current_score', 'target_score', 'action_items'}
@@ -820,11 +892,10 @@ Return ONLY valid JSON matching this exact schema:
             print('[WARN] generate_ai_interview_coach: Groq returned empty content')
             return None
 
-        # Strip markdown fences if present
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        coaching_data = json.loads(cleaned)
+        coaching_data = _extract_json(text)
+        if coaching_data is None:
+            print('[WARN] generate_ai_interview_coach: failed to extract JSON from Groq output')
+            return None
 
         # Validate required keys
         required = {'summary', 'strengths', 'weaknesses', 'action_plan', 'recommended_topics'}
@@ -959,12 +1030,9 @@ Schema:
             logger.warning('generate_skill_gap_analysis: Groq returned no response')
             return None
 
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-        payload = json.loads(cleaned)
-
+        payload = _extract_json(text)
         if not isinstance(payload, dict):
-            logger.warning('generate_skill_gap_analysis: response was not a JSON object')
+            logger.warning('generate_skill_gap_analysis: failed to extract a JSON object from Groq output')
             return None
 
         def _normalize_items(raw, limit):
@@ -1138,17 +1206,12 @@ Return ONLY valid JSON with these keys:
             )
             return None
 
-        # Strip markdown fences if present
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        try:
-            result = json.loads(cleaned)
-        except json.JSONDecodeError:
+        result = _extract_json(text)
+        if result is None:
             # Fallback for malformed JSON is less reliable but better than nothing
-            perf_match = re.search(r'performance_score[^0-9]*(\d+(?:\.\d+)?)', cleaned, flags=re.IGNORECASE)
-            diff_match = re.search(r'next_difficulty["\s:]+(\w+)', cleaned, flags=re.IGNORECASE)
-            follow_up_match = re.search(r'generate_follow_up["\s:]+(true|false)', cleaned, flags=re.IGNORECASE)
+            perf_match = re.search(r'performance_score[^0-9]*(\d+(?:\.\d+)?)', text.strip(), flags=re.IGNORECASE)
+            diff_match = re.search(r'next_difficulty["\s:]+(\w+)', text.strip(), flags=re.IGNORECASE)
+            follow_up_match = re.search(r'generate_follow_up["\s:]+(true|false)', text.strip(), flags=re.IGNORECASE)
 
             result = {
                 'performance_score': float(perf_match.group(1)) if perf_match else 5.0,
@@ -1277,11 +1340,10 @@ Return ONLY valid JSON, no markdown fences, no prose outside the JSON."""
             logger.warning('analyze_star_framework: No Groq response')
             return None
 
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        result = json.loads(cleaned)
-
+        result = _extract_json(text)
+        if result is None:
+            logger.warning('analyze_star_framework: Could not extract JSON from Groq output')
+            return None
         # Accept either key name the model may use for the score
         raw_score = result.get('star_score', result.get('score', 0))
         return {
@@ -1345,16 +1407,10 @@ Return ONLY valid JSON with this exact structure:
             logger.warning('generate_skill_gap_analysis: No Groq response')
             return None
 
-        # Strip markdown fences if present
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        try:
-            result = json.loads(cleaned)
-        except json.JSONDecodeError:
-            logger.warning('generate_skill_gap_analysis: Could not parse JSON from Groq')
+        result = _extract_json(text)
+        if result is None:
+            logger.warning('generate_skill_gap_analysis: Could not extract JSON from Groq output')
             return None
-            
         # Ensure correct structure
         skill_gaps = result.get('skill_gaps', [])
         strengths = result.get('strengths', [])
@@ -1410,15 +1466,10 @@ Return ONLY valid JSON with this exact structure:
             logger.warning('generate_learning_roadmap: No Groq response')
             return None
 
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        try:
-            result = json.loads(cleaned)
-        except json.JSONDecodeError:
-            logger.warning('generate_learning_roadmap: Could not parse JSON from Groq')
+        result = _extract_json(text)
+        if result is None:
+            logger.warning('generate_learning_roadmap: Could not extract JSON from Groq output')
             return None
-
         weeks = result.get('weeks', [])
         if not isinstance(weeks, list):
             weeks = []
@@ -1542,13 +1593,9 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose 
             logger.warning('generate_communication_analysis: No Groq response')
             return None
 
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        result = json.loads(cleaned)
-
+        result = _extract_json(text)
         if not isinstance(result, dict):
-            logger.warning('generate_communication_analysis: response was not a JSON object')
+            logger.warning('generate_communication_analysis: failed to extract a JSON object from Groq output')
             return None
 
         summary = str(result.get('summary') or '').strip()
@@ -1629,12 +1676,7 @@ Example format:
             print('[WARN] generate_job_matches: Groq returned empty content')
             return None
 
-        # Strip markdown fences if present
-        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-
-        matches = json.loads(cleaned)
-
+        matches = _extract_any_json(text)
         if not isinstance(matches, list):
             print('[WARN] generate_job_matches: JSON is not a list')
             return None

@@ -39,7 +39,9 @@ else:
     SECRET_KEY_FILE.write_text(SECRET_KEY, encoding='utf-8')
 GROQ_API_KEY = config('GROQ_API_KEY', default=None)
 GROQ_MODEL = config('GROQ_MODEL', default='llama-3.3-70b-versatile')
-GROQ_VISION_MODEL = config('GROQ_VISION_MODEL', default='llama-3.2-90b-vision-preview')
+# NOTE (Aug 2026): llama-3.3-70b-versatile is on Groq's deprecation list
+# (shutdown 08/16/26); migrate to openai/gpt-oss-120b before it is cut off.
+GROQ_VISION_MODEL = config('GROQ_VISION_MODEL', default='qwen/qwen3.6-27b')
 
 # Rate limiting and upload sizes
 RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default='5/m')
@@ -201,6 +203,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Render serves static files straight from the container's dyno; WhiteNoise
 # compresses/hashes them so collectstatic output is small and cacheable.
 STORAGES = {
+    'default': {
+        # Pre-refactor the project relied on Django's implicit default media
+        # file storage (FileSystemStorage). Explicitly restoring it here since
+        # defining STORAGES without a 'default' key raises InvalidStorageError
+        # on any model with an uploaded file (e.g. video uploads).
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },

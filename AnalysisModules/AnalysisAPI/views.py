@@ -1904,7 +1904,8 @@ def submit_assessment_response(request, session_id):
                         'persona_avatar': get_persona_avatar(next_persona_id),
                         'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                         'persona_id': next_persona_id,
-                        'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
+                        'time_limit_seconds': (next_q.expected_duration if next_q.expected_duration else 120)
+                        if not is_follow_up and next_q else 120,
                     }
                 return JsonResponse(response_data)
         
@@ -1984,7 +1985,8 @@ def submit_assessment_response(request, session_id):
                     'persona_avatar': get_persona_avatar(next_persona_id),
                     'persona_name': PERSONAS.get(next_persona_id, {}).get('name', 'Interviewer'),
                     'persona_id': next_persona_id,
-                    'time_limit_seconds': next_question.expected_duration if next_question.expected_duration else 120,
+                    'time_limit_seconds': (next_q.expected_duration if next_q.expected_duration else 120)
+                    if not is_follow_up and next_q else 120,
                 }
             # Record server-side start time for the next question
             next_session_key = f"assessment_{session_id}_q_{assessment.current_question_index}_start"
@@ -5707,7 +5709,7 @@ def recruiter_dashboard_generate_verdict(request):
 @csrf_exempt
 def capture_face_reference(request):
     """Capture and store reference photo for face verification"""
-    from .models import IndividualUser
+    from UserAPI.models import IndividualUser
     from django.core.files.base import ContentFile
     import base64
     from django.utils import timezone
@@ -5764,7 +5766,8 @@ def verify_face_on_start(request, session_id):
       {"event_type": "multiple_faces" | "phone_detected", ...}     -> logged
       {"image_data": <base64 jpeg>}                                -> first-time reference capture (legacy)
     """
-    from .models import IndividualAssessment, IndividualUser, EnvironmentIntegrityEvent
+    from .models import IndividualAssessment, EnvironmentIntegrityEvent
+    from UserAPI.models import IndividualUser
     import base64
     from django.utils import timezone
     from django.core.files.base import ContentFile

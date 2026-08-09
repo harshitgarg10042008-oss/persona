@@ -22,7 +22,7 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-VISION_MODEL = os.getenv('GROQ_VISION_MODEL', 'llama-3.2-90b-vision-preview')
+VISION_MODEL = os.getenv('GROQ_VISION_MODEL', 'qwen/qwen3.6-27b')
 
 
 def _get_api_key() -> Optional[str]:
@@ -61,6 +61,7 @@ def _groq_vision(image_bytes: bytes, prompt: str, timeout: int = 60) -> Optional
                 ],
             }],
             model=VISION_MODEL,
+            response_format={'type': 'json_object'},
             temperature=0.2,
             timeout=timeout,
             max_tokens=1024,
